@@ -1,0 +1,83 @@
+{
+  "name": "panmap",
+  "version": "0.1.0",
+  "description": "Read OCAD, OMap/XMap, and GitMap orienteering-map files into a shared PanMap model, and export to GeoJSON, SVG, or GitMap.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "panmap": "dist/cli/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/main.js",
+    "test": "tsc --noEmit && npm run lint && ava --node-arguments='--import tsx'",
+    "lint": "eslint src/",
+    "prepublishOnly": "npm test && npm run build"
+  },
+  "keywords": [
+    "ocad",
+    "omap",
+    "gitmap",
+    "orienteering",
+    "geojson",
+    "svg",
+    "gis"
+  ],
+  "author": "Ryan Moore <kiwi.ryanmoore@gmail.com>",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kiwirm/panmap.git"
+  },
+  "homepage": "https://github.com/kiwirm/panmap#readme",
+  "bugs": {
+    "url": "https://github.com/kiwirm/panmap/issues"
+  },
+  "ava": {
+    "files": [
+      "test/**/*.test.js"
+    ]
+  },
+  "devDependencies": {
+    "@turf/kinks": "^7.2.0",
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "ava": "^4.2.0",
+    "eslint": "^8.16.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.2.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-standard": "^5.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@turf/line-offset": "^7.2.0",
+    "@turf/meta": "^7.2.0",
+    "@types/geojson": "^7946.0.13",
+    "@xmldom/xmldom": "^0.9.10",
+    "bezier-js": "^2.4.0",
+    "commander": "^12.1.0",
+    "fast-xml-parser": "^4.5.0",
+    "geojson-vt": "^3.2.0",
+    "reproject": "^1.2.3",
+    "vt-pbf": "^3.1.1"
+  }
+}
