@@ -83,6 +83,29 @@ async function writeOmap(map: PanMap, filename: string): Promise<void> {
 function mapToOmapXml(map: PanMap): string {
   const colorIds = colorIdMap(map.colors.filter(Boolean))
   const symbolIds = symbolIdMap(map.symbols)
+  // Objects reference symbols by string id, but OMAP requires unique
+  // numeric ids per symbol *instance*. When two panmap symbols share a
+  // string id (e.g. two variants of ISOM 201.2 collapsed by
+  // `stableSymbolId`), route object references to a *visible* variant
+  // if one exists — otherwise every object bound to the hidden variant
+  // silently disappears (see red-zone 401: "Open land" hidden, "Open
+  // land, dominant" visible; both share sym_401).
+  const objectSymbolIds = new Map<string | number, number>()
+  const isSymbolHidden = (s: MapSymbol): boolean =>
+    !!(s as { hidden?: boolean }).hidden
+  for (const symbol of map.symbols) {
+    if (isSymbolHidden(symbol)) continue
+    if (objectSymbolIds.has(symbol.id)) continue
+    const n = symbolIds.get(symbol)
+    if (n !== undefined) objectSymbolIds.set(symbol.id, n)
+  }
+  // Fall back to any (including hidden) for ids that have no visible
+  // variant, so objects can still reference their symbol.
+  for (const symbol of map.symbols) {
+    if (objectSymbolIds.has(symbol.id)) continue
+    const n = symbolIds.get(symbol)
+    if (n !== undefined) objectSymbolIds.set(symbol.id, n)
+  }
   const flipY = shouldFlipYForOmap(map)
 
   const mapAttrs = mapAttributes()
@@ -111,7 +134,7 @@ function mapToOmapXml(map: PanMap): string {
     ...mapExtras,
     `<barrier ${barrierAttrs}>`,
     symbolsToXml(map.symbols, symbolIds, colorIds),
-    partsToXml(map.objects, symbolIds, flipY),
+    partsToXml(map.objects, objectSymbolIds, flipY),
     '</barrier>',
     '</map>',
     '',
@@ -322,7 +345,7 @@ function colorsToXml(colors: MapColor[], colorIds: Map<string | number, number>)
 
 function symbolsToXml(
   symbols: MapSymbol[],
-  symbolIds: Map<string | number, number>,
+  symbolIds: Map<MapSymbol, number>,
   colorIds: Map<string | number, number>
 ): string {
   return block(
@@ -336,15 +359,10 @@ function symbolsToXml(
 
 function symbolToXml(
   symbol: MapSymbol,
-  symbolIds: Map<string | number, number>,
+  symbolIds: Map<MapSymbol, number>,
   colorIds: Map<string | number, number>
 ): string {
-  // All symbols round-trip through the PanMap render-layer model.
-  // `native.xmap.raw` used to power a passthrough branch here that let
-  // xmap-sourced symbols emit their original XML verbatim; now the
-  // PanMap → xmap adapter reconstructs the same shape from render
-  // layers so ocd-sourced and xmap-sourced maps take the same path.
-  const targetId = symbolIds.get(symbol.id) ?? Number(symbol.sourceId) ?? 0
+  const targetId = symbolIds.get(symbol) ?? Number(symbol.sourceId) ?? 0
   const synthetic = toOmapSymbol(symbol, targetId, colorIds)
   return indent(xmapSymbolToXml(synthetic, targetId), 2)
 }
@@ -526,6 +544,9 @@ function xmapSymbolToXml(symbol: RawOmapSymbol, id?: number): string {
     id !== undefined ? `id="${attr(id)}"` : '',
     symbol.code !== undefined ? `code="${attr(symbol.code)}"` : '',
     symbol.name !== undefined ? `name="${attr(symbol.name)}"` : '',
+    // Round-trip Mapper's UI-hide flag. Only emit when true so the
+    // XML stays clean for the (much more common) unhidden case.
+    symbol.isHidden ? `is_hidden="true"` : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -688,7 +709,11 @@ function xmapTextSymbolToXml(symbol: RawOmapTextSymbol): string {
     })}>`,
     `  <font${attrs({
       family: symbol.fontFamily || 'Arial',
-      size: dim(symbol.fontSize || 12),
+      // Internal fontSize is millimetres (see OMAP reader + OCAD
+      // reader/writer contract). XMap serialises font size as µm
+      // (1/1000 mm), so multiply by 1000 rather than the coord-unit
+      // ×10 that `dim` applies.
+      size: cleanNumber((symbol.fontSize || 0) * 1000),
       bold: boolAttr(symbol.bold),
       italic: boolAttr(symbol.italic),
     })}/>`,

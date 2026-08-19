@@ -179,7 +179,7 @@
   </symbol>
   <symbol type="8" id="102003" code="102.3" name="Index Label">
     <text_symbol icon_text="" rotatable="true">
-      <font family="Arial" size="20.814" bold="false" italic="false"/>
+      <font family="Arial" size="2081.389" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3184,7 +3184,7 @@
   </symbol>
   <symbol type="8" id="603001" code="603.1" name="Spot Height">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="20.814" bold="false" italic="false"/>
+      <font family="Arial" size="2081.389" bold="false" italic="false"/>
       <text color="4" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3250,19 +3250,19 @@
   </symbol>
   <symbol type="8" id="703003" code="703.3" name="Kontrollsiffra">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Trebuchet MS" size="49.389" bold="false" italic="false"/>
+      <font family="Trebuchet MS" size="4938.889" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="703005" code="703.5" name="Kontrollsiffra">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Trebuchet MS" size="28.222" bold="false" italic="false"/>
+      <font family="Trebuchet MS" size="2822.222" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="704000" code="704.0" name="Control Number">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="55.739" bold="false" italic="false"/>
+      <font family="Arial" size="5573.889" bold="false" italic="false"/>
       <text color="2" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3508,7 +3508,7 @@
   </symbol>
   <symbol type="8" id="723000" code="723.0" name="Event-Titel">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="63.5" bold="true" italic="false"/>
+      <font family="Arial" size="6350" bold="true" italic="false"/>
       <text color="2" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3535,7 +3535,7 @@
   </symbol>
   <symbol type="8" id="811001" code="811.1" name="Text 5 pt kursiv">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="21.167" bold="false" italic="false"/>
+      <font family="Arial" size="2116.667" bold="false" italic="false"/>
       <text color="4" line_spacing="1.2" paragraph_spacing="250" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3554,121 +3554,121 @@
   </symbol>
   <symbol type="8" id="900000" code="900.0" name="Text 36 pt">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Segoe UI" size="127" bold="true" italic="false"/>
+      <font family="Segoe UI" size="12700" bold="true" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="900001" code="900.1" name="Text stor 28p brun fet">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial Narrow" size="105.833" bold="true" italic="true"/>
+      <font family="Arial Narrow" size="10583.333" bold="true" italic="true"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="900002" code="900.2" name="Text stor 28p brun fet">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Comic Sans MS" size="84.667" bold="true" italic="false"/>
+      <font family="Comic Sans MS" size="8466.667" bold="true" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="900003" code="900.3" name="Text stor 28p brun fet">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="118.886" bold="true" italic="false"/>
+      <font family="Arial" size="11888.611" bold="true" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="900004" code="900.4" name="Text stor 28p brun fet">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="55.739" bold="true" italic="false"/>
+      <font family="Arial" size="5573.889" bold="true" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="901000" code="901.0" name="Text 18 pt">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Segoe UI" size="63.5" bold="false" italic="false"/>
+      <font family="Segoe UI" size="6350" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="901001" code="901.1" name="Text medium (12p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="44.45" bold="false" italic="false"/>
+      <font family="Arial" size="4445" bold="false" italic="false"/>
       <text color="0" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="901003" code="901.3" name="Text medium (18 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="47.978" bold="false" italic="false"/>
+      <font family="Arial" size="4797.778" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902000" code="902.0" name="Text 8 pt">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Segoe UI" size="28.222" bold="false" italic="false"/>
+      <font family="Segoe UI" size="2822.222" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902001" code="902.1" name="Text liten (5,3 p) svart">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="51.858" bold="false" italic="false"/>
+      <font family="Arial" size="5185.833" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902010" code="902.10" name="Text liten (8 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="24.694" bold="false" italic="false"/>
+      <font family="Arial" size="2469.444" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902002" code="902.2" name="Text liten (5,3 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="34.925" bold="false" italic="true"/>
+      <font family="Arial" size="3492.5" bold="false" italic="true"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902003" code="902.3" name="Text liten (5,3 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="37.042" bold="false" italic="false"/>
+      <font family="Arial" size="3704.167" bold="false" italic="false"/>
       <text color="4" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902004" code="902.4" name="Text liten (5,3 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="35.278" bold="false" italic="true"/>
+      <font family="Arial" size="3527.778" bold="false" italic="true"/>
       <text color="4" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902005" code="902.5" name="Text liten (5,3 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="24.694" bold="false" italic="true"/>
+      <font family="Arial" size="2469.444" bold="false" italic="true"/>
       <text color="4" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902007" code="902.7" name="Text liten (5,3 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="19.403" bold="false" italic="false"/>
+      <font family="Arial" size="1940.278" bold="false" italic="false"/>
       <text color="4" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902009" code="902.9" name="Text liten (8 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="24.694" bold="false" italic="false"/>
+      <font family="Arial" size="2469.444" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="903001" code="903.1" name="Klen infotext">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="19.05" bold="false" italic="false"/>
+      <font family="Arial" size="1905" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="903002" code="903.2" name="Fet infotext">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="23.636" bold="false" italic="false"/>
+      <font family="Arial" size="2363.611" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="903003" code="903.3" name="Text liten (8 p) brun">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Times New Roman" size="14.111" bold="false" italic="false"/>
+      <font family="Times New Roman" size="1411.111" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>

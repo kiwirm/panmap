@@ -90,6 +90,9 @@ function toOmapSymbol(
     code: symbol.code,
     name: symbol.name,
     type: omapSymbolType(symbol),
+    // Round-trip Mapper's UI-hide flag. `xmapSymbolToXml` reads
+    // `isHidden` and emits `is_hidden="true"` when truthy.
+    isHidden: symbol.hidden || undefined,
   }
 
   // OCAD "double line" or "frame" line-symbol idiom → XMap `<combined_symbol>`:
@@ -561,7 +564,10 @@ function buildXmapAreaSymbol(
       color: colorRef(p.colorId, colorIds),
       lineWidth: 0,
       rotatable: false,
-      symbol: nested,
+      // Nested symbol comes from panmap gitmap where all colour refs
+      // are string ids; OMAP requires numeric priorities or Mapper
+      // renders in the "unknown colour" fallback (bright pink).
+      symbol: nested ? rewriteSymbolColors(nested, colorIds) : nested,
     } as OmapAreaPattern)
   }
 
@@ -640,7 +646,16 @@ function ocadElementsToXmapPointSymbol(
   const converted: Array<{ symbol: OmapSymbol; object: OmapObject }> = []
   for (const el of elements) {
     if (isXmapShaped(el)) {
-      converted.push(el)
+      // XMap-shaped nested elements came from gitmap where all colour
+      // references were replaced with string ids (e.g.
+      // `color_white_over_green_and_brown_17`). OMAP requires numeric
+      // priorities. Rewrite the nested symbol's colours before
+      // passthrough — otherwise Mapper renders these primitives in the
+      // "unknown colour" fallback (bright pink/magenta).
+      converted.push({
+        symbol: rewriteSymbolColors(el.symbol, colorIds),
+        object: el.object,
+      })
     } else {
       const ocadEl = ocadElementToXmapElement(el, colorIds)
       if (ocadEl) converted.push(ocadEl)
@@ -659,6 +674,41 @@ function ocadElementsToXmapPointSymbol(
       elements: converted,
     },
   }
+}
+
+function rewriteSymbolColors(
+  symbol: OmapSymbol,
+  colorIds: Map<string | number, number>,
+): OmapSymbol {
+  const rewriteColor = (c: unknown): unknown =>
+    (typeof c === 'string') ? colorRef(c, colorIds) : c
+  const out: OmapSymbol = { ...symbol }
+  const ps = symbol.pointSymbol as (Record<string, unknown> | undefined)
+  if (ps) {
+    out.pointSymbol = {
+      ...ps,
+      innerColor: rewriteColor(ps.innerColor),
+      outerColor: rewriteColor(ps.outerColor),
+      elements: Array.isArray(ps.elements)
+        ? (ps.elements as Array<{symbol: OmapSymbol; object: OmapObject}>).map(el => ({
+            symbol: rewriteSymbolColors(el.symbol, colorIds),
+            object: el.object,
+          }))
+        : ps.elements,
+    } as typeof symbol.pointSymbol
+  }
+  const ls = symbol.lineSymbol as (Record<string, unknown> | undefined)
+  if (ls) {
+    out.lineSymbol = { ...ls, color: rewriteColor(ls.color) } as typeof symbol.lineSymbol
+  }
+  const as = symbol.areaSymbol as (Record<string, unknown> | undefined)
+  if (as) {
+    out.areaSymbol = {
+      ...as,
+      innerColor: rewriteColor((as as { innerColor?: unknown }).innerColor ?? (as as { color?: unknown }).color),
+    } as typeof symbol.areaSymbol
+  }
+  return out
 }
 
 function ocadElementToXmapElement(
@@ -810,37 +860,47 @@ function omapObjectType(object: MapObject): number {
 }
 const colorRef = colorRefLookup
 function shouldFlipYForOmap(map: PanMap): boolean {
-  if (map.sourceFormat === 'ocad') return true
-
-  let ocadFlagged = 0
-  let mapperFlagged = 0
-  for (const object of map.objects) {
-    for (const coord of object.coordinates || []) {
-      if (coord.omapFlags !== undefined || coord.flags !== undefined) {
-        mapperFlagged++
-      }
-      if (coord.xFlags !== undefined || coord.yFlags !== undefined) {
-        ocadFlagged++
-      }
-    }
-  }
-
-  return ocadFlagged > mapperFlagged
+  // OCAD stores paper coords Y-UP; XMAP/OMAP + gitmap use Y-DOWN.
+  // Panmap-internal keeps whichever the source used, so flip only when
+  // we know the source was OCAD. The previous flag-based heuristic
+  // (ocadFlagged vs mapperFlagged) is unreliable because gitmap
+  // normalises everything to xFlags/yFlags — an xmap-sourced gitmap
+  // ends up "looking" ocad-flagged and got wrongly flipped, producing
+  // upside-down OMAP output. SVG rendering uses the same criterion
+  // (`sourceFormat === 'ocad'`), so keep them in lockstep.
+  return map.sourceFormat === 'ocad'
 }
 const colorIdMap = buildColorIdMap
 
-function symbolIdMap(symbols: MapSymbol[]): Map<string | number, number> {
-  const map = new Map<string | number, number>()
-  symbols.forEach((symbol, index) => {
+// Panmap allows multiple MapSymbols to share the same `symbol.id`
+// (e.g. two "201.2" variants). OMAP requires each <symbol id="…"/> to
+// be unique. Allocate a unique numeric id per symbol *instance* (not
+// per symbol.id key): prefer sourceId when it's unique so ocd/xmap
+// round-trips stay stable, otherwise fall back to the next free slot
+// above the max claimed sourceId.
+function symbolIdMap(symbols: MapSymbol[]): Map<MapSymbol, number> {
+  const map = new Map<MapSymbol, number>()
+  const used = new Set<number>()
+  const preferred: Array<{ symbol: MapSymbol; wanted: number | null }> = []
+  let maxUsed = 0
+  for (const symbol of symbols) {
     const sourceId = Number(symbol.sourceId)
     const ownId = Number(symbol.id)
-    const numeric = Number.isFinite(sourceId)
-      ? sourceId
-      : Number.isFinite(ownId)
-      ? ownId
-      : index
-    map.set(symbol.id, numeric)
-  })
+    const wanted = Number.isFinite(sourceId) ? sourceId
+      : Number.isFinite(ownId) ? ownId : null
+    preferred.push({ symbol, wanted })
+    if (wanted !== null) maxUsed = Math.max(maxUsed, wanted)
+  }
+  for (const { symbol, wanted } of preferred) {
+    if (wanted !== null && !used.has(wanted)) {
+      used.add(wanted)
+      map.set(symbol, wanted)
+    } else {
+      const id = ++maxUsed
+      used.add(id)
+      map.set(symbol, id)
+    }
+  }
   return map
 }
 

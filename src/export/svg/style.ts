@@ -50,8 +50,30 @@ export function dashToSvg(dash: DashPattern | null | undefined): string | null {
   return `${mainLength} ${mainGap}`
 }
 
-export function lineJoinToSvg(lineStyle = 0): string {
-  switch (lineStyle) {
+// OCAD stores cap+join packed into a single `lineStyle` int; OMAP splits
+// them into distinct `capStyle` / `joinStyle` fields. Layers coming from
+// each source expose their native shape verbatim — one helper handles
+// both by accepting the layer and preferring the explicit OMAP fields
+// when present, falling back to the OCAD packed style.
+type LineStyleInput = {
+  lineStyle?: number
+  capStyle?: number
+  joinStyle?: number
+} | undefined
+
+export function lineJoinToSvg(input: number | LineStyleInput = 0): string {
+  if (typeof input === 'object' && input !== null) {
+    if (input.joinStyle !== undefined) {
+      // OMAP: 0 bevel, 1 miter, 2 round
+      switch (input.joinStyle) {
+        case 1: return 'miter'
+        case 2: return 'round'
+        default: return 'bevel'
+      }
+    }
+    return lineJoinToSvg(input.lineStyle ?? 0)
+  }
+  switch (input) {
     case 1:
     case 3:
       return 'round'
@@ -62,6 +84,20 @@ export function lineJoinToSvg(lineStyle = 0): string {
   }
 }
 
-export function lineCapToSvg(lineStyle = 0): string {
-  return lineStyle === 1 ? 'round' : 'butt'
+export function lineCapToSvg(input: number | LineStyleInput = 0): string {
+  if (typeof input === 'object' && input !== null) {
+    if (input.capStyle !== undefined) {
+      // OMAP: 0 flat, 1 round, 2 square, 3 pointed(≈round-ish)
+      switch (input.capStyle) {
+        case 1:
+        case 3:
+          return 'round'
+        case 2:
+          return 'square'
+        default: return 'butt'
+      }
+    }
+    return lineCapToSvg(input.lineStyle ?? 0)
+  }
+  return input === 1 ? 'round' : 'butt'
 }

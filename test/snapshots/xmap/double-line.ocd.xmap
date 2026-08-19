@@ -323,7 +323,7 @@
   </symbol>
   <symbol type="8" id="102003" code="102.3" name="Höjdangivelse på kurva">
     <text_symbol icon_text="" rotatable="true">
-      <font family="Arial" size="20.814" bold="false" italic="false"/>
+      <font family="Arial" size="2081.389" bold="false" italic="false"/>
       <text color="10" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3532,7 +3532,7 @@
   </symbol>
   <symbol type="8" id="603001" code="603.1" name="Höjdangivelse (värde)">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="20.814" bold="false" italic="false"/>
+      <font family="Arial" size="2081.389" bold="false" italic="false"/>
       <text color="8" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3584,7 +3584,7 @@
   </symbol>
   <symbol type="8" id="704000" code="704.0" name="Kontrollsiffra">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Arial" size="55.739" bold="false" italic="false"/>
+      <font family="Arial" size="5573.889" bold="false" italic="false"/>
       <text color="5" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
@@ -3901,19 +3901,19 @@
   </symbol>
   <symbol type="8" id="900000" code="900.0" name="Text 36 pt">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Segoe UI" size="127" bold="true" italic="false"/>
+      <font family="Segoe UI" size="12700" bold="true" italic="false"/>
       <text color="10" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="901000" code="901.0" name="Text 18 pt">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Segoe UI" size="63.5" bold="false" italic="false"/>
+      <font family="Segoe UI" size="6350" bold="false" italic="false"/>
       <text color="10" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="902000" code="902.0" name="Text 8 pt">
     <text_symbol icon_text="" rotatable="false">
-      <font family="Segoe UI" size="28.222" bold="false" italic="false"/>
+      <font family="Segoe UI" size="2822.222" bold="false" italic="false"/>
       <text color="10" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
     </text_symbol>
   </symbol>

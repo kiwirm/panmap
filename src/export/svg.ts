@@ -18,6 +18,7 @@ import {
   lineAngleEnd,
 } from './svg/path.js'
 import { dashToSvg, lineJoinToSvg, lineCapToSvg } from './svg/style.js'
+import { cmykFractionToRgb } from '../cmyk-to-rgb.js'
 
 const supportedLayerTypes = new Set([
   'stroke',
@@ -285,13 +286,50 @@ function objectLayerToSvg(
       }
       if (layer.type !== 'stroke') return null
       const dashArray = dashToSvg(layer.dash)
-      return `<path d="${coordsToPath(object.coordinates, transform)}" stroke="${escapeAttr(
+      const d = coordsToPath(object.coordinates, transform)
+      const mainNode = `<path d="${d}" stroke="${escapeAttr(
         getColor(layer, colors)
       )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
-        layer.lineStyle
-      )}" stroke-linecap="${lineCapToSvg(layer.lineStyle)}"${opacityAttr(layer)}${
+        layer
+      )}" stroke-linecap="${lineCapToSvg(layer)}"${opacityAttr(layer)}${
         dashArray ? ` stroke-dasharray="${dashArray}"` : ''
       } />`
+
+      // Borders: parallel offsets on each side of the main stroke. Mapper
+      // stores each border's `width` (its own thickness) and `shift`
+      // (gap from the main line's edge). The outer edge sits at
+      // `mainWidth/2 + shift + width`; the inner at `mainWidth/2 + shift`.
+      // Emit a WIDER stroke at the border colour so the main-line fill
+      // (painted on top by colour priority) leaves the outer fringe
+      // visible as an outline. One node per border; each carries its
+      // own colour's render order.
+      const borders = Array.isArray(layer.borders) ? layer.borders : []
+      if (!borders.length) return mainNode
+      const bordersOut: Array<{order: number; node: string}> = borders
+        .map((b: any) => {
+          if (!b || !isValidColorId(b.color) || !(b.width > 0)) return null
+          const mainW = Number(layer.width) || 0
+          const shift = Number(b.shift) || 0
+          const bw = Number(b.width) || 0
+          const outerWidth = mainW + 2 * shift + 2 * bw
+          const bDash = b.dashed && b.dashLength > 0
+            ? `${b.dashLength} ${b.breakLength || b.dashLength}` : null
+          return {
+            order: orderFor(b.color, layer, colors),
+            node: `<path d="${d}" stroke="${escapeAttr(
+              getColor({ colorId: b.color }, colors)
+            )}" stroke-width="${outerWidth}" fill="none" stroke-linejoin="${lineJoinToSvg(
+              layer
+            )}" stroke-linecap="${lineCapToSvg(layer)}"${
+              bDash ? ` stroke-dasharray="${bDash}"` : ''
+            } />`,
+          }
+        })
+        .filter(Boolean) as Array<{order: number; node: string}>
+      return [
+        ...bordersOut,
+        { order: getColorOrder(layer, colors), node: mainNode },
+      ]
     }
     case 'area':
       if (layer.type === 'stroke') {
@@ -299,8 +337,8 @@ function objectLayerToSvg(
         return `<path d="${coordsToPath(object.coordinates, transform)} Z" stroke="${escapeAttr(
           getColor(layer, colors)
         )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
-          layer.lineStyle
-        )}" stroke-linecap="${lineCapToSvg(layer.lineStyle)}"${
+          layer
+        )}" stroke-linecap="${lineCapToSvg(layer)}"${
           dashArray ? ` stroke-dasharray="${dashArray}"` : ''
         }${opacityAttr(layer)} />`
       }
@@ -449,18 +487,19 @@ function pointLayerToSvg(object, layer, colors, transform) {
   }
 
   if (layer.type === 'point-elements') {
-    return (layer.elements || [])
-      .map(element => ({
-        order: getElementColorOrder(element, colors),
-        node: pointElementToSvg(
-          element,
-          rawCoord,
-          colors,
-          transform,
-          object.rotation || 0
-        ),
-      }))
-      .filter(entry => entry.node)
+    // Flatten each source element to its emitted primitives, then
+    // tag each primitive with its OWN colour's render order so the
+    // top-level SVG sort paints them in Mapper's colour-priority
+    // order (not the source-order of elements within the symbol).
+    // Object rotation is radians in the source-format's y-up frame;
+    // negate for the y-down coord space we render into (see textLayerToSvg).
+    return (layer.elements || []).flatMap(element =>
+      pointElementToSvg(element, rawCoord, colors, transform, -(object.rotation || 0))
+        .map(({ colorId, node }) => ({
+          order: orderFor(colorId, layer, colors),
+          node,
+        }))
+    )
   }
 
   return null
@@ -474,120 +513,177 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   const total = pathLength(coords)
   if (total <= 0) return null
 
-  const rendered: string[] = []
+  // Emit each sub-symbol placement as separate {order, node} entries so
+  // the top-level sort places each primitive at its own colour's
+  // priority. Previously all placements were joined into one string
+  // rendered at the containing line-symbols layer's order, which
+  // meant a mid-symbol's green ring painted at the same depth as its
+  // white halo — sub-symbol z-order collapsed to insertion order.
+  const rendered: Array<{ order: number; node: string }> = []
   const addSymbol = (symbol, distance, rotatable = true) => {
     if (!symbol) return
     const point = pointAndAngleAt(coords, Math.max(0, Math.min(total, distance)))
-    const svg = xmapPointSymbolToSvg(
+    const primitives = xmapPointSymbolToSvg(
       symbol,
       point[0],
       point[1],
       colors,
       transform,
-      rotatable && symbol.pointSymbol?.rotatable ? point.angle : 0
+      rotatable && symbol.pointSymbol?.rotatable ? point.angle : 0,
     )
-    if (svg) rendered.push(svg)
+    for (const { colorId, node } of primitives) {
+      rendered.push({
+        order: orderFor(colorId, layer, colors),
+        node,
+      })
+    }
+  }
+
+  // Even distribution — matches Mapper's `LineSymbol::createRenderables`
+  // and OCAD's own placement. Compute a nominal symbol count from the
+  // usable length ÷ step, honour `showAtLeastOneSymbol` and
+  // `minimumMidSymbolCount`, then space them so the START-to-first and
+  // last-to-END gaps are equal ((i + 0.5) × spacing). The previous
+  // "for d = step; d < total; d += step" formulation drifted off centre
+  // and dropped the last symbol whenever the line length wasn't a
+  // clean multiple of the step.
+  const placeAlong = (
+    symbol: unknown,
+    step: number,
+    startOffset: number,
+    endOffset: number,
+    minCount: number,
+    atLeastOne: boolean,
+  ) => {
+    if (!symbol) return
+    const usable = Math.max(0, total - startOffset - endOffset)
+    if (step <= 0) {
+      if (atLeastOne) addSymbol(symbol, total / 2)
+      return
+    }
+    let count = Math.round(usable / step)
+    if (count < minCount) count = minCount
+    if (count < 1 && atLeastOne) count = 1
+    if (count < 1) return
+    const spacing = usable / count
+    for (let i = 0; i < count; i++) {
+      addSymbol(symbol, startOffset + (i + 0.5) * spacing)
+    }
   }
 
   if (line.midSymbol) {
-    const step = line.midSymbolDistance || line.segmentLength || 0
-    if (step > 0) {
-      for (let distance = step; distance < total; distance += step) {
-        addSymbol(line.midSymbol, distance)
-      }
-    } else {
-      addSymbol(line.midSymbol, total / 2)
-    }
+    placeAlong(
+      line.midSymbol,
+      line.midSymbolDistance || line.segmentLength || 0,
+      0,
+      0,
+      line.minimumMidSymbolCount || 0,
+      line.showAtLeastOneSymbol !== false,
+    )
   }
 
   if (line.dashSymbol) {
-    const step =
-      line.segmentLength || (line.dashLength || 0) + (line.breakLength || 0)
-    const start = Math.max(line.startOffset || 0, 0)
-    const end = Math.max(total - Math.max(line.endOffset || 0, 0), 0)
-    if (step > 0) {
-      for (let distance = start; distance <= end; distance += step) {
-        addSymbol(line.dashSymbol, distance)
-      }
-    } else if (line.showAtLeastOneSymbol) {
-      addSymbol(line.dashSymbol, total / 2)
-    }
+    placeAlong(
+      line.dashSymbol,
+      line.segmentLength || (line.dashLength || 0) + (line.breakLength || 0),
+      Math.max(line.startOffset || 0, 0),
+      Math.max(line.endOffset || 0, 0),
+      0,
+      !!line.showAtLeastOneSymbol,
+    )
   }
 
   if (line.startSymbol) {
     const angle = lineAngleStart(coords)
     const start = transform(coords[0])
-    const svg = xmapPointSymbolToSvg(
+    const primitives = xmapPointSymbolToSvg(
       line.startSymbol,
       start[0],
       start[1],
       colors,
       coord => coord,
-      line.startSymbol.pointSymbol?.rotatable ? angle : 0
+      line.startSymbol.pointSymbol?.rotatable ? angle : 0,
     )
-    if (svg) rendered.push(svg)
+    for (const { colorId, node } of primitives) {
+      rendered.push({
+        order: orderFor(colorId, layer, colors),
+        node,
+      })
+    }
   }
 
   if (line.endSymbol) {
     const angle = lineAngleEnd(coords)
     const end = transform(coords[coords.length - 1])
-    const svg = xmapPointSymbolToSvg(
+    const primitives = xmapPointSymbolToSvg(
       line.endSymbol,
       end[0],
       end[1],
       colors,
       coord => coord,
-      line.endSymbol.pointSymbol?.rotatable ? angle : 0
+      line.endSymbol.pointSymbol?.rotatable ? angle : 0,
     )
-    if (svg) rendered.push(svg)
+    for (const { colorId, node } of primitives) {
+      rendered.push({
+        order: orderFor(colorId, layer, colors),
+        node,
+      })
+    }
   }
 
-  return rendered.join('')
+  return rendered
 }
 
+// Emit one xmap point symbol placement (used by line-symbol mid/dash/
+// start/end placements) as a list of {colorId, node} primitives — same
+// shape as pointElementToSvg — so callers can hand them to the top-level
+// SVG sort at each primitive's own colour priority instead of forcing
+// the whole group into one order. Rotation is baked into element coords
+// rather than wrapping in an SVG group.
 function xmapPointSymbolToSvg(
   symbol,
   x,
   y,
   colors,
   transform = coord => coord,
-  rotation = 0
-) {
+  rotation = 0,
+): Array<{ colorId: any; node: string }> {
   const anchor = transform([x, y])
-  const parts: string[] = []
+  const out: Array<{ colorId: any; node: string }> = []
   const pointSymbol = symbol.pointSymbol
+  if (!pointSymbol) return out
 
-  if (pointSymbol) {
-    if (
-      isValidColorId(pointSymbol.innerColor) &&
-      pointSymbol.innerRadius > 0
-    ) {
-      parts.push(
-        `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
-          getColor({ colorId: pointSymbol.innerColor }, colors)
-        )}" />`
-      )
-    }
-    if (
-      isValidColorId(pointSymbol.outerColor) &&
-      pointSymbol.outerWidth > 0 &&
-      pointSymbol.innerRadius > 0
-    ) {
-      parts.push(
-        `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="${pointSymbol.innerRadius}" fill="none" stroke="${escapeAttr(
-          getColor({ colorId: pointSymbol.outerColor }, colors)
-        )}" stroke-width="${pointSymbol.outerWidth}" />`
-      )
-    }
-    ;(pointSymbol.elements || []).forEach(element => {
-      const svg = pointElementToSvg(element, [x, y], colors, transform)
-      if (svg) parts.push(svg)
+  if (isValidColorId(pointSymbol.innerColor) && pointSymbol.innerRadius > 0) {
+    out.push({
+      colorId: pointSymbol.innerColor,
+      node: `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
+        getColor({ colorId: pointSymbol.innerColor }, colors),
+      )}" />`,
     })
   }
-
-  const content = parts.join('')
-  if (!content || !rotation) return content
-  return `<g transform="rotate(${(rotation * 180) / Math.PI} ${anchor[0]} ${anchor[1]})">${content}</g>`
+  if (
+    isValidColorId(pointSymbol.outerColor) &&
+    pointSymbol.outerWidth > 0 &&
+    pointSymbol.innerRadius > 0
+  ) {
+    // Mapper draws the outer ring OUTWARD from `innerRadius`: its inner
+    // edge sits at `innerRadius` and its outer edge at
+    // `innerRadius + outerWidth`. An SVG stroke is centred on its path
+    // radius, so centre the stroke at `innerRadius + outerWidth/2` to
+    // match. Centring on `innerRadius` (previous) let a fat ring reach
+    // inward and overpaint the inner fill (e.g. 418 with r=10, w=30
+    // hid the r=10 white centre).
+    out.push({
+      colorId: pointSymbol.outerColor,
+      node: `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="${pointSymbol.innerRadius + pointSymbol.outerWidth / 2}" fill="none" stroke="${escapeAttr(
+        getColor({ colorId: pointSymbol.outerColor }, colors),
+      )}" stroke-width="${pointSymbol.outerWidth}" />`,
+    })
+  }
+  for (const element of pointSymbol.elements || []) {
+    out.push(...pointElementToSvg(element, [x, y], colors, transform, rotation))
+  }
+  return out
 }
 
 function lineElementsLayerToSvg(object, layer, colors, transform) {
@@ -781,23 +877,37 @@ function offsetLineString(coordinates, offset) {
   )
 }
 
+// Returns an array of {colorId, node} entries — one per emitted SVG
+// primitive. The caller expands these into per-color-ordered nodes so
+// composite point elements (ISOM 417 tree = green ring + white
+// cutout, 419 special veg = green X + white halo, etc.) paint in
+// COLOR order instead of source order. Concatenating them into a
+// single string here would force all sub-primitives to share the
+// containing layer's render order, and Mapper's own convention is that
+// each colour draws at its own priority level.
 function pointElementToSvg(
   element,
   anchor,
   colors,
   transform = coord => coord,
   angle = 0
-) {
+): Array<{ colorId: any; node: string }> {
   if (element.coords) {
-    return ocadPointElementToSvg(element, anchor, colors, transform, angle)
+    // OCAD-style element (already flat, single colour).
+    const node = ocadPointElementToSvg(element, anchor, colors, transform, angle)
+    return node ? [{ colorId: element.color, node }] : []
   }
-  if (!element.object || !element.symbol) return null
+  if (!element.object || !element.symbol) return []
 
-  const coords = (element.object.coords || []).map(coord => [
-    coord.x + transform(anchor)[0],
-    coord.y + transform(anchor)[1],
-  ])
-  if (coords.length === 0) return null
+  // Apply the containing symbol's rotation (radians) to the element's
+  // local coords, then translate into map space via the transformed
+  // anchor. Without this, mid/dash/start/end symbols on rotated line
+  // objects render axis-aligned instead of following the line angle.
+  const transformedAnchor = transform(anchor)
+  const coords = (element.object.coords || []).map(coord =>
+    addRotatedCoord(transformedAnchor, [coord.x, coord.y], angle),
+  )
+  if (coords.length === 0) return []
 
   if (element.symbol.areaSymbol) {
     const fillColorId = element.symbol.areaSymbol.innerColor
@@ -805,48 +915,66 @@ function pointElementToSvg(
       element.symbol.lineSymbol && element.symbol.lineSymbol.color
     const strokeWidth =
       element.symbol.lineSymbol && element.symbol.lineSymbol.lineWidth
-    const fill = isValidColorId(fillColorId)
-      ? ` fill="${escapeAttr(getColor({ colorId: fillColorId }, colors))}"`
-      : ' fill="none"'
-    const stroke =
-      isValidColorId(strokeColorId) && strokeWidth > 0
-        ? ` stroke="${escapeAttr(
-            getColor({ colorId: strokeColorId }, colors)
-          )}" stroke-width="${strokeWidth}"`
-        : ''
-    return `<path d="${coordsToPath(coords)} Z"${fill}${stroke} fill-rule="evenodd" />`
+    const out: Array<{ colorId: any; node: string }> = []
+    if (isValidColorId(fillColorId)) {
+      out.push({
+        colorId: fillColorId,
+        node: `<path d="${coordsToPath(coords)} Z" fill="${escapeAttr(
+          getColor({ colorId: fillColorId }, colors),
+        )}" fill-rule="evenodd" />`,
+      })
+    }
+    if (isValidColorId(strokeColorId) && strokeWidth > 0) {
+      out.push({
+        colorId: strokeColorId,
+        node: `<path d="${coordsToPath(coords)} Z" fill="none" stroke="${escapeAttr(
+          getColor({ colorId: strokeColorId }, colors),
+        )}" stroke-width="${strokeWidth}" fill-rule="evenodd" />`,
+      })
+    }
+    return out
   }
 
   if (element.symbol.lineSymbol) {
     const strokeColorId = element.symbol.lineSymbol.color
     const strokeWidth = element.symbol.lineSymbol.lineWidth
-    if (!isValidColorId(strokeColorId) || strokeWidth <= 0) return null
-    return `<path d="${coordsToPath(coords)}" stroke="${escapeAttr(
-      getColor({ colorId: strokeColorId }, colors)
-    )}" stroke-width="${strokeWidth}" fill="none" />`
+    if (!isValidColorId(strokeColorId) || strokeWidth <= 0) return []
+    return [{
+      colorId: strokeColorId,
+      node: `<path d="${coordsToPath(coords)}" stroke="${escapeAttr(
+        getColor({ colorId: strokeColorId }, colors),
+      )}" stroke-width="${strokeWidth}" fill="none" />`,
+    }]
   }
 
   if (element.symbol.pointSymbol) {
     const nestedCoord = coords[0]
     const pointSymbol = element.symbol.pointSymbol
-    return [
-      isValidColorId(pointSymbol.innerColor) &&
-        pointSymbol.innerRadius > 0 &&
-        `<circle cx="${nestedCoord[0]}" cy="${nestedCoord[1]}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
-          getColor({ colorId: pointSymbol.innerColor }, colors)
+    const out: Array<{ colorId: any; node: string }> = []
+    if (isValidColorId(pointSymbol.innerColor) && pointSymbol.innerRadius > 0) {
+      out.push({
+        colorId: pointSymbol.innerColor,
+        node: `<circle cx="${nestedCoord[0]}" cy="${nestedCoord[1]}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
+          getColor({ colorId: pointSymbol.innerColor }, colors),
         )}" />`,
+      })
+    }
+    if (
       isValidColorId(pointSymbol.outerColor) &&
-        pointSymbol.outerWidth > 0 &&
-        pointSymbol.innerRadius > 0 &&
-        `<circle cx="${nestedCoord[0]}" cy="${nestedCoord[1]}" r="${pointSymbol.innerRadius}" fill="none" stroke="${escapeAttr(
-          getColor({ colorId: pointSymbol.outerColor }, colors)
+      pointSymbol.outerWidth > 0 &&
+      pointSymbol.innerRadius > 0
+    ) {
+      out.push({
+        colorId: pointSymbol.outerColor,
+        node: `<circle cx="${nestedCoord[0]}" cy="${nestedCoord[1]}" r="${pointSymbol.innerRadius}" fill="none" stroke="${escapeAttr(
+          getColor({ colorId: pointSymbol.outerColor }, colors),
         )}" stroke-width="${pointSymbol.outerWidth}" />`,
-    ]
-      .filter(Boolean)
-      .join('')
+      })
+    }
+    return out
   }
 
-  return null
+  return []
 }
 
 function ocadPointElementToSvg(element, anchor, colors, transform, angle = 0) {
@@ -899,11 +1027,37 @@ function textLayerToSvg(object, layer, colors, transform) {
   const coord = object.coordinates[0] && transform(object.coordinates[0])
   if (!coord || !object.text) return null
 
-  return `<text x="${coord[0]}" y="${coord[1]}" fill="${escapeAttr(
+  // Object rotation is stored in radians, positive CCW in the source
+  // format's y-up frame (OMAP + OCAD both). SVG's y-axis points DOWN,
+  // so its `rotate()` is positive CW visually — apply the axis flip
+  // by negating before converting to degrees.
+  const rotation = object.rotation || 0
+  const transformAttr = rotation
+    ? ` transform="rotate(${(-rotation * 180) / Math.PI} ${coord[0]} ${coord[1]})"`
+    : ''
+
+  // Internal fontSize is millimetres. Map coordinates in the SVG
+  // viewBox are 0.01mm units (100 units = 1mm). Multiply by 100 so
+  // text renders at its true physical size relative to the map.
+  const fontSize = ((layer.fontSize as number) || 0.12) * 100
+
+  // Mapper text alignment: hAlign 0=left, 1=center, 2=right; vAlign
+  // 0=baseline, 1=top, 2=middle, 3=bottom. Map to SVG text-anchor +
+  // dominant-baseline so the anchor point sits where Mapper places it.
+  const hAlign = (object as any).hAlign
+  const vAlign = (object as any).vAlign
+  const anchor = hAlign === 1 ? 'middle' : hAlign === 2 ? 'end' : 'start'
+  const baseline =
+    vAlign === 1 ? 'hanging' :
+    vAlign === 2 ? 'central' :
+    vAlign === 3 ? 'text-after-edge' :
+    'alphabetic'
+  const anchorAttr = anchor !== 'start' ? ` text-anchor="${anchor}"` : ''
+  const baselineAttr = baseline !== 'alphabetic' ? ` dominant-baseline="${baseline}"` : ''
+
+  return `<text x="${coord[0]}" y="${coord[1]}"${transformAttr} fill="${escapeAttr(
     getColor(layer, colors)
-  )}" font-family="${escapeAttr(layer.fontFamily || 'Arial')}" font-size="${
-    layer.fontSize || 12
-  }"${opacityAttr(layer)}>${escapeText(object.text)}</text>`
+  )}" font-family="${escapeAttr(layer.fontFamily || 'Arial')}" font-size="${fontSize}"${anchorAttr}${baselineAttr}${opacityAttr(layer)}>${escapeText(object.text)}</text>`
 }
 
 function opacityAttr(layer) {
@@ -919,9 +1073,26 @@ function getSymbolsById(map) {
 
 function getColorsById(map) {
   return map.colors.reduce((colors, color) => {
-    if (color) colors[color.id] = color
+    if (color) colors[color.id] = normaliseColorRgb(color)
     return colors
   }, {})
+}
+
+// Recover from source files that carry `<rgb method="custom" r=0 g=0 b=0/>`
+// on a colour whose CMYK is not black. Mapper (and Purple Pen and OOM
+// itself) recompute the on-screen RGB from CMYK in that case; do the
+// same so a colour like "Green 45%" doesn't paint pure black just
+// because the file's custom RGB slot was never populated.
+const RGB_BLACK = 'rgb(0, 0, 0)'
+function normaliseColorRgb(color) {
+  if (color.rgb !== RGB_BLACK) return color
+  const cmyk = color.cmyk
+  if (!Array.isArray(cmyk) || cmyk.length < 4) return color
+  const nonBlack = cmyk[0] > 0 || cmyk[1] > 0 || cmyk[2] > 0
+  const notFullK = (cmyk[3] || 0) < 1
+  if (!nonBlack || !notFullK) return color
+  const rgb = cmykFractionToRgb(cmyk[0], cmyk[1], cmyk[2], cmyk[3])
+  return { ...color, rgb: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})` }
 }
 
 function getColor(layer, colors) {
@@ -963,6 +1134,26 @@ function getColorOrder(layer, colors) {
     .filter(order => order !== null)
 
   return orders.length ? Math.max(...orders) : 0
+}
+
+/**
+ * Resolve a primitive's render order. Every SVG primitive knows the
+ * colour it paints in; that colour's `renderOrder` is the canonical
+ * paint depth (Mapper's colour priority). When the colour isn't
+ * resolvable (e.g. `colorId = -1` on an intentionally-invisible slot
+ * used for composition), fall back to the containing layer's derived
+ * order so the primitive at least paints somewhere sensible.
+ *
+ * Kept as one function so every renderer path (`pointElementToSvg`,
+ * `xmapPointSymbolToSvg`, `lineSymbolsLayerToSvg`) resolves orders
+ * with the exact same fallback logic — bugs like "green ring paints
+ * under white halo because they were joined in one string" reduce to
+ * "every primitive resolved with the same helper".
+ */
+function orderFor(colorId: unknown, layer, colors): number {
+  const key = colorId as string | number
+  if (colors[key]) return colors[key].renderOrder
+  return getColorOrder(layer, colors)
 }
 
 const escapeText = textEscape

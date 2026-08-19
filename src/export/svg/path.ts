@@ -7,7 +7,21 @@ type Coord = ArrayLike<number>
 type Transform = (coord: Coord) => Coord
 
 /** Convert a coordinate list (with bezier / hole-point flags) into an SVG
- *  path `d` attribute. */
+ *  path `d` attribute.
+ *
+ *  Panmap's internal convention (matching OMAP's storage format) puts the
+ *  hole-point flag on the LAST coord of the previous sub-path — that coord
+ *  is the geometric endpoint of the outgoing ring, and the NEXT coord
+ *  supplies the M for the new hole. The OCAD writer shifts the flag by +1
+ *  on the way out (see synthesize-objects.ts::shiftHoleFlagsForward).
+ *
+ *  Previously this function treated the flagged coord as an M — which drops
+ *  the pending bezier's endpoint (the outgoing ring loses its last curve)
+ *  and starts the hole at the OUTGOING RING'S closing point instead of the
+ *  hole's real first coord. Under SVG's evenodd fill, the resulting
+ *  synthetic straight-line closure of the outer ring plus a spurious
+ *  connecting line to the true first-hole-point paints a diagonal slice of
+ *  the polygon in the background colour. */
 export function coordsToPath(
   coordinates: Coord[],
   transform: Transform = (c) => c,
@@ -17,14 +31,39 @@ export function coordsToPath(
   const commands: string[] = []
   let cp1: Coord | null = null
   let cp2: Coord | null = null
+  // Set when a hole-point coord has just been consumed as the closing
+  // point of the previous sub-path: the next non-control-point coord
+  // supplies the M for the new sub-path.
+  let pendingM = false
 
   coordinates.forEach((coord, index) => {
     const transformed = transform(coord)
 
-    if (index === 0 || isFirstHolePoint(coord as any)) {
+    if (index === 0) {
       commands.push(`M ${transformed[0]} ${transformed[1]}`)
+      return
+    }
+
+    if (isFirstHolePoint(coord as any)) {
+      // Close the previous sub-path by drawing to this coord's position
+      // (completing any pending bezier). SVG's evenodd fill will then
+      // implicitly close the sub-path from here back to the M.
+      if (cp1 && cp2) {
+        commands.push(
+          `C ${cp1[0]} ${cp1[1]} ${cp2[0]} ${cp2[1]} ${transformed[0]} ${transformed[1]}`,
+        )
+      } else {
+        commands.push(`L ${transformed[0]} ${transformed[1]}`)
+      }
       cp1 = null
       cp2 = null
+      pendingM = true
+      return
+    }
+
+    if (pendingM) {
+      commands.push(`M ${transformed[0]} ${transformed[1]}`)
+      pendingM = false
       return
     }
 

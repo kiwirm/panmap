@@ -363,7 +363,7 @@ function toMapSymbol(symbol: OmapSymbol, symbolsById: Record<number, OmapSymbol>
     code: symbol.code,
     name: symbol.name,
     type: symbolTypeName(symbol),
-    hidden: false,
+    hidden: !!symbol.isHidden,
     rotatable,
     fontSize: symbol.textSymbol && symbol.textSymbol.fontSize,
     renderLayers: symbolToRenderLayers(symbol, symbolsById),

@@ -186,6 +186,7 @@ export interface OmapSymbol {
   code?: string
   name?: string
   type: number
+  isHidden?: boolean
   lineSymbol?: OmapLineSymbol
   areaSymbol?: OmapAreaSymbol
   pointSymbol?: OmapPointSymbol
@@ -420,6 +421,10 @@ function parseOmapXml(xml: string): OmapFile {
       code: symbol.code,
       name: symbol.name,
       type: parseNumber(symbol.type),
+      // Mapper's UI-hide flag. XMap emits `is_hidden="true"` on symbols
+      // the mapper has toggled off in the symbol panel. Preserve so the
+      // SVG renderer and OCAD/XMap writers can drop them.
+      isHidden: isTrue(symbol.is_hidden),
       lineSymbol,
       areaSymbol,
       pointSymbol,
@@ -427,7 +432,15 @@ function parseOmapXml(xml: string): OmapFile {
       textSymbol: symbol?.text_symbol
         ? {
             fontFamily: symbol.text_symbol?.font?.family,
-            fontSize: parseDim(symbol.text_symbol?.font?.size, 0),
+            // XMap `<font size>` is 1/1000 mm (µm). Panmap's internal
+            // `fontSize` is in millimetres to match the OCAD reader/
+            // writer contract (`symbol-bodies/text.ts` converts mm →
+            // OCAD tenths-of-point via ×720/25.4). Previously this
+            // used `parseDim` (×0.1) which produced a value 100× too
+            // large — passable for OMAP → OMAP round-trip because the
+            // writer inverted with `dim` (÷0.1), but OMAP → OCAD blew
+            // up the font by 100×.
+            fontSize: parseNumber(symbol.text_symbol?.font?.size, 0) / 1000,
             bold: isTrue(symbol.text_symbol?.font?.bold),
             italic: isTrue(symbol.text_symbol?.font?.italic),
             color:
