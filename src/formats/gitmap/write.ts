@@ -33,9 +33,23 @@ async function writeGitmap(
   const colorIds = new Map(
     map.colors.filter(Boolean).map(color => [color.id, stableColorId(color)])
   )
-  const symbolIds = new Map(
-    map.symbols.map(symbol => [symbol.id, stableSymbolId(symbol)])
-  )
+  // Build the `<input id> → <stable id>` map with collision handling.
+  // Mapper allows two symbols to share the same numeric code (e.g. two
+  // "522 Canopy" variants — a combined main + a "minimum size" point
+  // variant). `stableSymbolId` derives its id from the code, so both
+  // would collide as `sym_522` and one variant would silently overwrite
+  // the other at read time (breaking any object using the loser). Give
+  // every subsequent collider an `_N` suffix; base id keeps priority.
+  const symbolIds = new Map<string | number, string>()
+  {
+    const used = new Map<string, number>()
+    for (const symbol of map.symbols) {
+      const base = stableSymbolId(symbol)
+      const n = (used.get(base) ?? 0) + 1
+      used.set(base, n)
+      symbolIds.set(symbol.id, n === 1 ? base : `${base}_v${n}`)
+    }
+  }
   const symbolCodes = new Map<string | number, string>(
     map.symbols
       .filter(s => s.code !== undefined && s.code !== null)
@@ -43,7 +57,10 @@ async function writeGitmap(
   )
 
   const symbols = map.symbols
-    .map(symbol => toGitmapSymbol(symbol, colorIds))
+    .map(symbol => ({
+      ...toGitmapSymbol(symbol, colorIds),
+      id: symbolIds.get(symbol.id) ?? stableSymbolId(symbol),
+    }))
     .sort(
       (a, b) =>
         String(a.code || '').localeCompare(String(b.code || '')) ||
@@ -79,7 +96,12 @@ async function writeGitmap(
   if (map.extensions && Object.keys(map.extensions).length > 0) {
     manifest.extensions = map.extensions
   }
-  if (map.templates) manifest.templates = map.templates
+  // Templates (background raster refs — LiDAR / aerial / basemaps) are
+  // intentionally NOT persisted in the gitmap package. They churn per
+  // mapper's local file paths, add noise to diffs, and downstream
+  // consumers of the gitmap don't have the referenced files anyway.
+  // If we ever add a first-class "template" concept (canonical URLs or
+  // per-repo template store), revisit.
   if (map.georeferencing) manifest.georeferencing = map.georeferencing
   await writeJson(directory, 'gitmap.json', manifest)
   await writeNdjson(directory, 'colors.ndjson', colors)

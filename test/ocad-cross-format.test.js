@@ -91,6 +91,27 @@ for (const pair of PAIRS) {
       const roundMapperOcd = await read(ocd3)
       t.is(roundMapperOcd.objects.length, mapperOcdMap.objects.length,
         'objects preserved on Mapper-ocd → ocd')
+
+      // Grid-spacing invariant on parameter string 1039 (map setup).
+      // OOM enforces d = g × m / 1000 on export (ocd_file_export.cpp:
+      // 945-966): d is the real-world grid distance in metres, g is
+      // the same distance projected to paper mm. Condes divides by d
+      // to compute grid cells — d=0 (which panmap used to hardcode)
+      // opens the map as a blank canvas.
+      const { readRaw } = await import('../src/formats/ocad/index.ts')
+      const raw = await readRaw(ocd1)
+      const ps1039 = raw.parameterStrings?.[1039]?.[0]
+      t.truthy(ps1039, 'ocd has parameter string 1039')
+      const m = Number(ps1039?.m)
+      const g = Number(ps1039?.g)
+      const d = Number(ps1039?.d)
+      t.true(m > 0, `1039.m (scale) > 0 (got ${m})`)
+      t.true(g > 0, `1039.g (paper mm) > 0 (got ${g})`)
+      t.true(d > 0, `1039.d (real m) > 0 (got ${d})`)
+      // Allow 0.5% slack for the string↔float rounding OOM does.
+      const expectedD = g * m / 1000
+      t.true(Math.abs(d - expectedD) / expectedD < 0.005,
+        `1039.d ≈ g × m / 1000: got d=${d}, expected≈${expectedD}`)
     })
   })
 }

@@ -91,73 +91,136 @@ export interface PathSegment {
   length: number
 }
 
+/** Flat SoA (struct-of-arrays) layout: three typed arrays holding start
+ *  x/y, end x/y and cumulative length for every segment along the path.
+ *  Callers that need to sample repeatedly (dash/mid symbols, arrow
+ *  placement) build this once and reuse — turning what was O(vertices)
+ *  per lookup into O(log vertices) via binary search, and removing the
+ *  per-lookup allocation of a 6000-entry `PathSegment[]`. */
+export interface PathSampler {
+  count: number
+  starts: Float64Array   // 2·count: [x0, y0, x1, y1, ...]
+  ends: Float64Array     // 2·count
+  cumLen: Float64Array   // count: total path length up to and including segment i
+  total: number
+}
+
+export function buildPathSampler(coords: Coord[]): PathSampler {
+  const startsBuf: number[] = []
+  const endsBuf: number[] = []
+  const cumBuf: number[] = []
+  let cum = 0
+
+  const push = (sx: number, sy: number, ex: number, ey: number): void => {
+    const len = Math.hypot(ex - sx, ey - sy)
+    if (len <= 0) return
+    startsBuf.push(sx, sy)
+    endsBuf.push(ex, ey)
+    cum += len
+    cumBuf.push(cum)
+  }
+
+  if (coords.length >= 2) {
+    let currentX = coords[0][0]
+    let currentY = coords[0][1]
+    let cp1: Coord | null = null
+    let cp2: Coord | null = null
+
+    for (let i = 1; i < coords.length; i++) {
+      const coord = coords[i]
+
+      if (isFirstHolePoint(coord as any)) {
+        currentX = coord[0]
+        currentY = coord[1]
+        cp1 = null
+        cp2 = null
+        continue
+      }
+
+      if (isFirstBezier(coord as any)) { cp1 = coord; continue }
+      if (isSecondBezier(coord as any)) { cp2 = coord; continue }
+
+      if (cp1 && cp2) {
+        let prevX = currentX
+        let prevY = currentY
+        for (let step = 1; step <= 16; step++) {
+          const next = cubicBezierPoint([currentX, currentY], cp1, cp2, coord, step / 16)
+          push(prevX, prevY, next[0], next[1])
+          prevX = next[0]
+          prevY = next[1]
+        }
+        currentX = coord[0]
+        currentY = coord[1]
+        cp1 = null
+        cp2 = null
+        continue
+      }
+
+      push(currentX, currentY, coord[0], coord[1])
+      currentX = coord[0]
+      currentY = coord[1]
+    }
+  }
+
+  return {
+    count: cumBuf.length,
+    starts: Float64Array.from(startsBuf),
+    ends: Float64Array.from(endsBuf),
+    cumLen: Float64Array.from(cumBuf),
+    total: cum,
+  }
+}
+
 export function pathLength(coords: Coord[]): number {
-  return pathSegments(coords).reduce((total, s) => total + s.length, 0)
+  return buildPathSampler(coords).total
+}
+
+/** Legacy allocation-heavy API — retained for any external callers.
+ *  Prefer `buildPathSampler` + the `*Sampler` variants below. */
+export function pathSegments(coords: Coord[]): PathSegment[] {
+  const sampler = buildPathSampler(coords)
+  const out: PathSegment[] = []
+  let prev = 0
+  for (let i = 0; i < sampler.count; i++) {
+    const sx = sampler.starts[i * 2]; const sy = sampler.starts[i * 2 + 1]
+    const ex = sampler.ends[i * 2]; const ey = sampler.ends[i * 2 + 1]
+    const length = sampler.cumLen[i] - prev
+    prev = sampler.cumLen[i]
+    out.push({ start: [sx, sy] as unknown as Coord, end: [ex, ey] as unknown as Coord, length })
+  }
+  return out
+}
+
+export function pointAndAngleAtSampler(
+  sampler: PathSampler, distance: number,
+): { 0: number; 1: number; angle: number } {
+  if (sampler.count === 0) {
+    return { 0: 0, 1: 0, angle: 0 }
+  }
+  // Binary search for the segment whose cumulative length reaches `distance`.
+  let lo = 0
+  let hi = sampler.count - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (sampler.cumLen[mid] < distance) lo = mid + 1
+    else hi = mid
+  }
+  const i = lo
+  const sx = sampler.starts[i * 2]; const sy = sampler.starts[i * 2 + 1]
+  const ex = sampler.ends[i * 2]; const ey = sampler.ends[i * 2 + 1]
+  const prevCum = i === 0 ? 0 : sampler.cumLen[i - 1]
+  const segLen = sampler.cumLen[i] - prevCum
+  const dx = ex - sx
+  const dy = ey - sy
+  if (distance >= sampler.cumLen[sampler.count - 1]) {
+    return { 0: ex, 1: ey, angle: Math.atan2(dy, dx) }
+  }
+  const ratio = segLen > 0 ? (distance - prevCum) / segLen : 0
+  return { 0: sx + dx * ratio, 1: sy + dy * ratio, angle: Math.atan2(dy, dx) }
 }
 
 export function pointAndAngleAt(coords: Coord[], distance: number): { 0: number; 1: number; angle: number } {
-  const segments = pathSegments(coords)
-  let traversed = 0
-
-  for (const segment of segments) {
-    const { start, end, length } = segment
-    const dx = end[0] - start[0]
-    const dy = end[1] - start[1]
-    if (traversed + length >= distance) {
-      const ratio = (distance - traversed) / length
-      return { 0: start[0] + dx * ratio, 1: start[1] + dy * ratio, angle: Math.atan2(dy, dx) }
-    }
-    traversed += length
-  }
-
-  const last = segments[segments.length - 1]
-  if (!last) {
-    const point = coords[0] || ([0, 0] as unknown as Coord)
-    return { 0: point[0], 1: point[1], angle: 0 }
-  }
-  const { start, end } = last
-  return { 0: end[0], 1: end[1], angle: Math.atan2(end[1] - start[1], end[0] - start[0]) }
-}
-
-export function pathSegments(coords: Coord[]): PathSegment[] {
-  const segments: PathSegment[] = []
-  if (coords.length < 2) return segments
-
-  let current: Coord = coords[0]
-  let cp1: Coord | null = null
-  let cp2: Coord | null = null
-
-  for (let i = 1; i < coords.length; i++) {
-    const coord = coords[i]
-
-    if (isFirstHolePoint(coord as any)) {
-      current = coord
-      cp1 = null
-      cp2 = null
-      continue
-    }
-
-    if (isFirstBezier(coord as any)) { cp1 = coord; continue }
-    if (isSecondBezier(coord as any)) { cp2 = coord; continue }
-
-    if (cp1 && cp2) {
-      let previous = current
-      for (let step = 1; step <= 16; step++) {
-        const next = cubicBezierPoint(current, cp1, cp2, coord, step / 16)
-        addPathSegment(segments, previous, next)
-        previous = next
-      }
-      current = coord
-      cp1 = null
-      cp2 = null
-      continue
-    }
-
-    addPathSegment(segments, current, coord)
-    current = coord
-  }
-
-  return segments
+  return pointAndAngleAtSampler(buildPathSampler(coords), distance)
 }
 
 export function addPathSegment(segments: PathSegment[], start: Coord, end: Coord): void {
@@ -176,14 +239,24 @@ export function cubicBezierPoint(p0: Coord, p1: Coord, p2: Coord, p3: Coord, t: 
 }
 
 export function lineAngleStart(coords: Coord[]): number {
-  const first = pathSegments(coords)[0]
-  if (!first) return 0
-  return Math.atan2(first.end[1] - first.start[1], first.end[0] - first.start[0])
+  return lineAngleStartSampler(buildPathSampler(coords))
+}
+
+export function lineAngleStartSampler(s: PathSampler): number {
+  if (s.count === 0) return 0
+  const sx = s.starts[0]; const sy = s.starts[1]
+  const ex = s.ends[0]; const ey = s.ends[1]
+  return Math.atan2(ey - sy, ex - sx)
 }
 
 export function lineAngleEnd(coords: Coord[]): number {
-  const segments = pathSegments(coords)
-  const last = segments[segments.length - 1]
-  if (!last) return 0
-  return Math.atan2(last.end[1] - last.start[1], last.end[0] - last.start[0])
+  return lineAngleEndSampler(buildPathSampler(coords))
+}
+
+export function lineAngleEndSampler(s: PathSampler): number {
+  if (s.count === 0) return 0
+  const i = s.count - 1
+  const sx = s.starts[i * 2]; const sy = s.starts[i * 2 + 1]
+  const ex = s.ends[i * 2]; const ey = s.ends[i * 2 + 1]
+  return Math.atan2(ey - sy, ex - sx)
 }

@@ -40,13 +40,18 @@ Optional future files:
 
 ```text
 map.gitmap/
-  templates.json
   source.json
   private/view.json
   conflicts/merge-001.json
 ```
 
 `private/` and generated `exports/` should be gitignored.
+
+Templates (background raster references — LiDAR, aerial, basemaps) are
+intentionally **not** part of the gitmap package. They churn per mapper's
+local file paths, add noise to diffs, and downstream consumers of the
+gitmap don't have the referenced files anyway. If a canonical URL-based
+template concept is added later, this decision will be revisited.
 
 ## Determinism Rules
 

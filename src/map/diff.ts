@@ -84,6 +84,34 @@ function diffMaps(
   const objects: DiffObject[] = []
   let id = 1
 
+  // Per-source-symbol clones for text objects. Text carries per-symbol
+  // styling (fontSize, fontFamily, hAlign, vAlign) that a single shared
+  // `added-text`/`removed-text` synthetic can't reproduce, so for every
+  // original text symbol we produce three tinted clones (added/removed/
+  // unchanged) on demand and point the diff object at those.
+  const textSymbolClones = new Map<string, MapSymbol>();
+  const cloneTextSymbol = (
+    orig: MapSymbol, kind: DiffKind,
+  ): string => {
+    const key = `${kind}::${orig.id}`;
+    if (textSymbolClones.has(key)) return String(textSymbolClones.get(key)!.id);
+    const clonedId = `diff-${kind}-${orig.id}`;
+    const clone: MapSymbol = {
+      ...orig,
+      id: clonedId,
+      renderLayers: (orig.renderLayers ?? []).map((layer: RenderLayer) => {
+        if (layer.type !== 'text' && layer.type !== 'line-text') return layer;
+        return {
+          ...layer,
+          colorId: kind,
+          ...(kind === 'unchanged' ? { opacity: opts.unchangedOpacity } : {}),
+        } as RenderLayer;
+      }),
+    };
+    textSymbolClones.set(key, clone);
+    return clonedId;
+  };
+
   const beforeLines = beforeObjects.filter(object => object.type === 'line')
   const afterLines = afterObjects.filter(object => object.type === 'line')
   const afterLineSegments = segmentCounts(afterLines, afterSymbols, opts)
@@ -120,19 +148,32 @@ function diffMaps(
   const beforeOtherCounts = objectCounts(beforeOther, beforeSymbols, opts)
   const afterOtherCounts = objectCounts(afterOther, afterSymbols, opts)
 
+  const clonedSymbolIdFor = (
+    object: MapObject, kind: DiffKind,
+    symbolsFor: Record<string | number, MapSymbol>,
+  ): string | null => {
+    if (object.type !== 'text' && object.type !== 'line-text') return null;
+    const orig = symbolsFor[String(object.symbolId)] ?? symbolsFor[object.symbolId as never];
+    if (!orig) return null;
+    return cloneTextSymbol(orig, kind);
+  };
+
   for (const object of beforeOther) {
     const key = objectKey(object, beforeSymbols, opts)
     if (!consume(afterOtherCounts, key)) {
-      objects.push(diffObject(object, 'removed', () => id++))
+      objects.push(diffObject(object, 'removed', () => id++,
+        clonedSymbolIdFor(object, 'removed', beforeSymbols)))
     } else if (opts.includeUnchanged) {
-      objects.push(diffObject(object, 'unchanged', () => id++))
+      objects.push(diffObject(object, 'unchanged', () => id++,
+        clonedSymbolIdFor(object, 'unchanged', beforeSymbols)))
     }
   }
 
   for (const object of afterOther) {
     const key = objectKey(object, afterSymbols, opts)
     if (!consume(beforeOtherCounts, key)) {
-      objects.push(diffObject(object, 'added', () => id++))
+      objects.push(diffObject(object, 'added', () => id++,
+        clonedSymbolIdFor(object, 'added', afterSymbols)))
     }
   }
 
@@ -146,7 +187,7 @@ function diffMaps(
     },
     georeferencing: after.georeferencing ?? before.georeferencing,
     colors: diffColors(opts),
-    symbols: diffSymbols(opts),
+    symbols: [...diffSymbols(opts), ...textSymbolClones.values()],
     objects,
     warnings: [...before.warnings, ...after.warnings],
   })
@@ -224,16 +265,16 @@ function diffSymbols(options: ResolvedDiffMapsOptions): DiffSymbol[] {
       { type: 'point-fill', colorId: 'added', radius: options.pointRadius },
     ]),
     diffSymbol('removed-area', 'area', 'removed', [
-      { type: 'fill', colorId: 'removed', opacity: 0.35 },
+      { type: 'fill', colorId: 'removed', opacity: 0.6 },
     ]),
     diffSymbol('added-area', 'area', 'added', [
-      { type: 'fill', colorId: 'added', opacity: 0.35 },
+      { type: 'fill', colorId: 'added', opacity: 0.6 },
     ]),
     diffSymbol('removed-text', 'text', 'removed', [
-      { type: 'text', colorId: 'removed', fontSize: 12 },
+      { type: 'text', colorId: 'removed', fontSize: 3 },
     ]),
     diffSymbol('added-text', 'text', 'added', [
-      { type: 'text', colorId: 'added', fontSize: 12 },
+      { type: 'text', colorId: 'added', fontSize: 3 },
     ]),
     diffSymbol('unchanged-line', 'line', 'unchanged', [
       {
@@ -258,7 +299,7 @@ function diffSymbols(options: ResolvedDiffMapsOptions): DiffSymbol[] {
       {
         type: 'text',
         colorId: 'unchanged',
-        fontSize: 12,
+        fontSize: 3,
         opacity: options.unchangedOpacity,
       },
     ]),
@@ -463,12 +504,14 @@ function increment(counts: Map<string, number>, key: string): void {
 function diffObject(
   object: MapObject,
   kind: DiffKind,
-  nextId: () => number
+  nextId: () => number,
+  overrideSymbolId?: string | null,
 ): DiffObject {
   return {
     ...object,
     id: nextId(),
-    symbolId: `${kind}-${object.type === 'line-text' ? 'text' : object.type}`,
+    symbolId: overrideSymbolId ??
+      `${kind}-${object.type === 'line-text' ? 'text' : object.type}`,
     hidden: false,
     diffKind: kind,
     sourceObject: object,

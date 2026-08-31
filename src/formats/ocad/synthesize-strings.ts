@@ -159,14 +159,22 @@ function setupParamString(map: PanMap): ParameterStringValues {
   const projX = g?.projected?.refPoint?.x
   const projY = g?.projected?.refPoint?.y
   const useReal = gridId !== undefined && projX !== undefined && projY !== undefined
+  // Grid spacing pair. `d` = real-world grid distance in metres; `g` =
+  // the same distance projected to paper mm = d × 1000 / scale. OOM
+  // enforces this invariant on export (ocd_file_export.cpp:945-966).
+  // Emitting `d=0` (as this file used to) crashes downstream consumers
+  // like Condes with a blank canvas because it divides by zero when
+  // computing grid cells. Use the standard 500m orienteering grid.
+  const gridReal = 500
+  const gridMap = (gridReal * 1000) / scale
   const pairs: Array<{ code: string; value: string }> = [
     { code: 'm', value: String(scale) },
-    { code: 'g', value: '16.6667' },
+    { code: 'g', value: gridMap.toFixed(4) },
     { code: 'r', value: useReal ? '1' : '0' },
     { code: 'x', value: String(useReal ? projX : 0) },
     { code: 'y', value: String(useReal ? projY : 0) },
     { code: 'a', value: String(grivation) },
-    { code: 'd', value: '0' },
+    { code: 'd', value: gridReal.toFixed(6) },
     { code: 'b', value: '0.00' },
     { code: 'c', value: '0.00' },
   ]

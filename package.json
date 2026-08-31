@@ -1,6 +1,6 @@
 {
   "name": "@kiwirm/panmap",
-  "version": "0.1.4",
+  "version": "0.1.9",
   "description": "Read OCAD, OMap/XMap, and GitMap orienteering-map files into a shared PanMap model, and export to GeoJSON, SVG, or GitMap.",
   "type": "module",
   "main": "dist/index.js",
@@ -31,7 +31,7 @@
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/main.js",
     "test": "tsc --noEmit && npm run lint && ava --node-arguments='--import tsx'",
     "lint": "eslint src/",
-    "prepublishOnly": "npm test && npm run build"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "ocad",

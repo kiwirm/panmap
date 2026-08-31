@@ -12,10 +12,10 @@ import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../map/coord.js'
 import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../util/xml.js'
 import {
   coordsToPath,
-  pathLength,
-  pointAndAngleAt,
-  lineAngleStart,
-  lineAngleEnd,
+  buildPathSampler,
+  pointAndAngleAtSampler,
+  lineAngleStartSampler,
+  lineAngleEndSampler,
 } from './svg/path.js'
 import { dashToSvg, lineJoinToSvg, lineCapToSvg } from './svg/style.js'
 import { cmykFractionToRgb } from '../cmyk-to-rgb.js'
@@ -72,17 +72,19 @@ export interface MapSvgRenderSupport {
  * retained source metadata while the render-layer model grows.
  */
 function mapToSvg(map: PanMap, options: MapToSvgOptions = {}): DOMElement {
-  if (getMapSvgRenderSupport(map).direct) {
-    return renderDirectly(map, {
-      ...options,
-      coordinateTransform:
-        options.coordinateTransform || getVisualCoordinateTransform(map) || undefined,
-    })
-  }
-
-  throw new Error(
-    `Can not render map from source format "${map.sourceFormat}" directly to SVG yet.`
-  )
+  // `renderDirectly` already tolerates individual unsupported objects
+  // (missing symbols, layers whose type doesn't fit the object, etc. —
+  // it just skips them). Gating the whole render on
+  // `getMapSvgRenderSupport(map).direct` used to hard-error a map with
+  // even one orphaned object — e.g. maerewhenua carrying 8k lines
+  // pointed at symbol `-3` (Mapper's "undefined" sentinel for objects
+  // whose symbol was deleted). Callers who want the pre-flight report
+  // can still call `getMapSvgRenderSupport` directly.
+  return renderDirectly(map, {
+    ...options,
+    coordinateTransform:
+      options.coordinateTransform || getVisualCoordinateTransform(map) || undefined,
+  })
 }
 
 function getVisualCoordinateTransform(map) {
@@ -285,27 +287,40 @@ function objectLayerToSvg(
         return lineSymbolsLayerToSvg(object, layer, colors, transform)
       }
       if (layer.type !== 'stroke') return null
+      // colorId = -1 (or otherwise unresolvable) marks the layer as
+      // deliberately invisible — a composition slot for borders / line-
+      // symbols to hang off. Rendering it as a black stroke turned
+      // symbol 309 (narrow marsh) into a fat black line.
+      const hasMainColor = isValidColorId(layer.colorId)
       const dashArray = dashToSvg(layer.dash)
       const d = coordsToPath(object.coordinates, transform)
-      const mainNode = `<path d="${d}" stroke="${escapeAttr(
+      const mainNode = hasMainColor ? `<path d="${d}" stroke="${escapeAttr(
         getColor(layer, colors)
       )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
         layer
       )}" stroke-linecap="${lineCapToSvg(layer)}"${opacityAttr(layer)}${
         dashArray ? ` stroke-dasharray="${dashArray}"` : ''
-      } />`
+      } />` : null
 
-      // Borders: parallel offsets on each side of the main stroke. Mapper
-      // stores each border's `width` (its own thickness) and `shift`
-      // (gap from the main line's edge). The outer edge sits at
-      // `mainWidth/2 + shift + width`; the inner at `mainWidth/2 + shift`.
-      // Emit a WIDER stroke at the border colour so the main-line fill
-      // (painted on top by colour priority) leaves the outer fringe
-      // visible as an outline. One node per border; each carries its
-      // own colour's render order.
-      const borders = Array.isArray(layer.borders) ? layer.borders : []
+      // Borders: parallel offsets on each side of the main stroke.
+      // Mapper stores each border's `width` (its own thickness) and
+      // `shift` (gap from the main line's edge). Emit ONE stroke per
+      // border at width `mainWidth + 2*(shift + bw)` in the border's
+      // colour; the main draws over the centre by paint priority,
+      // leaving just the outer fringe visible.
+      //
+      // If the main-line is invisible (colorId=-1, composite line
+      // symbols like ISOM 511.1 power line) the wider-stroke trick has
+      // nothing to cover it up and the border reads as one fat solid
+      // stroke. Proper rendering would emit two parallel-offset rails
+      // — but the offset helper doesn't understand bezier control
+      // coords yet, so it scribbles on curves. Skip borders for
+      // composite lines until that helper grows bezier support.
+      const borders = Array.isArray(layer.borders) && hasMainColor
+        ? layer.borders
+        : []
       if (!borders.length) return mainNode
-      const bordersOut: Array<{order: number; node: string}> = borders
+      const bordersOut: Array<{order: number; node: string}> = (borders as unknown[])
         .map((b: any) => {
           if (!b || !isValidColorId(b.color) || !(b.width > 0)) return null
           const mainW = Number(layer.width) || 0
@@ -326,13 +341,13 @@ function objectLayerToSvg(
           }
         })
         .filter(Boolean) as Array<{order: number; node: string}>
-      return [
-        ...bordersOut,
-        { order: getColorOrder(layer, colors), node: mainNode },
-      ]
+      return mainNode
+        ? [...bordersOut, { order: getColorOrder(layer, colors), node: mainNode }]
+        : bordersOut
     }
     case 'area':
       if (layer.type === 'stroke') {
+        if (!isValidColorId(layer.colorId)) return null
         const dashArray = dashToSvg(layer.dash)
         return `<path d="${coordsToPath(object.coordinates, transform)} Z" stroke="${escapeAttr(
           getColor(layer, colors)
@@ -510,7 +525,8 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   const coords = object.coordinates || []
   if (!line || coords.length < 2) return null
 
-  const total = pathLength(coords)
+  const sampler = buildPathSampler(coords)
+  const total = sampler.total
   if (total <= 0) return null
 
   // Emit each sub-symbol placement as separate {order, node} entries so
@@ -522,7 +538,7 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   const rendered: Array<{ order: number; node: string }> = []
   const addSymbol = (symbol, distance, rotatable = true) => {
     if (!symbol) return
-    const point = pointAndAngleAt(coords, Math.max(0, Math.min(total, distance)))
+    const point = pointAndAngleAtSampler(sampler, Math.max(0, Math.min(total, distance)))
     const primitives = xmapPointSymbolToSvg(
       symbol,
       point[0],
@@ -594,7 +610,7 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   }
 
   if (line.startSymbol) {
-    const angle = lineAngleStart(coords)
+    const angle = lineAngleStartSampler(sampler)
     const start = transform(coords[0])
     const primitives = xmapPointSymbolToSvg(
       line.startSymbol,
@@ -613,7 +629,7 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   }
 
   if (line.endSymbol) {
-    const angle = lineAngleEnd(coords)
+    const angle = lineAngleEndSampler(sampler)
     const end = transform(coords[coords.length - 1])
     const primitives = xmapPointSymbolToSvg(
       line.endSymbol,
@@ -709,8 +725,9 @@ function lineElementsLayerToSvg(object, layer, colors, transform) {
     layer.primSymElements.length > 0 &&
     layer.mainLength > 0
   ) {
-    primaryLineElementPositions(coords, layer).forEach(position => {
-      const point = pointAndAngleAt(coords, position)
+    const sampler = buildPathSampler(coords)
+    primaryLineElementPositions(sampler, layer).forEach(position => {
+      const point = pointAndAngleAtSampler(sampler, position)
       addElements(layer.primSymElements, [point[0], point[1]], point.angle)
     })
   }
@@ -754,8 +771,8 @@ function getElementColorOrder(element, colors) {
   return colors[element.color] ? colors[element.color].renderOrder : 0
 }
 
-function primaryLineElementPositions(coords, layer) {
-  const total = pathLength(coords)
+function primaryLineElementPositions(sampler, layer) {
+  const total = sampler.total
   const spacing = Math.max(layer.mainLength || 0, 1)
   if (total <= 0) return []
 
@@ -1055,9 +1072,21 @@ function textLayerToSvg(object, layer, colors, transform) {
   const anchorAttr = anchor !== 'start' ? ` text-anchor="${anchor}"` : ''
   const baselineAttr = baseline !== 'alphabetic' ? ` dominant-baseline="${baseline}"` : ''
 
+  // Newlines produce real line breaks. SVG's <text> collapses white-
+  // space, so multi-line labels have to be split into one <tspan> per
+  // line. Each line inherits x= from the parent <text> and steps down
+  // by 1em (well — dy is relative to the previous line, so first line
+  // uses 0 and subsequent lines use 1em).
+  const lines = String(object.text).split(/\r\n?|\n/)
+  const inner = lines.length === 1
+    ? escapeText(lines[0])
+    : lines.map((line, i) =>
+        `<tspan x="${coord[0]}"${i === 0 ? '' : ' dy="1em"'}>${escapeText(line)}</tspan>`,
+      ).join('')
+
   return `<text x="${coord[0]}" y="${coord[1]}"${transformAttr} fill="${escapeAttr(
     getColor(layer, colors)
-  )}" font-family="${escapeAttr(layer.fontFamily || 'Arial')}" font-size="${fontSize}"${anchorAttr}${baselineAttr}${opacityAttr(layer)}>${escapeText(object.text)}</text>`
+  )}" font-family="${escapeAttr(layer.fontFamily || 'Arial')}" font-size="${fontSize}"${anchorAttr}${baselineAttr}${opacityAttr(layer)}>${inner}</text>`
 }
 
 function opacityAttr(layer) {
