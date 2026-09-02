@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises'
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
-import { read, diff, mapToSvg } from '../index.js'
+import { read, diff, diffChanges, mapToSvg } from '../index.js'
 
 interface DiffCmdOptions {
   whiteBackground?: boolean
+  changes?: string
 }
 
 /**
@@ -26,15 +27,29 @@ export async function runDiff(
   options: DiffCmdOptions,
 ): Promise<void> {
   const [before, after] = await Promise.all([read(beforePath), read(afterPath)])
-  const diffMap = diff(before, after)
   // `getBounds` uses the same identity transform mapToSvg falls back
   // to when no `coordinateTransform` option is passed. For xmap-sourced
   // maps that's the identity — matches what the "after" render will use.
   const bounds = after.getBounds()
-  const svg = mapToSvg(diffMap, {
-    document: new DOMImplementation().createDocument(null, 'xml', null),
-    backgroundColor: options.whiteBackground ? 'white' : undefined,
-    bounds,
-  })
-  await fs.writeFile(output, new XMLSerializer().serializeToString(svg))
+
+  // With --changes we also compute per-feature changes, and the overall
+  // diff is composed from them (changed red/green parts only, no yellow)
+  // so it stays consistent with the per-change views. Without --changes,
+  // fall back to the plain whole-object diff render.
+  const result = options.changes
+    ? diffChanges(before, after, {}, { renderSvg: true })
+    : null
+  if (result?.overallSvg) {
+    await fs.writeFile(output, result.overallSvg)
+  } else {
+    const svg = mapToSvg(diff(before, after), {
+      document: new DOMImplementation().createDocument(null, 'xml', null),
+      backgroundColor: options.whiteBackground ? 'white' : undefined,
+      bounds,
+    })
+    await fs.writeFile(output, new XMLSerializer().serializeToString(svg))
+  }
+  if (options.changes && result) {
+    await fs.writeFile(options.changes, JSON.stringify(result))
+  }
 }

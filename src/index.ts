@@ -34,6 +34,13 @@ export {
   type ExportFormat,
 } from './export/index.js'
 export {
+  default as diffChanges,
+  type DiffChange,
+  type DiffChangeFeature,
+  type DiffChangesOptions,
+  type DiffChangesResult,
+} from './map/diff-changes.js'
+export {
   default as diff,
   diffMapsToSvg,
   type DiffMapsOptions,

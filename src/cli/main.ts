@@ -86,6 +86,10 @@ program
     'render with a white background',
     false,
   )
+  .option(
+    '--changes <path>',
+    'also write a JSON list of per-feature changes (with bounds) to <path>',
+  )
   .action(run(runDiff))
 
 program.parse(process.argv)

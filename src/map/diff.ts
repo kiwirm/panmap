@@ -6,6 +6,7 @@ import PanMap, {
 } from './model.js'
 import mapToSvg from '../export/svg.js'
 import { boundsForCoords as sharedBoundsForCoords } from './coord.js'
+import { parseSymbolCode } from '../util/symbol-code.js'
 
 export interface DiffMapsOptions {
   coordinateTolerance?: number
@@ -84,32 +85,29 @@ function diffMaps(
   const objects: DiffObject[] = []
   let id = 1
 
-  // Per-source-symbol clones for text objects. Text carries per-symbol
-  // styling (fontSize, fontFamily, hAlign, vAlign) that a single shared
-  // `added-text`/`removed-text` synthetic can't reproduce, so for every
-  // original text symbol we produce three tinted clones (added/removed/
-  // unchanged) on demand and point the diff object at those.
-  const textSymbolClones = new Map<string, MapSymbol>();
-  const cloneTextSymbol = (
-    orig: MapSymbol, kind: DiffKind,
+  // Every diff object renders with a recoloured clone of its ORIGINAL
+  // symbol, so a changed feature keeps its real symbology (point icon,
+  // line dashes/mid-symbols, area fill/pattern) and only its colour is
+  // forced to the diff colour. Clones are memoised per (colour, source
+  // symbol); objects with no resolvable symbol fall back to the generic
+  // diff symbols below.
+  const symbolClones = new Map<string, MapSymbol>();
+  const symbolFor = (
+    object: MapObject, symbolsFor: Record<string | number, MapSymbol>,
+  ): MapSymbol | undefined =>
+    symbolsFor[String(object.symbolId)] ?? symbolsFor[object.symbolId as never];
+  const diffSymbolIdFor = (
+    orig: MapSymbol | undefined, kind: DiffKind, type: string,
   ): string => {
+    // Areas render as a coloured outline + hatched fill (see
+    // diffAreaSymbols), not their real solid fill.
+    if (type === 'area') return `diff-area-${kind}`;
+    if (!orig) return `${kind}-${type === 'line-text' ? 'text' : type}`;
     const key = `${kind}::${orig.id}`;
-    if (textSymbolClones.has(key)) return String(textSymbolClones.get(key)!.id);
-    const clonedId = `diff-${kind}-${orig.id}`;
-    const clone: MapSymbol = {
-      ...orig,
-      id: clonedId,
-      renderLayers: (orig.renderLayers ?? []).map((layer: RenderLayer) => {
-        if (layer.type !== 'text' && layer.type !== 'line-text') return layer;
-        return {
-          ...layer,
-          colorId: kind,
-          ...(kind === 'unchanged' ? { opacity: opts.unchangedOpacity } : {}),
-        } as RenderLayer;
-      }),
-    };
-    textSymbolClones.set(key, clone);
-    return clonedId;
+    if (!symbolClones.has(key)) {
+      symbolClones.set(key, recolorSymbol(orig, kind, opts.unchangedOpacity));
+    }
+    return String(symbolClones.get(key)!.id);
   };
 
   const beforeLines = beforeObjects.filter(object => object.type === 'line')
@@ -125,7 +123,8 @@ function diffMaps(
         afterLineSegments,
         'removed',
         opts,
-        () => id++
+        () => id++,
+        (k) => diffSymbolIdFor(symbolFor(object, beforeSymbols), k, object.type),
       )
     )
   }
@@ -138,7 +137,8 @@ function diffMaps(
         beforeLineSegments,
         'added',
         opts,
-        () => id++
+        () => id++,
+        (k) => diffSymbolIdFor(symbolFor(object, afterSymbols), k, object.type),
       )
     )
   }
@@ -148,24 +148,14 @@ function diffMaps(
   const beforeOtherCounts = objectCounts(beforeOther, beforeSymbols, opts)
   const afterOtherCounts = objectCounts(afterOther, afterSymbols, opts)
 
-  const clonedSymbolIdFor = (
-    object: MapObject, kind: DiffKind,
-    symbolsFor: Record<string | number, MapSymbol>,
-  ): string | null => {
-    if (object.type !== 'text' && object.type !== 'line-text') return null;
-    const orig = symbolsFor[String(object.symbolId)] ?? symbolsFor[object.symbolId as never];
-    if (!orig) return null;
-    return cloneTextSymbol(orig, kind);
-  };
-
   for (const object of beforeOther) {
     const key = objectKey(object, beforeSymbols, opts)
     if (!consume(afterOtherCounts, key)) {
       objects.push(diffObject(object, 'removed', () => id++,
-        clonedSymbolIdFor(object, 'removed', beforeSymbols)))
+        diffSymbolIdFor(symbolFor(object, beforeSymbols), 'removed', object.type)))
     } else if (opts.includeUnchanged) {
       objects.push(diffObject(object, 'unchanged', () => id++,
-        clonedSymbolIdFor(object, 'unchanged', beforeSymbols)))
+        diffSymbolIdFor(symbolFor(object, beforeSymbols), 'unchanged', object.type)))
     }
   }
 
@@ -173,7 +163,7 @@ function diffMaps(
     const key = objectKey(object, afterSymbols, opts)
     if (!consume(beforeOtherCounts, key)) {
       objects.push(diffObject(object, 'added', () => id++,
-        clonedSymbolIdFor(object, 'added', afterSymbols)))
+        diffSymbolIdFor(symbolFor(object, afterSymbols), 'added', object.type)))
     }
   }
 
@@ -187,7 +177,7 @@ function diffMaps(
     },
     georeferencing: after.georeferencing ?? before.georeferencing,
     colors: diffColors(opts),
-    symbols: [...diffSymbols(opts), ...textSymbolClones.values()],
+    symbols: [...diffSymbols(opts), ...diffAreaSymbols(), ...symbolClones.values()],
     objects,
     warnings: [...before.warnings, ...after.warnings],
   })
@@ -225,27 +215,29 @@ function transformObjects(
 }
 
 function diffColors(options: ResolvedDiffMapsOptions): MapColor[] {
+  // The exporter draws HIGHER renderOrder first (at the bottom), so green
+  // (added) gets the lowest order to sit on top of red (removed).
   return [
-    {
-      id: 'removed',
-      sourceId: 'removed',
-      name: 'Removed',
-      rgb: options.removedColor,
-      renderOrder: 3,
-    },
     {
       id: 'added',
       sourceId: 'added',
       name: 'Added',
       rgb: options.addedColor,
-      renderOrder: 4,
+      renderOrder: 1,
+    },
+    {
+      id: 'removed',
+      sourceId: 'removed',
+      name: 'Removed',
+      rgb: options.removedColor,
+      renderOrder: 2,
     },
     {
       id: 'unchanged',
       sourceId: 'unchanged',
       name: 'Unchanged',
       rgb: 'rgb(80, 80, 80)',
-      renderOrder: 1,
+      renderOrder: 3,
     },
   ]
 }
@@ -306,6 +298,38 @@ function diffSymbols(options: ResolvedDiffMapsOptions): DiffSymbol[] {
   ]
 }
 
+// Diff outlines are deliberately fat so added/removed/modified geometry
+// reads clearly over the base map.
+export const DIFF_OUTLINE_WIDTH = 44
+
+// Area features in a diff render as a coloured OUTLINE (fat border) plus a
+// hatched fill in the same colour — not their real solid fill. Returns the
+// area symbol (`diff-area-<kind>`) and the border line it references
+// (`diff-border-<kind>`) for each kind.
+export function diffAreaSymbols(
+  kinds: string[] = ['added', 'removed', 'unchanged'],
+): MapSymbol[] {
+  const out: MapSymbol[] = []
+  for (const kind of kinds) {
+    out.push({
+      id: `diff-border-${kind}`, sourceId: `diff-border-${kind}`,
+      code: `diff-border-${kind}`, name: `diff-border-${kind}`,
+      type: 'line', hidden: false,
+      renderLayers: [{ type: 'stroke', colorId: kind, width: DIFF_OUTLINE_WIDTH }],
+    } as unknown as MapSymbol)
+    out.push({
+      id: `diff-area-${kind}`, sourceId: `diff-area-${kind}`,
+      code: `diff-area-${kind}`, name: `diff-area-${kind}`,
+      type: 'area', hidden: false,
+      renderLayers: [
+        { type: 'hatch-fill', colorId: kind, spacing: 120, lineWidth: 14, angle: 45 },
+        { type: 'border-symbol', symbolId: `diff-border-${kind}` },
+      ],
+    } as unknown as MapSymbol)
+  }
+  return out
+}
+
 function diffSymbol(
   id: string,
   type: string,
@@ -340,7 +364,11 @@ function lineSegmentDiffObjects(
   oppositeSegments: Map<string, number>,
   kind: 'removed' | 'added',
   options: ResolvedDiffMapsOptions,
-  nextId: () => number
+  nextId: () => number,
+  // Resolves the recoloured clone id of the object's original line symbol
+  // for a given diff kind, so changed segments render with the real line
+  // style (and unchanged segments get the dimmed 'unchanged' clone).
+  symbolIdFor: (kind: DiffKind) => string,
 ): DiffObject[] {
   const result: DiffObject[] = []
   const coords = object.coordinates as number[][]
@@ -348,7 +376,7 @@ function lineSegmentDiffObjects(
   if (!Array.isArray(coords) || coords.length < 2) {
     const key = objectKey(object, symbols, options)
     if (!consume(oppositeSegments, key)) {
-      result.push(diffObject(object, kind, nextId))
+      result.push(diffObject(object, kind, nextId, symbolIdFor(kind)))
     }
     return result
   }
@@ -360,7 +388,7 @@ function lineSegmentDiffObjects(
     const key = segmentKey(object, symbols, previous, coord, options)
     if (consume(oppositeSegments, key)) {
       if (current.length > 1) {
-        result.push(lineDiffObject(object, current, kind, nextId))
+        result.push(lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)))
       }
       current = []
       if (options.includeUnchanged && kind === 'removed') {
@@ -371,7 +399,7 @@ function lineSegmentDiffObjects(
     }
 
     if (unchanged.length > 1) {
-      result.push(lineDiffObject(object, unchanged, 'unchanged', nextId))
+      result.push(lineDiffObject(object, unchanged, 'unchanged', nextId, symbolIdFor('unchanged')))
       unchanged = []
     }
 
@@ -385,10 +413,10 @@ function lineSegmentDiffObjects(
   })
 
   if (current.length > 1) {
-    result.push(lineDiffObject(object, current, kind, nextId))
+    result.push(lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)))
   }
   if (unchanged.length > 1) {
-    result.push(lineDiffObject(object, unchanged, 'unchanged', nextId))
+    result.push(lineDiffObject(object, unchanged, 'unchanged', nextId, symbolIdFor('unchanged')))
   }
 
   return result
@@ -468,7 +496,18 @@ function segmentKey(
 }
 
 function symbolKey(symbol?: MapSymbol): string {
-  return symbol ? symbol.code || symbol.name || String(symbol.id) : ''
+  if (!symbol) return ''
+  // Canonicalise numeric OCAD-style codes so the same symbol matches
+  // across source formats. OMap stores a major symbol as "101" while
+  // OCAD stores "101.0"; parseSymbolCode packs both to the same integer
+  // (101000), so an OMap-sourced map diffs cleanly against an
+  // OCAD-sourced one instead of reporting every object as changed.
+  // Non-numeric codes fall back to the raw string (then name/id).
+  const code = symbol.code
+  if (code && /^\d+(\.\d+)*$/.test(code.trim())) {
+    return `#${parseSymbolCode(code)}`
+  }
+  return code || symbol.name || String(symbol.id)
 }
 
 function coordString(coord: number[], options: ResolvedDiffMapsOptions): string {
@@ -522,12 +561,13 @@ function lineDiffObject(
   object: MapObject,
   coordinates: number[][],
   kind: 'removed' | 'added' | 'unchanged',
-  nextId: () => number
+  nextId: () => number,
+  symbolId: string,
 ): DiffObject {
   return {
     ...object,
     id: nextId(),
-    symbolId: `${kind}-line`,
+    symbolId,
     type: 'line',
     coordinates,
     hidden: false,
@@ -539,6 +579,46 @@ function lineDiffObject(
 
 function boundsForCoords(coordinates: number[][]): { min: number[]; max: number[] } {
   return sharedBoundsForCoords(coordinates) ?? { min: [0, 0], max: [0, 0] }
+}
+
+// Deep-clone a symbol, forcing every colour reference to `colorId` so it
+// renders in a single diff colour while keeping its full symbology (point
+// icons, line dashes/mid-symbols, area fills). Invalid ids (e.g. -1 "no
+// colour") are left untouched so invisible layers stay invisible.
+export function recolorSymbol(
+  orig: MapSymbol, kind: string, unchangedOpacity = 0.18,
+): MapSymbol {
+  const clone = remapColorRefs(orig, kind) as MapSymbol
+  clone.id = `diff-${kind}-${orig.id}`
+  clone.sourceId = clone.id
+  if (kind === 'unchanged') {
+    for (const layer of (clone.renderLayers ?? []) as Array<{ opacity?: number }>) {
+      layer.opacity = unchangedOpacity
+    }
+  }
+  return clone
+}
+
+function remapColorRefs(value: unknown, colorId: string): unknown {
+  if (Array.isArray(value)) return value.map(v => remapColorRefs(v, colorId))
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = isColorKey(k) && isColorRef(v) ? colorId : remapColorRefs(v, colorId)
+    }
+    return out
+  }
+  return value
+}
+
+// Keys holding a colour reference: `color`, `colorId`, `fillColorId`,
+// `leftColorId`, `innerColor`, `outerColor`, `frColor`, … (British
+// spelling too). Anchored so `sourceId` / `code` are never matched.
+function isColorKey(key: string): boolean {
+  return /colou?r(id)?$/i.test(key)
+}
+function isColorRef(v: unknown): boolean {
+  return (typeof v === 'number' && v >= 0) || (typeof v === 'string' && v.length > 0)
 }
 
 export { diffMapsToSvg }

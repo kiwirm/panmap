@@ -82,8 +82,6 @@ async function writeGitmap(
     parts: 'parts.json',
     objects: 'objects.ndjson',
   }
-  const hasPrivate = !!(map.view || map.print)
-  if (hasPrivate) files.private = 'private/view.json'
 
   const manifest: Record<string, unknown> = {
     format: 'gitmap',
@@ -116,18 +114,10 @@ async function writeGitmap(
     `${objects.map(stableJson).join('\n')}\n`
   )
 
-  // Editor viewport state — view center/zoom/rotation and print settings —
-  // gets written under `private/` because it changes every time someone
-  // opens the map in an editor and adjusts the viewport. Callers should
-  // gitignore `private/` so those tweaks don't pollute commit history.
-  // Content (georeferencing, templates, notes, extensions) stays tracked.
-  if (hasPrivate) {
-    await fs.mkdir(path.join(directory, 'private'), { recursive: true })
-    const priv: Record<string, unknown> = {}
-    if (map.view) priv.view = map.view
-    if (map.print) priv.print = map.print
-    await writeJson(directory, 'private/view.json', priv)
-  }
+  // Editor viewport / print state is deliberately NOT written. A gitmap
+  // tracks map CONTENT only; view center/zoom churns every time someone
+  // opens the map and would otherwise pollute the history with no-op
+  // "changes" (see the diamond-harbour private/view.json commits).
 }
 
 function makeObjectIdsUnique<T extends { id: string }>(objects: T[]): T[] {
