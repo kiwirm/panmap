@@ -67,8 +67,14 @@ async function writeGitmap(
         a.id.localeCompare(b.id)
     )
 
+  // OCAD stores coordinates y-up; every other format (omap, gitmap) is
+  // y-down "visual" space. Flip an ocad-sourced map's object coordinates on
+  // the way into gitmap so the package is canonically y-down — otherwise an
+  // ocd→gitmap conversion lands upside-down relative to omap-sourced gitmaps
+  // and any diff between them reports the whole map as changed.
+  const flipY = map.sourceFormat === 'ocad'
   const objects = makeObjectIdsUnique(map.objects
-    .map(object => toGitmapObject(object, symbolIds, symbolCodes))
+    .map(object => toGitmapObject(object, symbolIds, symbolCodes, 'part_main', flipY))
     .sort((a, b) =>
       a.partId.localeCompare(b.partId)
       || String(a.symbolCode ?? '').localeCompare(String(b.symbolCode ?? ''))

@@ -60,6 +60,13 @@ const POINT_MOVE_METERS = 50
 // geometry (symmetric coverage). Robust to a few moved vertices.
 const COVERAGE_THRESHOLD = 0.8
 
+// Shared, mutable comparison budget for the pairing pass — a hard cap on
+// point↔segment distance ops so a pathological diff can't hang. Decremented
+// in `coverage`; when it reaches 0, matching short-circuits.
+interface MatchBudget {
+  ops: number
+}
+
 interface Feature {
   kind: 'added' | 'removed'
   symbol?: MapSymbol
@@ -159,14 +166,65 @@ export function diffChanges(
   const scale = after.georeferencing?.scale ?? before.georeferencing?.scale ?? 15000
   // 1 coord unit = 0.01 mm on paper → scale * 1e-5 m on the ground.
   const pointMoveUnits = POINT_MOVE_METERS / (scale * 1e-5)
+
+  // Spatial index over `added` for candidate pruning. Two features can only
+  // pair (matchScore > 0) when most of each feature's points lie within
+  // `pointMoveUnits` of the other — so their bounding boxes must be within
+  // `pointMoveUnits`. Bucketing `added` into a uniform grid keyed by that
+  // distance lets each removed feature test only the handful of candidates
+  // in overlapping cells instead of all of `added`. This is output-identical
+  // to the old full scan (a far-apart feature always scores 0) but turns the
+  // O(removed × added) pairing — which blew up to hundreds of millions of
+  // polyline comparisons on a whole-map churn (e.g. an ocd upload diffed
+  // against an omap-sourced map before the y-flip fix) — into ~O(removed).
+  const cellSize = Math.max(1, pointMoveUnits)
+  const MAX_CELLS_PER_FEATURE = 256
+  const cellRange = (bounds: Rect) => ({
+    x0: Math.floor((bounds[0] - pointMoveUnits) / cellSize),
+    y0: Math.floor((bounds[1] - pointMoveUnits) / cellSize),
+    x1: Math.floor((bounds[2] + pointMoveUnits) / cellSize),
+    y1: Math.floor((bounds[3] + pointMoveUnits) / cellSize),
+  })
+  const spanCells = (r: ReturnType<typeof cellRange>) =>
+    (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1)
+  const grid = new Map<string, Feature[]>()
+  const sprawling: Feature[] = [] // added whose bbox spans too many cells
+  for (const a of added) {
+    const c = cellRange(a.bounds)
+    if (spanCells(c) > MAX_CELLS_PER_FEATURE) { sprawling.push(a); continue }
+    for (let cx = c.x0; cx <= c.x1; cx++) for (let cy = c.y0; cy <= c.y1; cy++) {
+      const k = `${cx}:${cy}`
+      const arr = grid.get(k)
+      if (arr) arr.push(a); else grid.set(k, [a])
+    }
+  }
+  const candidatesFor = (r: Feature): Iterable<Feature> => {
+    const c = cellRange(r.bounds)
+    // A removed feature that itself spans the whole map: fall back to the
+    // full set (rare — a handful of map-wide features at most).
+    if (spanCells(c) > MAX_CELLS_PER_FEATURE) return added
+    const seen = new Set<Feature>(sprawling)
+    for (let cx = c.x0; cx <= c.x1; cx++) for (let cy = c.y0; cy <= c.y1; cy++) {
+      const arr = grid.get(`${cx}:${cy}`)
+      if (arr) for (const a of arr) seen.add(a)
+    }
+    return seen
+  }
+
+  // Hard backstop so a pathological diff can never hang: cap the total
+  // point↔segment distance comparisons across all pairing. Generous enough
+  // that a normal map (small changed set) never reaches it, so results are
+  // unchanged; a whole-map churn stops pairing partway and reports the rest
+  // as plain add/remove instead of spinning indefinitely.
+  const budget: MatchBudget = { ops: 20_000_000 }
   const bestMatch = (r: Feature, sameSymbol: boolean): Feature | null => {
     let best: Feature | null = null
     let bestScore = 0 // must beat 0 to count as a match
-    for (const a of added) {
+    for (const a of candidatesFor(r)) {
       if (usedAdded.has(a)) continue
       const same = canonCode(a.symbol) === canonCode(r.symbol)
       if (sameSymbol ? !same : same) continue
-      const score = matchScore(r, a, pointMoveUnits)
+      const score = matchScore(r, a, pointMoveUnits, budget)
       if (score > bestScore) { best = a; bestScore = score }
     }
     return best
@@ -602,8 +660,11 @@ function geomKey(object: { coordinates?: unknown }): string {
 // symbol; > 0 means "the same feature, edited". Lines/areas score by the
 // fraction of shared vertices (must exceed 50%); points/text by
 // closeness (must be within `pointMoveUnits`). Higher = better match.
-function matchScore(r: Feature, a: Feature, pointMoveUnits: number): number {
+function matchScore(
+  r: Feature, a: Feature, pointMoveUnits: number, budget?: MatchBudget,
+): number {
   if (r.type !== a.type) return 0
+  if (budget && budget.ops <= 0) return 0
   const rc = srcCoords(r.src)
   const ac = srcCoords(a.src)
   if (!rc.length || !ac.length) return 0
@@ -618,31 +679,52 @@ function matchScore(r: Feature, a: Feature, pointMoveUnits: number): number {
   // vertex density doesn't matter). Both directions must clear the
   // threshold; the score is the weaker direction so best-match still works.
   const cov = Math.min(
-    coverage(rc, ac, pointMoveUnits),
-    coverage(ac, rc, pointMoveUnits),
+    coverage(rc, ac, pointMoveUnits, budget),
+    coverage(ac, rc, pointMoveUnits, budget),
   )
   return cov >= COVERAGE_THRESHOLD ? cov : 0
 }
 
-// Fraction of `from` points within `d` of the `to` polyline.
+// Cap on points examined per coverage call. Features up to this size are
+// compared exactly (so normal maps are unaffected); larger polylines are
+// evenly subsampled to bound the O(from × to) cost of a single comparison.
+const MAX_COVERAGE_POINTS = 400
+function subsampleCoords(
+  pts: Array<[number, number]>, max = MAX_COVERAGE_POINTS,
+): Array<[number, number]> {
+  if (pts.length <= max) return pts
+  const out: Array<[number, number]> = []
+  const step = pts.length / max
+  for (let i = 0; i < max; i++) out.push(pts[Math.floor(i * step)])
+  return out
+}
+
+// Fraction of `from` points within `d` of the `to` polyline. `budget`, when
+// supplied, caps total point↔segment work across the whole pairing pass so a
+// pathological (whole-map-churn) diff terminates instead of hanging; once
+// exhausted the comparison bails out reporting no coverage.
 function coverage(
   from: Array<[number, number]>, to: Array<[number, number]>, d: number,
+  budget?: MatchBudget,
 ): number {
   if (!from.length || !to.length) return 0
+  const fromS = subsampleCoords(from)
+  const toS = subsampleCoords(to)
   let within = 0
-  for (const p of from) {
+  for (const p of fromS) {
     let best = Infinity
-    if (to.length === 1) {
-      best = Math.hypot(p[0] - to[0][0], p[1] - to[0][1])
+    if (toS.length === 1) {
+      best = Math.hypot(p[0] - toS[0][0], p[1] - toS[0][1])
     } else {
-      for (let i = 1; i < to.length; i++) {
-        const dist = pointToSegmentDist(p, to[i - 1], to[i])
+      for (let i = 1; i < toS.length; i++) {
+        if (budget && --budget.ops <= 0) return 0
+        const dist = pointToSegmentDist(p, toS[i - 1], toS[i])
         if (dist < best) { best = dist; if (best <= d) break }
       }
     }
     if (best <= d) within++
   }
-  return within / from.length
+  return within / fromS.length
 }
 
 function pointToSegmentDist(

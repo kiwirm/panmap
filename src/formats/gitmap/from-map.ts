@@ -41,11 +41,19 @@ function toGitmapObject(
   symbolIds: Map<string | number, string>,
   symbolCodes: Map<string | number, string>,
   partId = 'part_main',
+  // Negate object-coordinate Y so an OCAD-sourced (y-up) map is stored in
+  // gitmap's canonical visual (y-down) space — matching omap output and the
+  // SVG exporter's `getVisualCoordinateTransform`. Only object coordinates
+  // are flipped, exactly as the omap writer's `flipY` does; symbol geometry
+  // is left untouched. Without this an ocd→gitmap conversion stores coords
+  // upside-down vs every omap-sourced gitmap, so a diff between them reports
+  // 100% of the map as changed.
+  flipY = false,
 ) {
   const symbolId = symbolIds.get(object.symbolId) || String(object.symbolId)
   const symbolCode = symbolCodes.get(object.symbolId)
   return {
-    id: stableObjectId(object, symbolId, partId),
+    id: stableObjectId(object, symbolId, partId, flipY),
     sourceId: object.id,
     partId,
     symbolId,
@@ -53,7 +61,7 @@ function toGitmapObject(
     // objects.ndjson is readable without cross-referencing symbols.ndjson.
     symbolCode,
     type: object.type,
-    coordinates: coordinatesToJson(object.coordinates || []),
+    coordinates: coordinatesToJson(object.coordinates || [], flipY),
     text: object.text,
     rotation: object.rotation,
     hidden: object.hidden ? true : undefined,
@@ -152,8 +160,8 @@ function elementToGitmap(colorIds: Map<string | number, string>, element) {
   return output
 }
 
-function coordinatesToJson(coordinates: unknown[]): unknown[] {
-  return coordinates.map(coordToJson)
+function coordinatesToJson(coordinates: unknown[], flipY = false): unknown[] {
+  return coordinates.map(coord => coordToJson(coord, flipY))
 }
 
 /**
@@ -163,14 +171,16 @@ function coordinatesToJson(coordinates: unknown[]): unknown[] {
  * valued flag fields are omitted so plain coords stay compact — that's
  * where the diff-noise reduction comes from, not from switching shapes.
  */
-function coordToJson(coord: unknown): unknown {
+function coordToJson(coord: unknown, flipY = false): unknown {
   const src = coord as {
     0?: number; 1?: number; x?: number; y?: number;
     flags?: number; xFlags?: number; yFlags?: number; omapFlags?: number;
   }
   const isTuple = Array.isArray(coord)
   const x = cleanNumber(isTuple ? src[0] : src.x)
-  const y = cleanNumber(isTuple ? src[1] : src.y)
+  const rawY = cleanNumber(isTuple ? src[1] : src.y)
+  // Negate for the visual (y-down) space; avoid -0 so serialisation is stable.
+  const y = flipY && rawY !== 0 ? -rawY : rawY
 
   const out: Record<string, unknown> = { x, y }
   if (src.flags) out.flags = src.flags
@@ -212,27 +222,31 @@ function stableObjectId(
   object: MapObject,
   symbolId?: string,
   partId = 'part_main',
+  flipY = false,
 ): string {
   return `obj_${hashObject({
     partId,
     symbolId: symbolId || object.symbolId,
     type: object.type,
-    coordinates: coordinatesToIdentityJson(object.coordinates || []),
+    // Hash the SAME (possibly y-flipped) coords that get serialised, so the
+    // id identifies the geometry as actually stored.
+    coordinates: coordinatesToIdentityJson(object.coordinates || [], flipY),
     text: object.text || '',
     rotation: object.rotation || 0,
   })}`
 }
 
-function coordinatesToIdentityJson(coordinates: unknown[]): unknown[] {
+function coordinatesToIdentityJson(coordinates: unknown[], flipY = false): unknown[] {
   return coordinates.map(coord => {
     const src = coord as { 0?: number; 1?: number; x?: number; y?: number }
     const isTuple = Array.isArray(coord)
     if (!isTuple && (!coord || typeof coord !== 'object' || !('x' in src))) {
       return coord
     }
+    const rawY = cleanNumber(isTuple ? src[1] : src.y)
     return {
       x: cleanNumber(isTuple ? src[0] : src.x),
-      y: cleanNumber(isTuple ? src[1] : src.y),
+      y: flipY && rawY !== 0 ? -rawY : rawY,
     }
   })
 }
