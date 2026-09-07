@@ -1,22 +1,90 @@
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import PanMap from '../../map/model.js'
 import { boundsForCoords } from '../../map/coord.js'
-import { readJson, readNdjson, readJsonOrNdjson } from '../../util/ndjson.js'
+import {
+  parseJson, parseNdjson, parseJsonOrNdjson,
+} from '../../util/ndjson.js'
 
+// A gitmap is a small set of named files (gitmap.json + colors/symbols/
+// objects ndjson + optional private/view.json). A `GitmapSource` abstracts
+// WHERE those bytes come from — the on-disk directory reader, or an
+// in-memory bundle fetched straight from git (`git cat-file`) with no tar
+// extraction / temp files. `read(name)` returns the file's UTF-8 text, or
+// null when the file is absent.
+export interface GitmapSource {
+  read(name: string): Promise<string | null>
+}
+
+function directorySource(directory: string): GitmapSource {
+  return {
+    async read(name) {
+      try {
+        return await fs.readFile(path.join(directory, name), 'utf-8')
+      } catch (err) {
+        if ((err as { code?: string }).code === 'ENOENT') return null
+        throw err
+      }
+    },
+  }
+}
+
+/** Wrap an in-memory `{ filename → bytes }` map as a GitmapSource. */
+export function bundleSource(
+  files: Record<string, string | Buffer | Uint8Array>,
+): GitmapSource {
+  return {
+    async read(name) {
+      const v = files[name]
+      if (v == null) return null
+      return typeof v === 'string' ? v : Buffer.from(v).toString('utf-8')
+    },
+  }
+}
+
+/** Read a gitmap from a directory on disk (the original entry point). */
 async function readGitmap(directory: string): Promise<PanMap> {
-  const manifest = await readJson(path.join(directory, 'gitmap.json'))
+  return readGitmapFrom(directorySource(directory), directory)
+}
+
+/**
+ * Read a gitmap from an in-memory bundle — the files as `{ name → bytes }`,
+ * e.g. produced by `git cat-file --batch`. Lets callers diff/render a gitmap
+ * straight out of git's object store without materialising a temp directory.
+ */
+export async function readGitmapBundle(
+  files: Record<string, string | Buffer | Uint8Array>,
+): Promise<PanMap> {
+  return readGitmapFrom(bundleSource(files), 'bundle')
+}
+
+/** Core reader, agnostic to where the bytes come from. */
+async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanMap> {
+  const manifestText = await source.read('gitmap.json')
+  if (manifestText == null) {
+    throw new Error(`Not a GitMap package: ${label} (missing gitmap.json)`)
+  }
+  const manifest = parseJson(manifestText, 'gitmap.json')
   if (manifest?.format !== 'gitmap') {
-    throw new Error(`Not a GitMap package: ${directory}`)
+    throw new Error(`Not a GitMap package: ${label}`)
   }
 
   const files = manifest.files || {}
-  const colors = await readJsonOrNdjson(path.join(directory, files.colors || 'colors.ndjson'))
-  const symbols = await readJsonOrNdjson(path.join(directory, files.symbols || 'symbols.ndjson'))
-  const objects = await readNdjson(path.join(directory, files.objects || 'objects.ndjson'))
+  const readEntry = async (name: string): Promise<string> =>
+    (await source.read(name)) ?? ''
+  const colorsName = files.colors || 'colors.ndjson'
+  const symbolsName = files.symbols || 'symbols.ndjson'
+  const objectsName = files.objects || 'objects.ndjson'
+  const colors = parseJsonOrNdjson(await readEntry(colorsName), colorsName)
+  const symbols = parseJsonOrNdjson(await readEntry(symbolsName), symbolsName)
+  const objects = parseNdjson(await readEntry(objectsName), objectsName)
 
   // `view` / `print` live under `private/` for gitignoring editor state.
   // Older gitmaps kept them in the manifest — read either shape.
-  const privateData = await readPrivate(directory, files.private)
+  const privText = await source.read(files.private || 'private/view.json')
+  const privateData = privText
+    ? (parseJson(privText, files.private || 'private/view.json') as Record<string, unknown>)
+    : undefined
   const view = pickObject(privateData?.view) ?? pickObject(manifest.view)
   const print = pickObject(privateData?.print) ?? pickObject(manifest.print)
 
@@ -26,7 +94,7 @@ async function readGitmap(directory: string): Promise<PanMap> {
 
   return new PanMap({
     sourceFormat: 'gitmap',
-    sourceFile: { directory, manifest },
+    sourceFile: { directory: label, manifest },
     metadata: { gitmap: manifest },
     colors: colors.map(colorFromGitmap),
     symbols: symbols.map(symbol => symbolFromGitmap(symbol)),
@@ -51,19 +119,6 @@ async function readGitmap(directory: string): Promise<PanMap> {
       ? manifest.georeferencing as PanMap['georeferencing']
       : undefined,
   })
-}
-
-async function readPrivate(
-  directory: string,
-  relpath?: string,
-): Promise<Record<string, unknown> | undefined> {
-  const target = relpath || 'private/view.json'
-  try {
-    return (await readJson(path.join(directory, target))) as Record<string, unknown>
-  } catch (err) {
-    if ((err as { code?: string }).code === 'ENOENT') return undefined
-    throw err
-  }
 }
 
 function pickObject(v: unknown): Record<string, unknown> | undefined {

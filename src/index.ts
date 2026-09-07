@@ -23,6 +23,11 @@ import * as omap from './formats/omap/index.js'
 import * as gitmap from './formats/gitmap/index.js'
 
 export { read } from './read.js'
+export {
+  readGitmapBundle,
+  bundleSource,
+  type GitmapSource,
+} from './formats/gitmap/read.js'
 export { write, type WriteOptions, type NativeFormat } from './write.js'
 export { convert } from './convert.js'
 export {
