@@ -110,8 +110,22 @@ function diffMaps(
     return String(symbolClones.get(key)!.id);
   };
 
-  const beforeLines = beforeObjects.filter(object => object.type === 'line')
-  const afterLines = afterObjects.filter(object => object.type === 'line')
+  let beforeLines = beforeObjects.filter(object => object.type === 'line')
+  let afterLines = afterObjects.filter(object => object.type === 'line')
+  // Fast pre-pass: drop whole lines that are identical (same symbol + exact
+  // coordinate sequence) in both maps before the expensive per-segment
+  // matching below. A fully-identical line would be cancelled segment-by-
+  // segment anyway, so removing it up front is (near-)equivalent but makes
+  // the diff scale with the CHANGED geometry instead of the whole map — the
+  // difference matters on dense maps where per-segment keying dominates.
+  // Skipped under includeUnchanged, which needs unchanged geometry rendered.
+  if (!opts.includeUnchanged) {
+    const changed = cancelIdenticalLines(
+      beforeLines, afterLines, beforeSymbols, afterSymbols, opts,
+    )
+    beforeLines = changed.before
+    afterLines = changed.after
+  }
   const afterLineSegments = segmentCounts(afterLines, afterSymbols, opts)
   const beforeLineSegments = segmentCounts(beforeLines, beforeSymbols, opts)
 
@@ -189,6 +203,39 @@ function diffMapsToSvg(
   options?: DiffMapsOptions
 ): unknown {
   return mapToSvg(diffMaps(before, after, options))
+}
+
+// Remove lines that appear, unchanged, in BOTH maps — matched on the whole-
+// object key (symbol + rounded coordinate sequence), as a multiset so
+// duplicate identical lines pair up one-for-one. Returns the surviving
+// (changed) lines on each side, in their original order so downstream diff-
+// object ids and render order are unaffected. This is the cheap O(objects)
+// pre-filter that keeps per-segment matching off unchanged geometry.
+function cancelIdenticalLines(
+  beforeLines: MapObject[],
+  afterLines: MapObject[],
+  beforeSymbols: Record<string | number, MapSymbol>,
+  afterSymbols: Record<string | number, MapSymbol>,
+  opts: typeof defaultOptions & DiffMapsOptions,
+): { before: MapObject[]; after: MapObject[] } {
+  // key -> stack of after-line indices carrying that key.
+  const afterByKey = new Map<string, number[]>()
+  afterLines.forEach((object, i) => {
+    const k = objectKey(object, afterSymbols, opts)
+    const bucket = afterByKey.get(k)
+    if (bucket) bucket.push(i)
+    else afterByKey.set(k, [i])
+  })
+  const cancelledAfter = new Set<number>()
+  const before: MapObject[] = []
+  for (const object of beforeLines) {
+    const k = objectKey(object, beforeSymbols, opts)
+    const bucket = afterByKey.get(k)
+    if (bucket && bucket.length) cancelledAfter.add(bucket.pop()!)
+    else before.push(object)
+  }
+  const after = afterLines.filter((_, i) => !cancelledAfter.has(i))
+  return { before, after }
 }
 
 function transformObjects(

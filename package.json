@@ -1,6 +1,6 @@
 {
   "name": "@kiwirm/panmap",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read OCAD, OMap/XMap, and GitMap orienteering-map files into a shared PanMap model, and export to GeoJSON, SVG, or GitMap.",
   "type": "module",
   "main": "dist/index.js",
