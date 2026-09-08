@@ -9,6 +9,7 @@ import {
   DotElementType,
 } from '../formats/ocad/internal/symbol-element-types.js'
 import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../map/coord.js'
+import { needsYFlip } from '../formats/codecs/index.js'
 import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../util/xml.js'
 import {
   coordsToPath,
@@ -88,7 +89,7 @@ function mapToSvg(map: PanMap, options: MapToSvgOptions = {}): DOMElement {
 }
 
 function getVisualCoordinateTransform(map) {
-  if (map.sourceFormat === 'ocad') return coord => [coord[0], -coord[1]]
+  if (needsYFlip(map.sourceFormat, 'svg')) return coord => [coord[0], -coord[1]]
 
   if (map.sourceFormat !== 'diff') return null
 
@@ -96,8 +97,8 @@ function getVisualCoordinateTransform(map) {
   if (
     sourceFile.before &&
     sourceFile.after &&
-    sourceFile.before.sourceFormat === 'ocad' &&
-    sourceFile.after.sourceFormat === 'ocad'
+    needsYFlip(sourceFile.before.sourceFormat, 'svg') &&
+    needsYFlip(sourceFile.after.sourceFormat, 'svg')
   ) {
     return coord => [coord[0], -coord[1]]
   }

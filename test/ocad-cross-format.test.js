@@ -38,7 +38,10 @@ async function withTmp(fn) {
 }
 
 for (const pair of PAIRS) {
-  test.failing(`${pair.name}: xmap → ocd → xmap → ocd preserves counts`, async (t) => {
+  // Was `.failing`: OCAD symbol count didn't survive the round-trip because a
+  // `combined` line symbol synthesised an orphan 990.x border. Fixed in
+  // synthesize-symbols (skip border allocation for line-inferred symbols).
+  test(`${pair.name}: xmap → ocd → xmap → ocd preserves counts`, async (t) => {
     // Skip if the paired files aren't installed on this machine.
     try { await fs.access(pair.xmap); await fs.access(pair.ocd) }
     catch { t.pass('skipped — sample maps not present'); return }

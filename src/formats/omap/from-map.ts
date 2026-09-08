@@ -5,7 +5,6 @@
  * The XML emission itself lives in `write.ts`. This file only builds
  * the record shape; nothing here formats XML.
  */
-import type PanMap from '../../map/model.js'
 import type { MapObject, MapSymbol, RenderLayer } from '../../map/model.js'
 import {
   classifyAreaLayers, classifyLineLayers,
@@ -563,7 +562,11 @@ function buildXmapAreaSymbol(
       offsetAlongLine: 0,
       color: colorRef(p.colorId, colorIds),
       lineWidth: 0,
-      rotatable: false,
+      // Carry the pattern's rotatability (was hardcoded false) so the OMap
+      // reader's `patterns.some(p => p.rotatable)` recovers the symbol-level
+      // rotatable flag — matching the OCAD flags-bit path. Without this, an
+      // OMap round-trip of a rotatable point-pattern area drops the flag.
+      rotatable: !!(p.pattern as { rotatable?: boolean } | undefined)?.rotatable,
       // Nested symbol comes from panmap gitmap where all colour refs
       // are string ids; OMAP requires numeric priorities or Mapper
       // renders in the "unknown colour" fallback (bright pink).
@@ -859,17 +862,6 @@ function omapObjectType(object: MapObject): number {
   return 1
 }
 const colorRef = colorRefLookup
-function shouldFlipYForOmap(map: PanMap): boolean {
-  // OCAD stores paper coords Y-UP; XMAP/OMAP + gitmap use Y-DOWN.
-  // Panmap-internal keeps whichever the source used, so flip only when
-  // we know the source was OCAD. The previous flag-based heuristic
-  // (ocadFlagged vs mapperFlagged) is unreliable because gitmap
-  // normalises everything to xFlags/yFlags — an xmap-sourced gitmap
-  // ends up "looking" ocad-flagged and got wrongly flipped, producing
-  // upside-down OMAP output. SVG rendering uses the same criterion
-  // (`sourceFormat === 'ocad'`), so keep them in lockstep.
-  return map.sourceFormat === 'ocad'
-}
 const colorIdMap = buildColorIdMap
 
 // Panmap allows multiple MapSymbols to share the same `symbol.id`
@@ -908,7 +900,6 @@ export {
   toOmapSymbol,
   colorIdMap,
   colorRef,
-  shouldFlipYForOmap,
   symbolIdMap,
   omapObjectType,
   omapSymbolType,

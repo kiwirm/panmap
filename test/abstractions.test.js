@@ -222,17 +222,15 @@ test('TextTypography survives omap round-trip', async (/** @type {ExecutionConte
   t.is(typo.lineSpace, 1.5)
 })
 
-test('OCAD text symbol typography matches raw fields', async (/** @type {ExecutionContext} */ t) => {
+test('OCAD text symbol fontSize is millimetres at symbol and layer level', async (/** @type {ExecutionContext} */ t) => {
   const ocadFile = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
   // legacy re-import moved to top of file
   const map = ocad.toMap(ocadFile)
   const sym = map.symbols.find(s => s.type === 'text')
   const layer = sym.renderLayers.find(l => l.type === 'text')
-  const typo = layer.text
-  // Cross-check: the PanMap fontSize (mm) should equal OCAD's raw
-  // 1/10pt value × 25.4/720. `sym.fontSize` is the raw OCAD value
-  // (1/10pt); `typo.fontSize` is the mm-converted layer value.
-  const ocadFontSize = sym.fontSize ?? 0
-  const expectedMm = (ocadFontSize * 25.4) / 720
-  t.is(typo.fontSize, expectedMm)
+  // The model contract is millimetres. The top-level `sym.fontSize` used to leak
+  // OCAD's raw 1/10pt value while the text render layer was mm — so an OCD- and
+  // an OMap-sourced copy differed. Both are now mm and agree.
+  t.true(sym.fontSize > 0)
+  t.is(layer.text.fontSize, sym.fontSize)
 })

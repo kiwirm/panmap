@@ -7,6 +7,12 @@ import PanMap, {
   type RenderLayer,
 } from '../../map/model.js'
 import crsGrids from './internal/crs-grids.js'
+import { deriveGeographic } from './internal/geographic.js'
+import {
+  shiftHoleFlagsFromOcad,
+  canonicalTextAnchor,
+  ocadAngleToRadians,
+} from '../codecs/index.js'
 import type OcadFile from './internal/ocad-file.js'
 import type BaseSymbol from './internal/symbol.js'
 import type { PointSymbolDef } from './internal/point-symbol.js'
@@ -40,6 +46,18 @@ export default function ocadFileToMap(ocadFile: OcadFile): PanMap {
   const view = extractView(ocadFile)
   const georeferencing = extractGeoreferencing(ocadFile)
 
+  // OCAD stores text alignment on the SYMBOL; OMap (and the SVG renderer) read
+  // it per-OBJECT. Build a symNum→hAlign lookup so text objects can carry the
+  // alignment their symbol defines, matching OMap and rendering centre/right
+  // labels correctly (the renderer uses object.hAlign, not the symbol's).
+  const textHAlign = new Map<number, number>()
+  for (const symbol of ocadFile.symbols) {
+    const alignment = (symbol as { alignment?: number }).alignment
+    if (alignment === undefined) continue
+    const h = alignment & 0x03 // OCAD HAlign: 0 left, 1 centre, 2 right, 3 justified
+    textHAlign.set((symbol as { symNum: number }).symNum, h === 3 ? 1 : h)
+  }
+
   return new PanMap({
     sourceFormat: 'ocad',
     sourceFile: ocadFile,
@@ -52,7 +70,9 @@ export default function ocadFileToMap(ocadFile: OcadFile): PanMap {
     },
     colors: toMapColors(ocadFile),
     symbols: ocadFile.symbols.map(toMapSymbol),
-    objects: (ocadFile.objects as unknown as TObject[]).map(toMapObject),
+    objects: (ocadFile.objects as unknown as TObject[]).map((object, i) =>
+      toMapObject(object, i, textHAlign)
+    ),
     warnings: ocadFile.warnings,
     view,
     georeferencing,
@@ -96,6 +116,11 @@ function toMapColors(ocadFile: OcadFile): MapColor[] {
   return colors
 }
 
+// OCAD font size is tenths of a point; the canonical model uses millimetres.
+function convertOcadFontSizeToMm(fontSize: number | undefined): number | undefined {
+  return fontSize ? (fontSize * 25.4) / 720 : undefined
+}
+
 function toMapSymbol(symbol: BaseSymbol): MapSymbol {
   return {
     id: symbol.symNum,
@@ -107,7 +132,10 @@ function toMapSymbol(symbol: BaseSymbol): MapSymbol {
     // OCAD encodes rotatable as `flags & 1` on the raw symbol record;
     // hoist it onto the PanMap model so consumers don't need the raw.
     rotatable: (((symbol as { flags?: number }).flags ?? 0) & 1) !== 0,
-    fontSize: (symbol as { fontSize?: number }).fontSize,
+    // OCAD stores font size in tenths of a point; the model contract (and the
+    // OMap reader) is millimetres. Convert here so a text symbol's top-level
+    // fontSize matches cross-format (the text render layer already does this).
+    fontSize: convertOcadFontSizeToMm((symbol as { fontSize?: number }).fontSize),
     renderLayers: symbolToRenderLayers(symbol),
   }
 }
@@ -319,14 +347,50 @@ function hasLineElements(s: LineSymbolDef): boolean {
   ].some(e => Array.isArray(e) && e.length > 0)
 }
 
-function toMapObject(object: TObject, index: number): MapObject {
+function toMapObject(
+  object: TObject,
+  index: number,
+  textHAlign?: Map<number, number>
+): MapObject {
+  const type = ocadObjectTypeName(object.objType)
+  const angleRad = ocadAngleToRadians(object.ang)
+  const isText = type === 'text' || type === 'line-text'
+  // OCAD stores an AREA/combined object's angle as its fill-PATTERN rotation
+  // (Mapper: `setPatternRotation`); a point/text object's angle is the object's
+  // own rotation. Route it to the field OMap uses so the two agree — otherwise
+  // OCAD-sourced areas drop the pattern rotation that OMap carries in `pattern`.
+  const patternRotated = type === 'area' || type === 'combined'
   return {
     id: object.objIndex ? object.objIndex._index : index + 1,
     symbolId: object.sym,
-    type: ocadObjectTypeName(object.objType),
-    coordinates: object.coordinates,
+    type,
+    // Text objects: OCAD stores a single-anchor label as 5 coords (anchor + 4
+    // box corners clockwise). The box is derived from font metrics and re-
+    // snapped by Mapper on open, so it isn't canonical geometry — Mapper's own
+    // importer keeps only the anchor (fillTextPathCoords), and OMap stores just
+    // the anchor too. Reduce to it so OCD- and OMap-sourced text serialise
+    // identically. (The SVG renderer reads only coordinates[0] for text.)
+    //
+    // Everything else: OCAD stores an area's hole-ring flag on the FIRST coord
+    // of the new ring; canonical (and every consumer — SVG splitter, geojson,
+    // diff) wants it on the LAST coord of the previous ring. Shift it back — the
+    // exact inverse of the writer's `shiftHoleFlagsToOcad`. Without this, every
+    // OCAD-sourced area hole is off by one coord, and each OCD round-trip walks
+    // it forward again (measured: 235 interior hole flags on bottle-lake).
+    coordinates:
+      type === 'text'
+        ? canonicalTextAnchor(object.coordinates)
+        : shiftHoleFlagsFromOcad(object.coordinates),
     text: object.text,
-    rotation: object.ang ? (object.ang / 10 / 180) * Math.PI : 0,
+    rotation: patternRotated ? 0 : angleRad,
+    // Area/combined: the angle is the fill-pattern rotation; expose it on the
+    // per-object `pattern` override (origin defaults to 0,0), matching OMap.
+    pattern:
+      patternRotated && angleRad
+        ? { rotation: angleRad, origin: { x: 0, y: 0 } }
+        : undefined,
+    // Text alignment from the symbol (OCAD stores it there, OMap per-object).
+    hAlign: isText ? textHAlign?.get(object.sym) : undefined,
     // OCAD ObjectStatus (see Mapper's ocd_types.h):
     //   0 = Deleted (filtered out by the reader's index-block loop)
     //   1 = Normal
@@ -405,6 +469,30 @@ function extractGeoreferencing(ocadFile: OcadFile): MapCrs | undefined {
       }
     }
     crs.projected = projected
+
+    // OCAD stores only the projected side; OMap also carries a geographic ref
+    // point and a magnetic declination. Both are pure functions of the
+    // projection at the projected ref point (OOMapper derives them the same
+    // way), so reproduce them here to match OMap-sourced georef. Skipped when
+    // the EPSG isn't in the offline proj4 table (never fabricated).
+    const derived = deriveGeographic(projected.parameter, projected.refPoint)
+    if (derived) {
+      crs.geographic = {
+        id: 'Geographic coordinates',
+        spec: { language: 'PROJ.4', value: '+proj=latlong +datum=WGS84' },
+        refPointDeg: {
+          lat: round(derived.refPointDeg.lat, 8),
+          lon: round(derived.refPointDeg.lon, 8),
+        },
+      }
+      // declination = grivation (grid→magnetic) + meridian convergence
+      // (true→grid). `a` is OCAD's grivation.
+      if (a !== undefined) crs.declination = round(a + derived.convergenceDeg, 2)
+    }
   }
   return Object.keys(crs).length ? crs : undefined
+}
+
+function round(value: number, dp: number): number {
+  return Number(value.toFixed(dp))
 }

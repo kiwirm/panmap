@@ -13,7 +13,8 @@ import type {
 } from '../../map/model.js'
 import TdPoly from '../ocad/internal/td-poly.js'
 import { parseNotes } from '../extensions.js'
-import { boundsForCoords, normaliseOmapFlags, type FlaggedCoord } from '../../map/coord.js'
+import { boundsForCoords, type FlaggedCoord } from '../../map/coord.js'
+import { normaliseOmapFlags } from '../codecs/omap-flags.js'
 import type {
   OmapColor,
   OmapCoord,

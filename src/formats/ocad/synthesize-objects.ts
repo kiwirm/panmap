@@ -1,5 +1,10 @@
 import type { MapObject, MapSymbol } from '../../map/model.js'
-import { YFLAG_FIRST_HOLE_POINT } from '../../map/coord.js'
+import {
+  shiftHoleFlagsToOcad,
+  radiansToOcadAngle,
+  needsYFlip,
+  expandTextBoxCoords,
+} from '../codecs/index.js'
 import { parseSymbolCode } from '../../util/symbol-code.js'
 
 /**
@@ -29,7 +34,7 @@ export function synthesizeObjects(
   // coords with Y-down (paper origin at top-left). Without a flip,
   // maps sourced from either open upside-down in Mapper. OCAD-sourced
   // maps already have Y-up coords, so leave them alone.
-  const flipY = sourceFormat !== 'ocad'
+  const flipY = needsYFlip(sourceFormat, 'ocad')
   const symToOcadNum = buildSymNumLookup(symbols, symNums)
   const out: unknown[] = []
   for (const obj of objects) {
@@ -52,7 +57,11 @@ export function synthesizeObjects(
     out.push({
       sym: ocadSym,
       otp,
-      ang: Math.round(((obj.rotation ?? 0) * 1800) / Math.PI),
+      // OCAD's single object angle carries the fill-PATTERN rotation for areas
+      // and the object rotation for points/text — write whichever this object
+      // has (an area keeps rotation in `pattern`, a point in `rotation`), so the
+      // pattern rotation isn't dropped on a gitmap→ocd write.
+      ang: radiansToOcadAngle(obj.pattern?.rotation || obj.rotation),
       nItem: coords.length,
       nText: obj.text ? obj.text.length + 1 : 0,
       nObjectString: obj.objectString ? obj.objectString.length + 1 : 0,
@@ -184,56 +193,10 @@ function normalizeCoords(input: unknown[], flipY: boolean): FlatCoord[] {
       })
     }
   }
-  return shiftHoleFlagsForward(raw)
-}
-
-/**
- * Move each 0x02-flagged (hole-start) yFlag from the coord that holds
- * it (last coord of prev ring, xmap-side convention) to the next coord
- * (first coord of new ring, OCAD-side convention). Leaves other bits
- * alone.
- */
-function shiftHoleFlagsForward(coords: FlatCoord[]): FlatCoord[] {
-  for (let i = coords.length - 1; i > 0; i--) {
-    const src = coords[i - 1]
-    if ((src.yFlags & YFLAG_FIRST_HOLE_POINT) === 0) continue
-    src.yFlags &= ~YFLAG_FIRST_HOLE_POINT
-    coords[i].yFlags |= YFLAG_FIRST_HOLE_POINT
-  }
-  return coords
-}
-
-/**
- * Build a 5-coord text bounding box for an OCAD `otp=4` text object.
- * Layout matches what Mapper writes: anchor, then four corners going
- * anchor → below-left → below-right → above-right → above-left.
- *
- * Sizes are approximated from the string length and a nominal line
- * height in map units (1 unit = 0.01 mm). Real OCAD stores the exact
- * font metrics; for a fresh from-scratch write we don't have that
- * information — Mapper snaps text boxes on re-open anyway.
- */
-function expandTextBoxCoords(anchor: FlatCoord, text: string): FlatCoord[] {
-  const CHAR_WIDTH = 60   // ~0.6 mm per char at 5-6 pt — matches sample "Lima Rd" (378 / ~7 chars ≈ 54)
-  const LINE_HEIGHT = 128  // ~1.3 mm, matching the sample rectangles
-  const width = Math.max(CHAR_WIDTH, text.length * CHAR_WIDTH)
-  const anchorX = anchor[0]
-  const anchorY = anchor[1]
-  // Anchor sits on the box's left edge; box extends right for `width`
-  // and up/down half `LINE_HEIGHT` around the anchor's baseline. In
-  // OCAD's Y-up world "below" is smaller y.
-  const belowY = anchorY - Math.round(LINE_HEIGHT * 0.15)
-  const aboveY = anchorY + Math.round(LINE_HEIGHT * 0.85)
-  const rightX = anchorX + width
-  const mk = (x: number, y: number): FlatCoord =>
-    ({ 0: x, 1: y, xFlags: 0, yFlags: 0 })
-  return [
-    anchor,
-    mk(anchorX, belowY),
-    mk(rightX, belowY),
-    mk(rightX, aboveY),
-    mk(anchorX, aboveY),
-  ]
+  // Move each hole flag last-of-prev → first-of-new (OCAD's on-disk
+  // convention). The exact inverse runs on read (`shiftHoleFlagsFromOcad`);
+  // both live together in map/coord.ts.
+  return shiftHoleFlagsToOcad(raw)
 }
 
 function boundsFor(coords: FlatCoord[]): {

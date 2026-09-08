@@ -85,12 +85,6 @@ export function coordsToPath(
   return commands.join(' ')
 }
 
-export interface PathSegment {
-  start: Coord
-  end: Coord
-  length: number
-}
-
 /** Flat SoA (struct-of-arrays) layout: three typed arrays holding start
  *  x/y, end x/y and cumulative length for every segment along the path.
  *  Callers that need to sample repeatedly (dash/mid symbols, arrow
@@ -175,22 +169,6 @@ export function pathLength(coords: Coord[]): number {
   return buildPathSampler(coords).total
 }
 
-/** Legacy allocation-heavy API — retained for any external callers.
- *  Prefer `buildPathSampler` + the `*Sampler` variants below. */
-export function pathSegments(coords: Coord[]): PathSegment[] {
-  const sampler = buildPathSampler(coords)
-  const out: PathSegment[] = []
-  let prev = 0
-  for (let i = 0; i < sampler.count; i++) {
-    const sx = sampler.starts[i * 2]; const sy = sampler.starts[i * 2 + 1]
-    const ex = sampler.ends[i * 2]; const ey = sampler.ends[i * 2 + 1]
-    const length = sampler.cumLen[i] - prev
-    prev = sampler.cumLen[i]
-    out.push({ start: [sx, sy] as unknown as Coord, end: [ex, ey] as unknown as Coord, length })
-  }
-  return out
-}
-
 export function pointAndAngleAtSampler(
   sampler: PathSampler, distance: number,
 ): { 0: number; 1: number; angle: number } {
@@ -221,11 +199,6 @@ export function pointAndAngleAtSampler(
 
 export function pointAndAngleAt(coords: Coord[], distance: number): { 0: number; 1: number; angle: number } {
   return pointAndAngleAtSampler(buildPathSampler(coords), distance)
-}
-
-export function addPathSegment(segments: PathSegment[], start: Coord, end: Coord): void {
-  const length = Math.hypot(end[0] - start[0], end[1] - start[1])
-  if (length > 0) segments.push({ start, end, length })
 }
 
 export function cubicBezierPoint(p0: Coord, p1: Coord, p2: Coord, p3: Coord, t: number): Coord {

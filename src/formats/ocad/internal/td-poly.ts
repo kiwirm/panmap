@@ -1,3 +1,9 @@
+import {
+  unpackOcadValue,
+  unpackOcadFlags,
+  packOcadOrdinate,
+} from '../../codecs/index.js'
+
 /**
  * Represents a TDPoly, which is a coordinate pair with optional flags.
  * The class is an array of X and Y coordinates, with the flags stored in
@@ -13,11 +19,11 @@ class TdPoly extends Array<number> {
 
   constructor(ocadX: number, ocadY: number, xFlags?: number, yFlags?: number) {
     super(
-      xFlags === undefined ? ocadX >> 8 : ocadX,
-      yFlags === undefined ? ocadY >> 8 : ocadY
+      xFlags === undefined ? unpackOcadValue(ocadX) : ocadX,
+      yFlags === undefined ? unpackOcadValue(ocadY) : ocadY
     )
-    this.xFlags = xFlags === undefined ? ocadX & 0xff : xFlags
-    this.yFlags = yFlags === undefined ? ocadY & 0xff : yFlags
+    this.xFlags = xFlags === undefined ? unpackOcadFlags(ocadX) : xFlags
+    this.yFlags = yFlags === undefined ? unpackOcadFlags(ocadY) : yFlags
   }
 
   isFirstBezier(): boolean {
@@ -97,7 +103,7 @@ class TdPoly extends Array<number> {
   }
 
   static fromCoords(x: number, y: number): TdPoly {
-    return new TdPoly(x << 8, y << 8)
+    return new TdPoly(packOcadOrdinate(x), packOcadOrdinate(y))
   }
 }
 

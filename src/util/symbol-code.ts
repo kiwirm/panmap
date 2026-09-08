@@ -26,3 +26,29 @@ export function parseSymbolCode(code: string): number {
   }
   return Math.abs(hash) || 1
 }
+
+/**
+ * Canonical string form of a numeric symbol code.
+ *
+ * OCAD writes variant-zero codes with a trailing group ("101.0"); OMap drops it
+ * ("101"). They're the same symbol (`parseSymbolCode` gives 101000 for both), so
+ * an OCD- and an OMap-sourced copy of the same map otherwise produce different
+ * symbol ids (`sym_101_0` vs `sym_101`) — and every object referencing them then
+ * differs too. Reconstruct a canonical dotted string from the parsed value so
+ * equivalent codes collapse ("101.0"→"101", "204.01"→"204.1") while genuinely
+ * distinct ones are preserved ("204.1.0" stays, since it parses differently).
+ * Non-numeric codes are returned unchanged.
+ */
+export function canonicalSymbolCode(code: string | number | null | undefined): string {
+  if (code === null || code === undefined) return ''
+  const s = String(code).trim()
+  const parts = s.split('.')
+  if (!(parts.length >= 1 && parts.every((p) => /^\d+$/.test(p)))) return s
+  const main = parseInt(parts[0], 10)
+  let sub = 0
+  for (let i = 1; i < parts.length; i++) sub = sub * 100 + parseInt(parts[i], 10)
+  if (sub === 0) return String(main)
+  const subParts: number[] = []
+  for (let x = sub; x > 0; x = Math.floor(x / 100)) subParts.unshift(x % 100)
+  return [main, ...subParts].join('.')
+}

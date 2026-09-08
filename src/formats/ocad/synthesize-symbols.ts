@@ -107,6 +107,12 @@ export function synthesizeSymbols(
     const stroke = strokes[0]
     if (!stroke) continue
     if (!strokeColorValid(stroke)) continue
+    // A `combined` symbol whose layers infer to a LINE (a stroke with no fill)
+    // is written by `synthesizeSymbol` as an OCAD line that folds its casing
+    // into its own `doubleLine` fields — it never references a border symNum.
+    // Allocating one here just emits an orphan 990.x border line that nothing
+    // uses and inflates the symbol count. Skip it.
+    if (inferOcadTypeFromLayers(symbol) === 'line') continue
     borderRegistry.set(symbol, nextBorderNum())
   }
   for (const symbol of symbols) {

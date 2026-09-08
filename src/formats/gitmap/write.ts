@@ -9,6 +9,8 @@ import {
   toGitmapSymbol,
 } from './from-map.js'
 import { stableJson, stableJsonPretty } from './stable-json.js'
+import { needsYFlip } from '../codecs/index.js'
+import { canonicalSymbolCode } from '../../util/symbol-code.js'
 
 interface WriteGitmapOptions {
   overwrite?: boolean
@@ -53,7 +55,7 @@ async function writeGitmap(
   const symbolCodes = new Map<string | number, string>(
     map.symbols
       .filter(s => s.code !== undefined && s.code !== null)
-      .map(s => [s.id, String(s.code)])
+      .map(s => [s.id, canonicalSymbolCode(s.code)])
   )
 
   const symbols = map.symbols
@@ -66,15 +68,24 @@ async function writeGitmap(
         String(a.code || '').localeCompare(String(b.code || '')) ||
         a.id.localeCompare(b.id)
     )
+    // `sourceId` as a canonical dense rank (index in this code-sorted order),
+    // not the format-specific source symbol number, so the same map from OCD vs
+    // OMAP serialises identical symbol ids. The id is code-derived (independent
+    // of sourceId), so this changes bytes, not identity; gitmap read still sorts
+    // by sourceId to restore this order.
+    .map((symbol, i) => ({ ...symbol, sourceId: i }))
 
   // OCAD stores coordinates y-up; every other format (omap, gitmap) is
   // y-down "visual" space. Flip an ocad-sourced map's object coordinates on
   // the way into gitmap so the package is canonically y-down — otherwise an
   // ocd→gitmap conversion lands upside-down relative to omap-sourced gitmaps
   // and any diff between them reports the whole map as changed.
-  const flipY = map.sourceFormat === 'ocad'
+  const flipY = needsYFlip(map.sourceFormat, 'gitmap')
+  // `map.objects` is in render (z-) order; the object's index is its canonical
+  // z-rank, written as `sourceId` so the same map serialises identically across
+  // source formats (which assign different raw object ids but the same order).
   const objects = makeObjectIdsUnique(map.objects
-    .map(object => toGitmapObject(object, symbolIds, symbolCodes, 'part_main', flipY))
+    .map((object, i) => toGitmapObject(object, symbolIds, symbolCodes, 'part_main', flipY, i))
     .sort((a, b) =>
       a.partId.localeCompare(b.partId)
       || String(a.symbolCode ?? '').localeCompare(String(b.symbolCode ?? ''))

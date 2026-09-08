@@ -31,34 +31,15 @@ import type {
   OmapTextSymbol,
 } from './read.js'
 import { formatNotes } from '../extensions.js'
-import {
-  XFLAG_FIRST_BEZIER,
-  YFLAG_CORNER,
-  YFLAG_DASH_POINT,
-  YFLAG_FIRST_HOLE_POINT,
-  coordX,
-  coordY,
-} from '../../map/coord.js'
-import type { Coord } from '../../map/coord.js'
+import { coordinatesForOmap, needsYFlip } from '../codecs/index.js'
 import { escapeXmlAttr as xmlAttr } from '../../util/xml.js'
 import {
   toOmapSymbol,
   colorIdMap,
-  shouldFlipYForOmap,
   symbolIdMap,
   omapObjectType,
 } from './from-map.js'
 import type { RawOmapSymbol } from './from-map.js'
-
-/** Coord flavour accepted by coordinatesForOmap — a bare `[x, y]` tuple
- *  that may carry any subset of the flag styles produced by our two
- *  format readers. */
-type FlaggedCoord = number[] & {
-  xFlags?: number
-  yFlags?: number
-  flags?: number
-  omapFlags?: number
-}
 
 /** XMap pattern / text symbol shapes as they actually appear in parsed
  *  records — the strict interfaces omit optional fields the writer emits. */
@@ -106,7 +87,7 @@ function mapToOmapXml(map: PanMap): string {
     const n = symbolIds.get(symbol)
     if (n !== undefined) objectSymbolIds.set(symbol.id, n)
   }
-  const flipY = shouldFlipYForOmap(map)
+  const flipY = needsYFlip(map.sourceFormat, 'omap')
 
   const mapAttrs = mapAttributes()
   const barrierAttrs = barrierAttributes()
@@ -441,47 +422,6 @@ function coordToXml(coord, flipY = false): string {
   return `      <coord x="${dim(coord[0])}" y="${dim(flipY ? -coord[1] : coord[1])}"${flagAttr}/>`
 }
 
-function coordinatesForOmap(coordinates: Coord[]): FlaggedCoord[] {
-  const output: FlaggedCoord[] = coordinates.map(
-    (coord) => [coordX(coord), coordY(coord)] as FlaggedCoord,
-  )
-
-  // Handle each coord according to which flag style it carries. Mixed-
-  // source Maps (some coords with xmap-style `flags`/`omapFlags`, others
-  // with ocad-style `xFlags`/`yFlags`) get both translations applied so
-  // no source flags are silently dropped.
-  coordinates.forEach((coord, index) => {
-    const omapFlags = coord.omapFlags ?? coord.flags
-    if (omapFlags !== undefined) {
-      output[index].flags = (output[index].flags ?? 0) | omapFlags
-      return
-    }
-
-    const xF = coord.xFlags
-    const yF = coord.yFlags
-    if (xF === undefined && yF === undefined) return
-
-    if (((xF ?? 0) & XFLAG_FIRST_BEZIER) && index > 0) {
-      output[index - 1].flags = (output[index - 1].flags || 0) | 0x01
-    }
-    if ((yF ?? 0) & YFLAG_DASH_POINT || (yF ?? 0) & YFLAG_CORNER) {
-      output[index].flags = (output[index].flags || 0) | 0x20
-    }
-    if ((yF ?? 0) & YFLAG_FIRST_HOLE_POINT) {
-      setPathHolePoint(output, index - 1)
-    }
-  })
-
-  return output
-}
-
-function setPathHolePoint(coordinates: FlaggedCoord[], index: number): void {
-  if (index <= 0) return
-  if ((coordinates[index]?.flags ?? 0) & 0x01) return
-  if (index >= 1 && ((coordinates[index - 1]?.flags ?? 0) & 0x01)) return
-  if (index >= 2 && ((coordinates[index - 2]?.flags ?? 0) & 0x01)) return
-  coordinates[index].flags = (coordinates[index].flags || 0) | 0x10
-}
 function block(name: string, children: string[]): string {
   const tag = name.split(/\s+/, 1)[0]
   if (!children.length) return `  <${name}/>`

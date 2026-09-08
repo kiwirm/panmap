@@ -72,9 +72,11 @@ test('GitMap preserves Mapper source symbols and coordinate flags', async (/** @
       <part name="default part">
         <objects count="1">
           <object type="1" symbol="10">
-            <coords count="2">
-              <coord x="0" y="0" flags="0" />
-              <coord x="1000" y="0" flags="1" />
+            <coords count="4">
+              <coord x="0" y="0" flags="1" />
+              <coord x="100" y="100" />
+              <coord x="200" y="100" />
+              <coord x="300" y="0" flags="0" />
             </coords>
           </object>
         </objects>
@@ -93,11 +95,18 @@ test('GitMap preserves Mapper source symbols and coordinate flags', async (/** @
   )
   const roundTrip = await readGitmap(directory)
 
-  t.is(symbols[0].code, '501.0')
-  // Coords are always emitted in `{x, y, ...nonZeroFlags}` form.
-  // Zero-flag coord has no flag properties; non-zero flag survives.
+  // Canonical symbol code: OCAD's variant-zero suffix ".0" collapses to "501"
+  // (OMap already writes it that way), so an OCD- and OMap-sourced copy agree.
+  t.is(symbols[0].code, '501')
+  // Canonical coords: the SEMANTIC bezier flags survive on the control points
+  // (xFlags 1 and 2), so the same map serialises identically no matter which
+  // reader produced it. The raw OMap curve-start byte (omapFlags) is NOT
+  // stored — it's redundant with the control-point flags and format-specific.
   t.deepEqual(object.coordinates[0], { x: 0, y: 0 })
-  t.is(object.coordinates[1].omapFlags, 1)
-  t.is(roundTrip.objects[0].coordinates[0].omapFlags ?? 0, 0)
-  t.is(roundTrip.objects[0].coordinates[1].omapFlags, 1)
+  t.is(object.coordinates[1].xFlags, 1)
+  t.is(object.coordinates[2].xFlags, 2)
+  t.true(object.coordinates.every(c => c.omapFlags === undefined))
+  // The semantic flags round-trip back through a gitmap read.
+  t.is(roundTrip.objects[0].coordinates[1].xFlags, 1)
+  t.is(roundTrip.objects[0].coordinates[2].xFlags, 2)
 })

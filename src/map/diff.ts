@@ -430,9 +430,11 @@ function lineSegmentDiffObjects(
 
   let current: number[][] = []
   let unchanged: number[][] = []
-  coords.slice(1).forEach((coord, index) => {
+  const groupPrefix = groupPrefixOf(object, symbols)
+  for (let index = 0; index < coords.length - 1; index++) {
     const previous = coords[index]
-    const key = segmentKey(object, symbols, previous, coord, options)
+    const coord = coords[index + 1]
+    const key = segmentKeyOf(groupPrefix, previous, coord, options)
     if (consume(oppositeSegments, key)) {
       if (current.length > 1) {
         result.push(lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)))
@@ -442,7 +444,7 @@ function lineSegmentDiffObjects(
         if (unchanged.length === 0) unchanged = [previous]
         unchanged.push(coord)
       }
-      return
+      continue
     }
 
     if (unchanged.length > 1) {
@@ -457,7 +459,7 @@ function lineSegmentDiffObjects(
 
     if (current.length === 0) current = [previous]
     current.push(coord)
-  })
+  }
 
   if (current.length > 1) {
     result.push(lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)))
@@ -481,9 +483,10 @@ function segmentCounts(
       increment(counts, objectKey(object, symbols, options))
       continue
     }
-    coords.slice(1).forEach((coord, index) => {
-      increment(counts, segmentKey(object, symbols, coords[index], coord, options))
-    })
+    const groupPrefix = groupPrefixOf(object, symbols)
+    for (let i = 1; i < coords.length; i++) {
+      increment(counts, segmentKeyOf(groupPrefix, coords[i - 1], coords[i], options))
+    }
   }
   return counts
 }
@@ -529,17 +532,25 @@ function objectGeometryKey(
   return coords.map(coord => coordString(coord, options)).join('|')
 }
 
-function segmentKey(
-  object: MapObject,
-  symbols: Record<number | string, MapSymbol>,
-  a: number[],
-  b: number[],
-  options: ResolvedDiffMapsOptions
+// The per-object part of a segment/degenerate key: `<symbolKey>:<type>:`.
+// Hoisted out of the per-segment loop so symbolKey (a regex test +
+// parseSymbolCode) runs once per object instead of once per segment.
+function groupPrefixOf(
+  object: MapObject, symbols: Record<number | string, MapSymbol>,
+): string {
+  return `${symbolKey(symbols[object.symbolId])}:${object.type}:`
+}
+
+// Direction-independent key for the segment a→b, combined with a precomputed
+// group prefix. Reproduces the original `<symbolKey>:<type>:ca|cb` exactly —
+// only the symbolKey computation moved out of the loop.
+function segmentKeyOf(
+  groupPrefix: string, a: number[], b: number[],
+  options: ResolvedDiffMapsOptions,
 ): string {
   const ca = coordString(a, options)
   const cb = coordString(b, options)
-  const segment = ca < cb ? `${ca}|${cb}` : `${cb}|${ca}`
-  return [symbolKey(symbols[object.symbolId]), object.type, segment].join(':')
+  return ca < cb ? `${groupPrefix}${ca}|${cb}` : `${groupPrefix}${cb}|${ca}`
 }
 
 function symbolKey(symbol?: MapSymbol): string {

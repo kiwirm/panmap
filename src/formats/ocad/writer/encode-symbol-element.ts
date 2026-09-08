@@ -1,4 +1,5 @@
 import type BufferWriter from './buffer-writer.js'
+import { packOcadOrdinate } from '../../codecs/index.js'
 
 /**
  * On-disk OCAD symbol-element record. Shared by the writer (this file
@@ -89,9 +90,8 @@ export function toOcadCoord(coord: OcadCoordInput): OcadCoord {
 /** Encode a coord in any accepted input shape. */
 export function writeCoord(writer: BufferWriter, coord: OcadCoordInput): void {
   const { x, y, xFlags, yFlags } = toOcadCoord(coord)
-  // Reader did `coord[0] = ocadX >> 8` (arithmetic shift) and stored
-  // `xFlags = ocadX & 0xff`. The inverse is `ocadX = (x << 8) | xFlags`.
-  // JS bit ops are 32-bit so this naturally wraps to the original int32.
-  writer.writeInteger((x << 8) | xFlags)
-  writer.writeInteger((y << 8) | yFlags)
+  // Pack value + flag byte back into OCAD's 32-bit ordinate (inverse of the
+  // reader's unpack). JS bit ops are 32-bit so this wraps to the original int32.
+  writer.writeInteger(packOcadOrdinate(x, xFlags))
+  writer.writeInteger(packOcadOrdinate(y, yFlags))
 }

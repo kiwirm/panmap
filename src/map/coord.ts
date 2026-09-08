@@ -102,54 +102,8 @@ export function isFirstHolePoint(coord: FlaggedCoord): boolean {
   );
 }
 
-/**
- * Translate OOM XMap-style per-coord `flags` into OCAD-style
- * `xFlags` / `yFlags` on each coord, in place.
- *
- * XMap coord flag bits (from OOM's MapCoord::Flag):
- *   0x01 CurveStart — start of a Bézier segment; the next two
- *                     coords are cp1 / cp2.
- *   0x02 ClosePoint — last coord of a closed sub-path.
- *   0x04 GapPoint   — gap point (skipped section of a dashed line).
- *   0x10 HolePoint  — start of a new hole ring in an area.
- *   0x20 DashPoint  — dash / tick point on a line symbol.
- *
- * Downstream consumers (SVG exporter, geojson) read OCAD-style flags
- * (`xFlags` bit 0 = "cp1", bit 1 = "cp2", `yFlags` bit 1 = "start of
- * a hole", bit 3 = "dash point"). Normalising here means every
- * reader path can treat coord arrays uniformly regardless of whether
- * they came from OCAD (already xFlags) or XMap (omapFlags).
- */
-export function normaliseOmapFlags(coords: FlaggedCoord[]): void {
-  for (let i = 0; i < coords.length; i++) {
-    const c = coords[i];
-    const own = omapFlagsOf(c);
-    // If this coord already has explicit xFlags (e.g. an OCAD source),
-    // don't overwrite — trust the reader that produced them.
-    if (c.xFlags !== undefined && c.xFlags !== 0) continue;
-
-    let xFlags = c.xFlags ?? 0;
-    let yFlags = c.yFlags ?? 0;
-
-    if (i >= 1 && omapFlagsOf(coords[i - 1]) & 0x01) xFlags |= 0x01; // cp1
-    if (i >= 2 && omapFlagsOf(coords[i - 2]) & 0x01) xFlags |= 0x02; // cp2
-    if (own & 0x10) yFlags |= 0x02; // hole start
-    if (own & 0x20) yFlags |= 0x08; // dash point
-    // 0x04 GapPoint and 0x02 ClosePoint don't have OCAD-side twins;
-    // OOM stops paths naturally at end-of-array (no explicit close
-    // flag on the OCAD side), and gap points affect line rendering
-    // only if a downstream renderer looks at them separately.
-
-    if (xFlags !== 0) c.xFlags = xFlags;
-    if (yFlags !== 0) c.yFlags = yFlags;
-  }
-}
-
-function omapFlagsOf(coord: FlaggedCoord | undefined): number {
-  if (!coord) return 0;
-  const x = coord as FlaggedCoord & { omapFlags?: number };
-  return x.omapFlags ?? coord.flags ?? 0;
-}
+// The OMap↔canonical flag-byte translation (`normaliseOmapFlags` decode +
+// `coordinatesForOmap` encode) lives together in ../formats/codecs/omap-flags.ts.
 
 export interface Bounds {
   min: [number, number];

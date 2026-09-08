@@ -1,8 +1,8 @@
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
 import PanMap, { type MapColor, type MapObject, type MapSymbol } from './model.js'
-import diffMaps, { type DiffMapsOptions } from './diff.js'
+import diffMaps, { type DiffMapsOptions , DIFF_OUTLINE_WIDTH, recolorSymbol } from './diff.js'
 import mapToSvg from '../export/svg.js'
-import { DIFF_OUTLINE_WIDTH, recolorSymbol } from './diff.js'
+
 import { isFirstBezier, isSecondBezier, isFirstHolePoint } from './coord.js'
 import { parseSymbolCode } from '../util/symbol-code.js'
 
@@ -472,7 +472,7 @@ function coordArr(object: { coordinates?: unknown }): unknown[] {
 }
 
 function boundsOfCoords(coords: unknown[]): { min: number[]; max: number[] } {
-  let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity
+  let a = Infinity; let b = Infinity; let c = -Infinity; let d = -Infinity
   for (const p of coords) {
     const x = Array.isArray(p) ? p[0] : (p as { x?: number }).x
     const y = Array.isArray(p) ? p[1] : (p as { y?: number }).y
@@ -749,7 +749,7 @@ function coverage(
 function pointToSegmentDist(
   p: [number, number], a: [number, number], b: [number, number],
 ): number {
-  const dx = b[0] - a[0], dy = b[1] - a[1]
+  const dx = b[0] - a[0]; const dy = b[1] - a[1]
   const len2 = dx * dx + dy * dy
   if (len2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1])
   let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2

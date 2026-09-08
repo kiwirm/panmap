@@ -162,12 +162,16 @@
     <rgb method="custom" r="1" g="0.8627450980392157" b="0.6509803921568628" />
   </color>
   </colors>
-<georeferencing scale="15000" grivation="5.5">
+<georeferencing scale="15000" declination="10.29" grivation="5.5">
   <projected_crs id="EPSG">
     <spec language="PROJ.4">+init=epsg:3006</spec>
     <parameter>3006</parameter>
     <ref_point x="717500" y="7535000"/>
   </projected_crs>
+  <geographic_crs id="Geographic coordinates">
+    <spec language="PROJ.4">+proj=latlong +datum=WGS84</spec>
+    <ref_point_deg lat="67.84781076" lon="20.17385581"/>
+  </geographic_crs>
 </georeferencing>
 <view>
   <map_view zoom="11.0712" position_x="224546" position_y="-159060"/>

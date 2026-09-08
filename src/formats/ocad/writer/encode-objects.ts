@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer'
 import type BufferWriter from './buffer-writer.js'
 import type { ObjectIndex } from '../internal/object-index.js'
 import { writeTObject12 } from './encode-tobject.js'
+import { packOcadOrdinate } from '../../codecs/index.js'
 
 const BLOCK_ENTRIES = 256
 const OBJECT_INDEX_ENTRY_SIZE = 40
@@ -114,20 +115,17 @@ function writeObjectIndexEntry(
   //   [pos i32][len i32][sym i32][objType i8][encryptedMode i8]
   //   [status i8][viewType i8][color i16][group i16][impLayer i16]
   //   [dbDatasetHash i8][dbKeyHash i8] = 40 bytes total.
-  // Bounds are OcdPoint32: the raw int32 is `(value << 8) | flags`. The
-  // reader unshifts (see td-poly.ts) so the panmap-side value we hold
-  // here is in unshifted units — apply the << 8 on write, matching how
-  // writeCoord in encode-symbol-element.ts encodes actual coordinates.
-  // Without this shift, Condes reads the bounds as 256× smaller than
-  // the objects themselves, computes a microscopic extent, and renders
-  // the map as a blank canvas.
+  // Bounds are OcdPoint32: same packing as coordinates (`(value << 8) | flags`,
+  // flags 0). The reader unshifts (see td-poly.ts) so the panmap-side value we
+  // hold here is in unshifted units — pack on write. Without this, Condes reads
+  // the bounds as 256× smaller than the objects and renders a blank canvas.
   const rc = objIndex.rc
   const min = (rc?.min ?? { 0: 0, 1: 0 }) as unknown as [number, number]
   const max = (rc?.max ?? { 0: 0, 1: 0 }) as unknown as [number, number]
-  writer.writeInteger((Number(min[0]) | 0) << 8)
-  writer.writeInteger((Number(min[1]) | 0) << 8)
-  writer.writeInteger((Number(max[0]) | 0) << 8)
-  writer.writeInteger((Number(max[1]) | 0) << 8)
+  writer.writeInteger(packOcadOrdinate(Number(min[0]) | 0))
+  writer.writeInteger(packOcadOrdinate(Number(min[1]) | 0))
+  writer.writeInteger(packOcadOrdinate(Number(max[0]) | 0))
+  writer.writeInteger(packOcadOrdinate(Number(max[1]) | 0))
   writer.writeInteger(pos | 0)
   writer.writeInteger(len | 0)
   writer.writeInteger(objIndex.sym | 0)

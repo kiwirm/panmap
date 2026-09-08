@@ -16,7 +16,11 @@ async function readOcadMap(fixture) {
   return ocad.read(path.join(__dirname, 'data', fixture))
 }
 
-test.failing('renders house with offset outline without kinks', async (/** @type {ExecutionContext} */ t) => {
+// Was `.failing`: OCAD-sourced area holes were off by one coord (the hole-flag
+// codec bug — the OCD reader lacked the inverse of the writer's forward shift),
+// so the SVG ring splitter cut at the wrong boundary and holes crossed the
+// outer ring, producing self-intersections. Fixed by shiftHoleFlagsFromOcad.
+test('renders house with offset outline without kinks', async (/** @type {ExecutionContext} */ t) => {
   const map = await readOcadMap('myggfritt_byggnad2.ocd')
   const svgDoc = mapToSvg(map, {
     document: DOMImplementation.createDocument(null, 'xml', null),

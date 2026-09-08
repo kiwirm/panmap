@@ -450,7 +450,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="22" code="113.0" name="Broken ground">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
+      <pattern type="2" angle="0" rotatable="true" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="4">
             <element>
@@ -750,7 +750,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="44" code="208.0" name="Boulder field">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="3600" line_offset="0" offset_along_line="0" point_distance="3600" color="-1" line_width="0">
+      <pattern type="2" angle="0" rotatable="true" line_spacing="3600" line_offset="0" offset_along_line="0" point_distance="3600" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="9">
             <element>
@@ -911,7 +911,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="47" code="210.0" name="Stony ground">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
+      <pattern type="2" angle="0" rotatable="true" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="7">
             <element>
@@ -1454,7 +1454,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="96" code="413.0" name="Orchard, open land">
     <area_symbol inner_color="31" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
+      <pattern type="2" angle="0" rotatable="true" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="340" inner_color="24" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1463,7 +1463,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="97" code="413.1" name="Orchard, rough open land">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
+      <pattern type="2" angle="0" rotatable="true" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="340" inner_color="24" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1472,7 +1472,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="98" code="414.0" name="Vineyard or similar, open land">
     <area_symbol inner_color="31" min_area="0" patterns="1">
-      <pattern type="2" angle="1.5707999999999998" rotatable="false" line_spacing="2900" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
+      <pattern type="2" angle="1.5707999999999998" rotatable="true" line_spacing="2900" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="2">
             <element>
@@ -1504,7 +1504,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="99" code="414.1" name="Vineyard or similar, rough open land">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="1.5707999999999998" rotatable="false" line_spacing="2900" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
+      <pattern type="2" angle="1.5707999999999998" rotatable="true" line_spacing="2900" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="2">
             <element>
