@@ -39,6 +39,12 @@ export interface DiffChange {
 export interface DiffChangesOptions {
   // Also render each change to a standalone SVG (see DiffChange.svg).
   renderSvg?: boolean
+  // Full-map extent [minX, minY, maxX, maxY] for the viewBox. Overrides
+  // `after.getBounds()`. Required when `after` is a PARTIAL map (only the
+  // changed objects) — as it is when a caller diffs just the git-changed
+  // subset — since the partial map's own bounds cover only the changed
+  // region, not the whole map the overlay must line up with.
+  bounds?: [number, number, number, number]
 }
 
 export interface DiffChangesResult {
@@ -271,7 +277,9 @@ export function diffChanges(
   changes.sort((x, y) => x.bounds[1] - y.bounds[1] || x.bounds[0] - y.bounds[0])
   changes.forEach((c, i) => (c.id = i + 1))
 
-  const b = after.getBounds()
+  // Full-map extent. Prefer the caller-supplied bounds (needed when `after`
+  // is only the changed subset); fall back to computing from the map.
+  const b = changeOptions.bounds ?? after.getBounds()
   const viewBox: [number, number, number, number] = [b[0], b[1], b[2] - b[0], b[3] - b[1]]
   let overallSvg: string | undefined
 
