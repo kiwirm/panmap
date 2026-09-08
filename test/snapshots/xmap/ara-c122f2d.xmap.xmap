@@ -450,7 +450,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="22" code="113.0" name="Broken ground">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="true" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
+      <pattern type="2" angle="0" no_clipping="2" rotatable="true" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="4">
             <element>
@@ -750,7 +750,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="44" code="208.0" name="Boulder field">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="true" line_spacing="3600" line_offset="0" offset_along_line="0" point_distance="3600" color="-1" line_width="0">
+      <pattern type="2" angle="0" no_clipping="2" rotatable="true" line_spacing="4000" line_offset="0" offset_along_line="0" point_distance="3600" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="9">
             <element>
@@ -911,7 +911,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="47" code="210.0" name="Stony ground">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="true" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
+      <pattern type="2" angle="0" no_clipping="2" rotatable="true" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="7">
             <element>
@@ -1031,7 +1031,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="51" code="213.0" name="Open sandy ground">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="500" line_offset="0" offset_along_line="0" point_distance="500" color="30" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="0" rotatable="false" line_spacing="500" line_offset="0" offset_along_line="0" point_distance="500" color="30" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="90" inner_color="30" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1168,7 +1168,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="70" code="310.0" name="Indistinct marsh">
     <area_symbol inner_color="-1" min_area="0" patterns="2">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="1350" line_offset="0" offset_along_line="0" point_distance="1350" color="-1" line_width="0">
+      <pattern type="2" angle="0" no_clipping="0" rotatable="false" line_spacing="760" line_offset="0" offset_along_line="0" point_distance="1350" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
             <element>
@@ -1185,7 +1185,7 @@ MAPPERS&apos; NOTES</notes>
           </point_symbol>
         </symbol>
       </pattern>
-      <pattern type="2" angle="0" rotatable="false" line_spacing="1350" line_offset="0" offset_along_line="0" point_distance="1350" color="-1" line_width="0">
+      <pattern type="2" angle="0" no_clipping="0" rotatable="false" line_spacing="760" line_offset="380" offset_along_line="675" point_distance="1350" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
             <element>
@@ -1354,7 +1354,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="76" code="402.0" name="Open land with scattered trees">
     <area_symbol inner_color="31" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="29" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="2" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="29" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="300" inner_color="29" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1363,7 +1363,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="77" code="402.1" name="Open land with scattered bushes/thickets">
     <area_symbol inner_color="31" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="25" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="0" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="25" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="300" inner_color="25" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1375,7 +1375,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="79" code="404.0" name="Rough open land with scattered trees">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="29" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="0" rotatable="false" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="29" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="400" inner_color="29" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1384,7 +1384,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="80" code="404.1" name="Rough open land with scattered bushes / thickets">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="25" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="0" rotatable="false" line_spacing="1000" line_offset="0" offset_along_line="0" point_distance="1000" color="25" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="400" inner_color="25" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1445,7 +1445,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="95" code="412.1" name="Cultivated land (black pattern)">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="false" line_spacing="800" line_offset="0" offset_along_line="0" point_distance="800" color="30" line_width="0">
+      <pattern type="2" angle="0" no_clipping="0" rotatable="false" line_spacing="800" line_offset="0" offset_along_line="0" point_distance="800" color="30" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="100" inner_color="30" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1454,7 +1454,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="96" code="413.0" name="Orchard, open land">
     <area_symbol inner_color="31" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="true" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
+      <pattern type="2" angle="0" no_clipping="0" rotatable="true" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="340" inner_color="24" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1463,7 +1463,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="97" code="413.1" name="Orchard, rough open land">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="0" rotatable="true" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
+      <pattern type="2" angle="0" no_clipping="0" rotatable="true" line_spacing="1200" line_offset="0" offset_along_line="0" point_distance="1200" color="24" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="340" inner_color="24" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1472,7 +1472,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="98" code="414.0" name="Vineyard or similar, open land">
     <area_symbol inner_color="31" min_area="0" patterns="1">
-      <pattern type="2" angle="1.5707999999999998" rotatable="true" line_spacing="2900" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
+      <pattern type="2" angle="1.5707999999999998" no_clipping="0" rotatable="true" line_spacing="2600" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="2">
             <element>
@@ -1504,7 +1504,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="99" code="414.1" name="Vineyard or similar, rough open land">
     <area_symbol inner_color="32" min_area="0" patterns="1">
-      <pattern type="2" angle="1.5707999999999998" rotatable="true" line_spacing="2900" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
+      <pattern type="2" angle="1.5707999999999998" no_clipping="0" rotatable="true" line_spacing="2600" line_offset="0" offset_along_line="0" point_distance="2900" color="-1" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="2">
             <element>
@@ -1637,7 +1637,7 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="109" code="501.3" name="Paved area with scattered trees, light traffic">
     <area_symbol inner_color="21" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="19" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="0" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="19" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="300" inner_color="19" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
@@ -1646,51 +1646,231 @@ MAPPERS&apos; NOTES</notes>
   </symbol>
   <symbol type="4" id="110" code="501.301" name="Paved area with scattered trees, heavy traffic">
     <area_symbol inner_color="20" min_area="0" patterns="1">
-      <pattern type="2" angle="0.785398" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="19" line_width="0">
+      <pattern type="2" angle="0.785398" no_clipping="0" rotatable="false" line_spacing="750" line_offset="0" offset_along_line="0" point_distance="750" color="19" line_width="0">
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="300" inner_color="19" outer_width="0" outer_color="-1" elements="0"/>
         </symbol>
       </pattern>
     </area_symbol>
   </symbol>
-  <symbol type="2" id="111" code="501.4" name="Paved footpath or track, light traffic, footprint: 1.6 m, minim">
-    <line_symbol color="12" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="111" code="501.4" name="Paved footpath or track, light traffic, footprint: 1.6 m, minim">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.4" name="Paved footpath or track, light traffic, footprint: 1.6 m, minim - main line">
+          <line_symbol color="12" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.4" name="Paved footpath or track, light traffic, footprint: 1.6 m, minim - double line">
+          <line_symbol color="-1" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="112" code="501.401" name="Paved footpath or track, light traffic, footprint: 2 m">
-    <line_symbol color="12" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="112" code="501.401" name="Paved footpath or track, light traffic, footprint: 2 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.401" name="Paved footpath or track, light traffic, footprint: 2 m - main line">
+          <line_symbol color="12" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.401" name="Paved footpath or track, light traffic, footprint: 2 m - double line">
+          <line_symbol color="-1" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="113" code="501.402" name="Paved track, light traffic, footprint: 3 m">
-    <line_symbol color="12" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="113" code="501.402" name="Paved track, light traffic, footprint: 3 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.402" name="Paved track, light traffic, footprint: 3 m - main line">
+          <line_symbol color="12" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.402" name="Paved track, light traffic, footprint: 3 m - double line">
+          <line_symbol color="-1" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="114" code="501.403" name="Paved track, light traffic, footprint: 4 m">
-    <line_symbol color="12" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="114" code="501.403" name="Paved track, light traffic, footprint: 4 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.403" name="Paved track, light traffic, footprint: 4 m - main line">
+          <line_symbol color="12" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.403" name="Paved track, light traffic, footprint: 4 m - double line">
+          <line_symbol color="-1" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="115" code="501.404" name="Paved footpath or track, heavy traffic, footprint: 1.6 m minimu">
-    <line_symbol color="20" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="115" code="501.404" name="Paved footpath or track, heavy traffic, footprint: 1.6 m minimu">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.404" name="Paved footpath or track, heavy traffic, footprint: 1.6 m minimu - main line">
+          <line_symbol color="20" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.404" name="Paved footpath or track, heavy traffic, footprint: 1.6 m minimu - double line">
+          <line_symbol color="-1" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="116" code="501.405" name="Paved footpath or track, heavy traffic, footprint: 2 m">
-    <line_symbol color="11" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="116" code="501.405" name="Paved footpath or track, heavy traffic, footprint: 2 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.405" name="Paved footpath or track, heavy traffic, footprint: 2 m - main line">
+          <line_symbol color="11" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.405" name="Paved footpath or track, heavy traffic, footprint: 2 m - double line">
+          <line_symbol color="-1" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="117" code="501.406" name="Paved track, heavy traffic, footprint: 3 m">
-    <line_symbol color="11" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="117" code="501.406" name="Paved track, heavy traffic, footprint: 3 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.406" name="Paved track, heavy traffic, footprint: 3 m - main line">
+          <line_symbol color="11" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.406" name="Paved track, heavy traffic, footprint: 3 m - double line">
+          <line_symbol color="-1" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="118" code="501.407" name="Paved track, heavy traffic, footprint: 4 m">
-    <line_symbol color="11" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="118" code="501.407" name="Paved track, heavy traffic, footprint: 4 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="501.407" name="Paved track, heavy traffic, footprint: 4 m - main line">
+          <line_symbol color="11" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="501.407" name="Paved track, heavy traffic, footprint: 4 m - double line">
+          <line_symbol color="-1" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
   <symbol type="2" id="107" code="501.5" name="Step or edge of paved area">
     <line_symbol color="4" line_width="100" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
-  <symbol type="2" id="119" code="505.1" name="Unpaved footpath or track, footprint: 1.4 m">
-    <line_symbol color="21" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="119" code="505.1" name="Unpaved footpath or track, footprint: 1.4 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="505.1" name="Unpaved footpath or track, footprint: 1.4 m - main line">
+          <line_symbol color="21" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="505.1" name="Unpaved footpath or track, footprint: 1.4 m - double line">
+          <line_symbol color="-1" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="120" shift="60" dashed="true" dash_length="2000" break_length="250"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="120" code="505.2" name="Unpaved footpath or track, footprint: 2 m">
-    <line_symbol color="12" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="120" code="505.2" name="Unpaved footpath or track, footprint: 2 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="505.2" name="Unpaved footpath or track, footprint: 2 m - main line">
+          <line_symbol color="12" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="505.2" name="Unpaved footpath or track, footprint: 2 m - double line">
+          <line_symbol color="-1" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="120" shift="60" dashed="true" dash_length="2000" break_length="250"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="121" code="505.3" name="Unpaved footpath or track, footprint: 3 m">
-    <line_symbol color="12" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="121" code="505.3" name="Unpaved footpath or track, footprint: 3 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="505.3" name="Unpaved footpath or track, footprint: 3 m - main line">
+          <line_symbol color="12" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="505.3" name="Unpaved footpath or track, footprint: 3 m - double line">
+          <line_symbol color="-1" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="120" shift="60" dashed="true" dash_length="2000" break_length="250"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="122" code="505.4" name="Unpaved footpath or track, footprint: 4 m">
-    <line_symbol color="12" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="122" code="505.4" name="Unpaved footpath or track, footprint: 4 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="505.4" name="Unpaved footpath or track, footprint: 4 m - main line">
+          <line_symbol color="12" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="505.4" name="Unpaved footpath or track, footprint: 4 m - double line">
+          <line_symbol color="-1" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="13" width="120" shift="60" dashed="true" dash_length="2000" break_length="250"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
   <symbol type="2" id="123" code="505.5" name="Unpaved road, sideline">
     <line_symbol color="13" line_width="120" minimum_length="0" join_style="1" cap_style="0" start_offset="250" end_offset="250" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="2000" break_length="250" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
@@ -1704,8 +1884,19 @@ MAPPERS&apos; NOTES</notes>
   <symbol type="2" id="126" code="508.0" name="Narrow ride">
     <line_symbol color="4" line_width="210" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4500" break_length="750" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
-  <symbol type="2" id="127" code="509.1" name="Railway">
-    <line_symbol color="3" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1000" break_length="1500" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="127" code="509.1" name="Railway">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="509.1" name="Railway - main line">
+          <line_symbol color="3" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1000" break_length="1500" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="509.1" name="Railway - double line">
+          <line_symbol color="4" line_width="550" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
   <symbol type="2" id="128" code="509.103" name="Railway, Area that shall not be entered, minimum width">
     <line_symbol color="22" line_width="1350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
@@ -2010,17 +2201,77 @@ MAPPERS&apos; NOTES</notes>
       </element>
     </point_symbol>
   </symbol>
-  <symbol type="2" id="162" code="532.0" name="Stairway, footprint: 1.6 m">
-    <line_symbol color="12" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="162" code="532.0" name="Stairway, footprint: 1.6 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="532.0" name="Stairway, footprint: 1.6 m - main line">
+          <line_symbol color="12" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="532.0" name="Stairway, footprint: 1.6 m - double line">
+          <line_symbol color="-1" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="4" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="163" code="532.1" name="Stairway, footprint: 2 m">
-    <line_symbol color="21" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="163" code="532.1" name="Stairway, footprint: 2 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="532.1" name="Stairway, footprint: 2 m - main line">
+          <line_symbol color="21" line_width="500" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="532.1" name="Stairway, footprint: 2 m - double line">
+          <line_symbol color="-1" line_width="400" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="4" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="164" code="532.8" name="Stairway, footprint: 3 m">
-    <line_symbol color="12" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="164" code="532.8" name="Stairway, footprint: 3 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="532.8" name="Stairway, footprint: 3 m - main line">
+          <line_symbol color="12" line_width="750" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="532.8" name="Stairway, footprint: 3 m - double line">
+          <line_symbol color="-1" line_width="650" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="4" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
-  <symbol type="2" id="165" code="532.9" name="Stairway, footprint: 4 m">
-    <line_symbol color="12" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+  <symbol type="16" id="165" code="532.9" name="Stairway, footprint: 4 m">
+    <combined_symbol parts="2">
+      <part private="true">
+        <symbol type="2" code="532.9" name="Stairway, footprint: 4 m - main line">
+          <line_symbol color="12" line_width="1000" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="50" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+        </symbol>
+      </part>
+      <part private="true">
+        <symbol type="2" code="532.9" name="Stairway, footprint: 4 m - double line">
+          <line_symbol color="-1" line_width="900" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+            <borders>
+              <border color="4" width="100" shift="50" dashed="false" dash_length="0" break_length="0"/>
+            </borders>
+          </line_symbol>
+        </symbol>
+      </part>
+    </combined_symbol>
   </symbol>
   <symbol type="2" id="166" code="601.0" name="Magnetic north line, black">
     <line_symbol color="4" line_width="140" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="40" break_length="10" dashes_in_group="1" in_group_break_length="5" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>

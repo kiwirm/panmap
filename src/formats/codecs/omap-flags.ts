@@ -89,15 +89,28 @@ export function coordinatesForOmap(coordinates: Coord[]): FlaggedCoord[] {
       output[index].flags = (output[index].flags || 0) | 0x20
     }
     if ((yF ?? 0) & YFLAG_FIRST_HOLE_POINT) {
-      setPathHolePoint(output, index - 1)
+      setPathHolePoint(output, index)
     }
   })
 
   return output
 }
 
+// Set the OMap HolePoint bit (0x10) on the coord AT `index`. Panmap's
+// canonical `yFlags:2` and Mapper's OMap `0x10` bit both live on the LAST
+// coord of the previous sub-path (documented at `hole-flags.ts:8-10` and
+// `mapper/src/core/map_coord.h:55` — "isHolePoint: this point marks the end
+// of a distinct path"). Bug-history: this function used to write to
+// `index - 1`, which off-by-one'd the flag backward every write cycle and
+// caused a slow drift where hole flags migrated toward coord 0 and got
+// swallowed by the guards below.
+//
+// Skip if the coord itself or its bezier-partner neighbours carry the
+// CurveStart bit (0x01) — the OMap format packs bezier and hole markers
+// on separate bytes but writing both on the same coord confuses Mapper's
+// coord reader.
 function setPathHolePoint(coordinates: FlaggedCoord[], index: number): void {
-  if (index <= 0) return
+  if (index < 0 || index >= coordinates.length) return
   if ((coordinates[index]?.flags ?? 0) & 0x01) return
   if (index >= 1 && ((coordinates[index - 1]?.flags ?? 0) & 0x01)) return
   if (index >= 2 && ((coordinates[index - 2]?.flags ?? 0) & 0x01)) return

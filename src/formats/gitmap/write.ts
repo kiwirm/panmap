@@ -58,9 +58,18 @@ async function writeGitmap(
       .map(s => [s.id, canonicalSymbolCode(s.code)])
   )
 
+  // `symbolsById` lets canonicalisers dereference cross-symbol references
+  // (e.g. `border-symbol.symbolId` → the referenced line symbol's stroke).
+  const symbolsById = new Map<string | number, typeof map.symbols[number]>()
+  for (const s of map.symbols) {
+    symbolsById.set(s.id, s)
+    if (s.sourceId !== undefined && s.sourceId !== s.id) {
+      symbolsById.set(s.sourceId, s)
+    }
+  }
   const symbols = map.symbols
     .map(symbol => ({
-      ...toGitmapSymbol(symbol, colorIds),
+      ...toGitmapSymbol(symbol, colorIds, symbolIds, symbolsById),
       id: symbolIds.get(symbol.id) ?? stableSymbolId(symbol),
     }))
     .sort(

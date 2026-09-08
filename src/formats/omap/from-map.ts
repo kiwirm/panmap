@@ -27,7 +27,7 @@ import type {
 import { coordX, coordY, coordFlags } from '../../map/coord.js'
 import type { Coord } from '../../map/coord.js'
 import { buildColorIdMap, colorRefLookup } from '../../util/color.js'
-import { strokeVisible } from '../../util/stroke-classifier.js'
+import { pickMainStroke, strokeVisible } from '../../util/stroke-classifier.js'
 import { decodeLineStyle as decodeLineStyleForXmap } from '../../util/line-style-codec.js'
 
 /** XMap symbol shape accepted by `xmapSymbolToXml`. Wider than
@@ -108,12 +108,49 @@ function toOmapSymbol(
   // by the OCD reader from OCAD's fr* fields). A doubleLine with no
   // fill AND no frame collapses to a plain `<line_symbol>` — otherwise
   // an all-zero fill stroke adds a phantom color slot.
-  const frameStroke = strokes.find(s => s.frame)
-  if ((t === 'line' || t === 'combined') && (doubleLine || frameStroke)) {
+  // Detect the frame stroke — a visible under-stroke drawn beneath the main
+  // line (OCAD's `fr*` fields, e.g. 509 Railway's black backing behind the
+  // dashed white). OCD reader sets `frame: true`, but the gitmap canonicaliser
+  // strips that marker for cross-format identity with OMap-native symbols.
+  // Fall back to structural detection: for a DASHED primary, a solid wider
+  // non-borders stroke is the frame. Narrow criteria — a plain 2-solid-stroke
+  // symbol without a real frame relationship would break round-trip if
+  // treated as combined.
+  const strokePrimary = pickMainStroke(strokes)
+  const isFrameCandidate = (s: StrokeLayer): boolean => {
+    if (s === strokePrimary || s.frame) return false
+    if (!strokeVisible(s)) return false
+    if (Array.isArray(s.borders) && s.borders.length > 0) return false
+    if (!strokePrimary?.dash) return false
+    const primaryWidth = strokePrimary.width ?? 0
+    return (s.width ?? 0) > primaryWidth
+  }
+  const frameStroke = strokes.find(s => s.frame) ?? strokes.find(isFrameCandidate)
+  // Detect the gitmap canonical form of a double-line: a secondary stroke
+  // carrying `borders` in addition to a preceding visible primary stroke.
+  // The gitmap writer normalises OCAD's `double-line` layer into this shape
+  // so both dialects agree; here we recognise it and re-split into the same
+  // combined_symbol shape Mapper produces from a native double-line.
+  //
+  // The "preceding visible stroke" guard is load-bearing: single-stroke-
+  // with-borders symbols (e.g. stairway 532 — an invisible primary with a
+  // borders array) are handled by the plain `<line_symbol>` path, not this
+  // one. Firing here for those breaks xmap→xmap idempotence.
+  const primaryVisibleForBorderSearch = strokes.find(s => strokeVisible(s))
+  const borderCarrierStroke = primaryVisibleForBorderSearch
+    ? strokes.find(s =>
+      s !== primaryVisibleForBorderSearch
+      && Array.isArray(s.borders) && s.borders.length > 0
+    )
+    : undefined
+  if ((t === 'line' || t === 'combined') && (doubleLine || frameStroke || borderCarrierStroke)) {
     const dl = doubleLine
     const fillC = dl ? colorRef(dl.fillColorId, colorIds) : -1
     const frameC = frameStroke
       ? colorRef(frameStroke.colorId, colorIds)
+      : -1
+    const carrierC = borderCarrierStroke
+      ? colorRef(borderCarrierStroke.colorId, colorIds)
       : -1
     // Emit combined when there's a visible fill or frame, OR when the
     // double-line has borders but no fill (stairway 532: color=-1 on
@@ -123,11 +160,16 @@ function toOmapSymbol(
     // width instead of the invisible fill's width, losing 1mm per side.
     const dlHasBorders = !!dl
       && (((dl.leftWidth ?? 0) > 0) || ((dl.rightWidth ?? 0) > 0))
-    if (fillC > 0 || frameC > 0 || dlHasBorders) {
+    const carrierHasBorders = !!borderCarrierStroke
+      && Array.isArray(borderCarrierStroke.borders)
+      && borderCarrierStroke.borders.length > 0
+    if (fillC > 0 || frameC > 0 || carrierC > 0 || dlHasBorders || carrierHasBorders) {
     // Prefer strokes that are NOT the frame carrier as "primary".
     // The frame stroke, when present, was surfaced from OCAD's fr*
     // fields and is drawn UNDER the main line — not the top layer.
-    const nonFrameStrokes = strokes.filter(s => !s.frame)
+    const nonFrameStrokes = strokes.filter(s =>
+      !s.frame && s !== borderCarrierStroke,
+    )
     const primary = nonFrameStrokes.find(s => strokeVisible(s))
       ?? nonFrameStrokes[0]
       ?? strokes[0]
@@ -144,14 +186,15 @@ function toOmapSymbol(
       ? decodeLineStyleForXmap(primary.lineStyle)
       : { capStyle: primary?.capStyle, joinStyle: primary?.joinStyle }
     // Width and color: prefer doubleLine's fill fields when present;
-    // fall back to the frame stroke's own width/color for railways
-    // with fr* but no double-line. If neither is a real color, emit
-    // the fill line as invisible (color=-1) — a valid xmap idiom used
-    // by stairway 532 (invisible fill line with visible borders).
-    const fillColorNumeric = fillC > 0 ? fillC : (frameC > 0 ? frameC : -1)
+    // fall back to the border-carrier stroke's own (gitmap-canonical
+    // double-line), then the frame stroke's, otherwise invisible.
+    const fillColorNumeric =
+      fillC > 0 ? fillC :
+      carrierC > 0 ? carrierC :
+      frameC > 0 ? frameC : -1
     const fillWidth = dl
       ? (dl.centerWidth ?? 0)
-      : (frameStroke?.width ?? 0)
+      : (borderCarrierStroke?.width ?? frameStroke?.width ?? 0)
     const fillLine: OmapLineSymbol = {
       color: fillColorNumeric,
       lineWidth: fillWidth,
@@ -175,7 +218,11 @@ function toOmapSymbol(
       scaleDashSymbol: true,
       capStyle: strokeCapJoin.capStyle ?? 0,
       joinStyle: strokeCapJoin.joinStyle ?? 0,
-      borders: doubleLine ? extractBorders(undefined, doubleLine, colorIds) : undefined,
+      borders: doubleLine
+        ? extractBorders(undefined, doubleLine, colorIds)
+        : (borderCarrierStroke
+          ? extractBorders(borderCarrierStroke, undefined, colorIds)
+          : undefined),
     } as OmapLineSymbol
       record.type = 16
       record.combinedSymbol = {
@@ -553,25 +600,42 @@ function buildXmapAreaSymbol(
 
   for (const p of pointPatterns) {
     const nested = p.pattern?.symbol as OmapSymbol | undefined
+    const pat = p.pattern as {
+      lineSpacing?: number; pointDistance?: number;
+      lineOffset?: number; offsetAlongLine?: number;
+      noClipping?: number; rotatable?: boolean;
+    } | undefined
     patterns.push({
       type: 2,
       angle: (p.angle ?? 0) * Math.PI / 180,
-      lineSpacing: p.height ?? 0,
-      pointDistance: p.width ?? 0,
-      lineOffset: 0,
-      offsetAlongLine: 0,
+      // Prefer the nested pattern's spacing over the layer's top-level
+      // `width`/`height`. In the shifted-rows case the layer height is the
+      // OCAD `structHeight` (half the tile) while the pattern encodes the
+      // full lineSpacing — using `p.height` collapsed mode=2 to mode=1.
+      lineSpacing: pat?.lineSpacing ?? p.height ?? 0,
+      pointDistance: pat?.pointDistance ?? p.width ?? 0,
+      // Preserve the pattern's row/column offsets so shifted-rows encoding
+      // survives ocd→gitmap→xmap→ocd. The OCD writer's `isShiftedRows`
+      // detects the mode=2 case by comparing these offsets between the two
+      // paired patterns; a hardcoded 0 collapsed them to mode=1.
+      lineOffset: pat?.lineOffset ?? 0,
+      offsetAlongLine: pat?.offsetAlongLine ?? 0,
       color: colorRef(p.colorId, colorIds),
       lineWidth: 0,
-      // Carry the pattern's rotatability (was hardcoded false) so the OMap
-      // reader's `patterns.some(p => p.rotatable)` recovers the symbol-level
-      // rotatable flag — matching the OCAD flags-bit path. Without this, an
-      // OMap round-trip of a rotatable point-pattern area drops the flag.
-      rotatable: !!(p.pattern as { rotatable?: boolean } | undefined)?.rotatable,
+      // Carry rotatability so the OMap reader's `patterns.some(p => p.rotatable)`
+      // recovers the symbol-level rotatable flag.
+      rotatable: !!pat?.rotatable,
+      // OCAD's `structDraw` byte packs a clipping mode (bits 0-1); the OMap
+      // writer's structures path preserves it and the OCD writer's
+      // `patternClipMode` reads it back. Point-patterns need the same round-
+      // trip — without this the OCAD writer defaults to `structDraw=2` for
+      // structure-fills that were originally 0 (or vice versa).
+      noClipping: pat?.noClipping,
       // Nested symbol comes from panmap gitmap where all colour refs
       // are string ids; OMAP requires numeric priorities or Mapper
       // renders in the "unknown colour" fallback (bright pink).
       symbol: nested ? rewriteSymbolColors(nested, colorIds) : nested,
-    } as OmapAreaPattern)
+    } as OmapAreaPattern & { noClipping?: number })
   }
 
   return {
