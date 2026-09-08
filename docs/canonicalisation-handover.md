@@ -240,6 +240,37 @@ being canonical:
   the SSE cold-render progress "gate" were defensive scaffolding for the new
   in-process path / the old hang; lower-value now, safe to keep.
 
+## Re-migrating the gitmap repo (required — the spec changed)
+
+The gitmaps stored in `mapwall/data/repos/*.git` were written by pre-0.3.2 panmap,
+so they're in the **old** spec. To get canonical form (and clean cross-format
+diffs) they must be **re-created from the original `.ocd`/`.xmap` source**, not by
+re-writing the existing gitmaps.
+
+**Why source, not a re-write:** several canonicalisations live in the format
+READERS, and reading a gitmap back doesn't trigger them —
+- Y-orientation flip (OCD y-up → canonical y-down): old OCD-sourced gitmaps are
+  stored upside-down; re-reading them as gitmap keeps them that way.
+- Hole-ring flag shift (OCD first-of-new → last-of-prev).
+- Georef `geographic`/`declination` derivation (OCAD reader only — an old gitmap
+  never had these, and a re-write won't invent them).
+
+The writer-side rules (z-rank sourceId, `canonicalSymbolCode`, CMYK/rotation snap,
+default-field omission, dropped omapFlags) *would* apply on a plain re-write — so
+an OMap-sourced map could be *mostly* canonicalised without its source — but the
+reader-side items above still need the original file. Clean answer: re-import
+every map from source.
+
+**History caveat:** recreating from just the *latest* source drops the per-update
+commit history (the "updates" timeline the app shows). Preserving it means
+re-importing each historical version in order — only possible if every version's
+source file was kept. Decide up front: a fresh single-commit rebuild (simplest) or
+a version-by-version replay.
+
+**Shape of the migration:** for each map, `read(source) → gitmap.write(pkg) →
+commit into the repo`, replacing the old package. Do it once, alongside deploying
+0.3.2 (the version-keyed SVG cache + prune already regenerates every render).
+
 ## What `auxiliaryScaleFactor` is, and whether we can close it
 
 On a projected CRS, **grid** distances (the projected plane) differ from **ground**
