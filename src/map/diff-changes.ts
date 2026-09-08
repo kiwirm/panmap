@@ -37,8 +37,10 @@ export interface DiffChange {
 }
 
 export interface DiffChangesOptions {
-  // Also render each change to a standalone SVG (see DiffChange.svg).
-  renderSvg?: boolean
+  // Render SVGs: `true` → overlay + a standalone SVG per change; `'overall'`
+  // → only the whole-diff overlay (cheap); `'changes'` → only the per-change
+  // SVGs (the expensive part, for a deferred/prefetch pass). See DiffChange.svg.
+  renderSvg?: boolean | 'overall' | 'changes'
   // Full-map extent [minX, minY, maxX, maxY] for the viewBox. Overrides
   // `after.getBounds()`. Required when `after` is a PARTIAL map (only the
   // changed objects) — as it is when a caller diffs just the git-changed
@@ -283,9 +285,16 @@ export function diffChanges(
   const viewBox: [number, number, number, number] = [b[0], b[1], b[2] - b[0], b[3] - b[1]]
   let overallSvg: string | undefined
 
-  // Optionally render each change on its own — same symbols/colours and
-  // the whole-diff viewBox, so it drops straight onto the base map.
-  if (changeOptions.renderSvg) {
+  // Optionally render SVGs — the whole-diff overlay and/or a standalone SVG
+  // per change (same symbols/colours + whole-diff viewBox, so each drops onto
+  // the base map). `renderSvg: true` does both; `'overall'` only the overlay
+  // (cheap — one render); `'changes'` only the per-change SVGs (the expensive
+  // part, deferred to a background/prefetch pass). Splitting lets the overlay
+  // show instantly while the per-change views load behind it.
+  const mode = changeOptions.renderSvg
+  const wantOverall = mode === true || mode === 'overall'
+  const wantEach = mode === true || mode === 'changes'
+  if (wantOverall || wantEach) {
     const serializer = new XMLSerializer()
     const georeferencing = after.georeferencing ?? before.georeferencing
     // Modified render needs both the real recoloured symbols (for points,
@@ -293,7 +302,7 @@ export function diffChanges(
     // runs). Merge once.
     const modColors = [...diffMap.colors, ...OUTLINE_COLORS]
     const modSymbols = [...diffMap.symbols, ...OUTLINE_SYMBOLS]
-    for (const change of changes) {
+    for (const change of wantEach ? changes : []) {
       const feats = changeFeatures.get(change) ?? []
       // Added/removed → full symbology recoloured green/red. Modified →
       // the unchanged part of the feature in yellow with the changed part
@@ -322,27 +331,29 @@ export function diffChanges(
 
     // Overall diff = every change's CHANGED parts only (red/green, no
     // yellow); yellow context lives only in the per-change views above.
-    const overallObjects: MapObject[] = []
-    const overallExtraSymbols: MapSymbol[] = []
-    for (const change of changes) {
-      const feats = changeFeatures.get(change) ?? []
-      if (change.kind === 'modified') {
-        const { objects, symbols } = modifiedRenderObjects(feats, false)
-        overallObjects.push(...objects)
-        overallExtraSymbols.push(...symbols)
-      } else {
-        overallObjects.push(...feats.flatMap(f => f.objects))
+    if (wantOverall) {
+      const overallObjects: MapObject[] = []
+      const overallExtraSymbols: MapSymbol[] = []
+      for (const change of changes) {
+        const feats = changeFeatures.get(change) ?? []
+        if (change.kind === 'modified') {
+          const { objects, symbols } = modifiedRenderObjects(feats, false)
+          overallObjects.push(...objects)
+          overallExtraSymbols.push(...symbols)
+        } else {
+          overallObjects.push(...feats.flatMap(f => f.objects))
+        }
       }
+      const overallMap = new PanMap({
+        sourceFormat: 'diff', georeferencing,
+        colors: modColors, symbols: [...modSymbols, ...overallExtraSymbols],
+        objects: overallObjects, warnings: [],
+      })
+      overallSvg = serializer.serializeToString(mapToSvg(overallMap, {
+        document: new DOMImplementation().createDocument(null, 'xml', null),
+        bounds: b,
+      }))
     }
-    const overallMap = new PanMap({
-      sourceFormat: 'diff', georeferencing,
-      colors: modColors, symbols: [...modSymbols, ...overallExtraSymbols],
-      objects: overallObjects, warnings: [],
-    })
-    overallSvg = serializer.serializeToString(mapToSvg(overallMap, {
-      document: new DOMImplementation().createDocument(null, 'xml', null),
-      bounds: b,
-    }))
   }
 
   return { viewBox, changes, overallSvg }

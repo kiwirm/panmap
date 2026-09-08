@@ -52,6 +52,21 @@ export async function exportMap(
   }
 }
 
+/**
+ * Render a map to an SVG STRING (the same output `exportMap(map, '*.svg')`
+ * writes to disk). For callers that render in-process and want the markup
+ * directly — e.g. straight from a `git cat-file` bundle, no temp file.
+ */
+export function mapToSvgString(map: PanMap, options: ExportOptions = {}): string {
+  const svg = mapToSvg(map, {
+    document: new DOMImplementation().createDocument(null, 'xml', null),
+    backgroundColor:
+      options.backgroundColor ??
+      (options.whiteBackground ? 'white' : undefined),
+  })
+  return new XMLSerializer().serializeToString(svg)
+}
+
 export { default as mapToGeoJson } from './geojson.js'
 export { default as mapToSvg, getMapSvgRenderSupport } from './svg.js'
 export default exportMap

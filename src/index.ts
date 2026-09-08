@@ -34,6 +34,7 @@ export {
   exportMap,
   mapToGeoJson,
   mapToSvg,
+  mapToSvgString,
   getMapSvgRenderSupport,
   type ExportOptions,
   type ExportFormat,
