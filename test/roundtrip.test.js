@@ -67,10 +67,10 @@ for (const { name, file, format } of FIXTURES) {
 
   // Symbols are NOT yet canonical: the readers speak different render-layer
   // dialects and the writers don't reproduce them, so even a same-format
-  // round-trip drifts (OCD ~19 lines, XMAP ~105). This is a KNOWN gap tracked
-  // in docs/gitmap-canonical-form.md — promote to `test(...)` with a byte
-  // assertion once the symbol render-layer model is canonicalised, and this
-  // becomes the regression guard for that work.
+  // round-trip drifts (OCD ~19 lines, XMAP ~105). This is a KNOWN gap (the
+  // symbol renderLayers dialect — see the gitmap spec's roadmap) — promote to
+  // `test(...)` with a byte assertion once the render-layer model is
+  // canonicalised, and this becomes the regression guard for that work.
   test.todo(`symbols.ndjson stable across a ${format} round-trip (${name}) — pending symbol canonicalisation`)
 }
 
