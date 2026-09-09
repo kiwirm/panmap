@@ -797,6 +797,32 @@ function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
   } as unknown as RenderLayer
 }
 
+// OCAD stores a structure/point-pattern's geometry at integer resolution (0.01
+// mm), while Mapper's xmap keeps sub-integer precision (e.g. a pattern element
+// coord `-93.6` vs OCAD's `-94`, `lineSpacing 399.6` vs `400`). Snap the pattern
+// tree's geometry to the OCAD grid — the same lossy-to-OCAD canonicalisation
+// already applied to rotation and CMYK — so the OCD-synthesised and OMap-native
+// patterns converge. Angles (radians) are left untouched. Writer-only.
+function canonicalisePointPatternGeometry(layer: RenderLayer): RenderLayer {
+  const l = layer as { type?: string; pattern?: unknown }
+  if (l.type !== 'point-pattern-fill' || !l.pattern) return layer
+  return { ...layer, pattern: roundGeometryToOcadGrid(l.pattern, '') } as RenderLayer
+}
+function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
+  if (typeof node === 'number') {
+    return key === 'angle' || key === 'rotation' ? node : Math.round(node)
+  }
+  if (Array.isArray(node)) return node.map(v => roundGeometryToOcadGrid(v, key))
+  if (node && typeof node === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      out[k] = roundGeometryToOcadGrid(v, k)
+    }
+    return out
+  }
+  return node
+}
+
 // When my `doubleLineToStroke` transform runs on an OCAD line with both a
 // visible primary stroke AND a double-line, it produces two strokes: the
 // primary (infill, no borders) and a secondary (double-line-centre + borders).
@@ -981,6 +1007,7 @@ function toGitmapSymbol(
       .flatMap(lineSymbolsToLineElements)
       .map(stripLineElementsRedundancy)
       .flatMap(structureFillToPointPattern)
+      .map(canonicalisePointPatternGeometry)
       .sort(canonicalLayerOrder),
   )
   return {
