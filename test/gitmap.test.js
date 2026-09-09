@@ -11,6 +11,7 @@ import {
   gitmap,
   mapToSvg,
 } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 const readOcad = ocad.readRaw
 const ocadFileToMap = ocad.toMap
 const readGitmap = gitmap.read
@@ -20,7 +21,7 @@ test('can write and read a GitMap package deterministically', async (/** @type {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmap-'))
   const first = path.join(tmp, 'first.gitmap')
   const second = path.join(tmp, 'second.gitmap')
-  const ocadFile = await readOcad(path.join('test', 'data', 'basic-1.ocd'))
+  const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
   const map = ocadFileToMap(ocadFile)
 
   await writeGitmap(map, first)
@@ -45,7 +46,7 @@ test('can write and read a GitMap package deterministically', async (/** @type {
 test('readMap supports GitMap package directories', async (/** @type {ExecutionContext} */ t) => {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmap-'))
   const directory = path.join(tmp, 'map.gitmap')
-  const ocadFile = await readOcad(path.join('test', 'data', 'basic-1.ocd'))
+  const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
 
   await writeGitmap(ocadFileToMap(ocadFile), directory)
 

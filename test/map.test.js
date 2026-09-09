@@ -4,16 +4,14 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
-import { fileURLToPath } from 'node:url'
 import test from 'ava'
 import { ocad, read as readMap, write as writeMap, Map } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 const readOcad = ocad.readRaw
 const ocadFileToMap = ocad.toMap
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
 test('can normalize OCAD file to canonical Map', async (/** @type {ExecutionContext} */ t) => {
-  const ocadFile = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
   const map = ocadFileToMap(ocadFile)
 
   t.true(map instanceof Map)
@@ -39,7 +37,7 @@ test('can normalize OCAD file to canonical Map', async (/** @type {ExecutionCont
 })
 
 test('readMap returns canonical Map for OCAD input', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readMap(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readMap(fixtureFile('basic-1.ocd'))
 
   t.true(map instanceof Map)
   t.is(map.sourceFormat, 'ocad')
@@ -53,7 +51,7 @@ test('writeMap structurally round-trips OCAD-backed maps', async (/** @type {Exe
   // string-index blocks). Bytes won't match the source — see
   // test/ocad-writer.test.js for full structural round-trip coverage on
   // real-world fixtures. This is a smoke check that the basic path works.
-  const source = path.join(__dirname, 'data', 'basic-1.ocd')
+  const source = fixtureFile('basic-1.ocd')
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'ocad-writer-'))
   const output = path.join(tmp, 'basic-1.ocd')
   const map = await readMap(source)
@@ -67,7 +65,7 @@ test('writeMap structurally round-trips OCAD-backed maps', async (/** @type {Exe
 })
 
 test('OCAD symbols expose shared render layers', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readMap(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readMap(fixtureFile('basic-1.ocd'))
   const areaSymbol = map.symbols.find(symbol =>
     symbol.renderLayers.some(layer => layer.type === 'fill')
   )

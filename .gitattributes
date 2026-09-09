@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Binary fixtures — no CRLF churn, no text diff attempts.
+*.ocd binary
+*.xmap binary
+*.tar.gz binary
+*.tgz binary
+*.png binary

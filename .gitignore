@@ -11,3 +11,16 @@ demo/*.gpx
 bundle.js
 .vscode/
 test/parity-fixtures/
+build/
+scratch/
+
+# Test fixture corpus — only the smoke set is tracked; the rest is bundled
+# as a release tarball fetched by scripts/fetch-test-data.mjs. Add a folder
+# to the allow-list only if we want a bare clone / CI to run against it.
+test/fixtures/*
+!test/fixtures/basic-1/
+!test/fixtures/basic-1/**
+!test/fixtures/double-line/
+!test/fixtures/double-line/**
+!test/fixtures/ara/
+!test/fixtures/ara/**

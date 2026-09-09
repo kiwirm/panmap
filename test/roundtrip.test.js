@@ -21,6 +21,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'ava'
 import { read, gitmap, write } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 
 // Read `file`, serialise to a gitmap package, and return the raw bytes of each
 // package file. Comparing bytes (not parsed objects) is the point: gitmap is
@@ -51,8 +52,8 @@ async function roundTrip(file, format) {
 }
 
 const FIXTURES = [
-  { name: 'basic-1', file: path.join('test', 'data', 'basic-1.ocd'), format: 'ocd' },
-  { name: 'bottle-lake', file: path.join('test', 'data', 'bottle-lake-5c6c8e6.xmap'), format: 'xmap' },
+  { name: 'basic-1', file: fixtureFile('basic-1.ocd'), format: 'ocd' },
+  { name: 'bottle-lake', file: fixtureFile('bottle-lake-5c6c8e6.xmap'), format: 'xmap' },
 ]
 
 for (const { name, file, format } of FIXTURES) {
@@ -81,7 +82,7 @@ for (const { name, file, format } of FIXTURES) {
 // interior hole flags walked one coord forward per round-trip.)
 test('OCD write→read preserves every area hole-flag position (bottle-lake)', async (/** @type {ExecutionContext} */ t) => {
   const HOLE = 0x02
-  const m0 = await read(path.join('test', 'data', 'bottle-lake-5c6c8e6.xmap'))
+  const m0 = await read(fixtureFile('bottle-lake-5c6c8e6.xmap'))
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-'))
   const ocd = path.join(dir, 'm.ocd')
   await write(m0, ocd)

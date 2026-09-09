@@ -6,15 +6,13 @@
 import test from 'ava'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { readOmap } from "./helpers/omap.js"
 import omapFileToMap from '../src/formats/omap/to-map.ts'
 import { mapToOmapXml } from "./helpers/omap.js"
-
-const DATA_DIR = fileURLToPath(new URL('./data/', import.meta.url))
+import { fixtureFile } from './helpers/fixtures.js'
 
 async function roundTrip(fixture) {
-  const originalXml = await fs.readFile(path.join(DATA_DIR, fixture), 'utf-8')
+  const originalXml = await fs.readFile(fixtureFile(fixture), 'utf-8')
   const originalFile = await readOmap(originalXml)
   const originalMap = omapFileToMap(originalFile)
 

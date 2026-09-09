@@ -8,12 +8,13 @@ import test from 'ava'
 import xmldom from '@xmldom/xmldom'
 import kinks from '@turf/kinks'
 import { ocad, mapToSvg } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DOMImplementation = new xmldom.DOMImplementation()
 
 async function readOcadMap(fixture) {
-  return ocad.read(path.join(__dirname, 'data', fixture))
+  return ocad.read(fixtureFile(fixture))
 }
 
 // Was `.failing`: OCAD-sourced area holes were off by one coord (the hole-flag

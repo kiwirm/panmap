@@ -12,8 +12,8 @@ import { readOmap } from "./helpers/omap.js"
 import omapFileToMap from '../src/formats/omap/to-map.ts'
 import { synthesizeSymbols } from '../src/formats/ocad/synthesize-symbols.ts'
 
+import { fixtureFile } from './helpers/fixtures.js'
 const SNAPSHOTS_DIR = fileURLToPath(new URL('./snapshots/synthesize/', import.meta.url))
-const DATA_DIR = fileURLToPath(new URL('./data/', import.meta.url))
 const UPDATE = process.env.UPDATE_SYNTH_SNAPSHOTS === '1'
 
 async function ensureDir(dir) {
@@ -69,7 +69,7 @@ async function compareOrWrite(t, snapshotName, actual) {
 }
 
 async function readMapFromXmap(fixture) {
-  const xml = await fs.readFile(path.join(DATA_DIR, fixture), 'utf-8')
+  const xml = await fs.readFile(fixtureFile(fixture), 'utf-8')
   const xmap = await readOmap(xml)
   return omapFileToMap(xmap)
 }

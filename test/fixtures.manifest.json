@@ -1,0 +1,252 @@
+{
+  "release": "https://github.com/kiwirm/panmap/releases/download/fixtures-v1",
+  "asset": "panmap-fixtures-v1.tar.gz",
+  "asset_sha256": "248c03143fe25ddd59afb4570f753998e9fcaeb563e68e94d676b8aa25090346",
+  "asset_bytes": 34844698,
+  "maps": {
+    "bottle-lake": [
+      {
+        "file": "bottle-lake/39f1e08.ocd",
+        "sha256": "aa3e21fd4fca6fceaab02191af40291831a38b00891475725fb6c98fffe2c4cd",
+        "bytes": 3650563
+      },
+      {
+        "file": "bottle-lake/39f1e08.xmap",
+        "sha256": "85125c83fb0f186b56f156ddd4de03adc65552fe701a8a67d196b12062f2be82",
+        "bytes": 20031795
+      },
+      {
+        "file": "bottle-lake/54f3d28.ocd",
+        "sha256": "272210a7ba7101e2b248eb198b5a67903d1820b83ccd13efd283f6f7d0994f33",
+        "bytes": 3650931
+      },
+      {
+        "file": "bottle-lake/54f3d28.xmap",
+        "sha256": "3e4c6df669bd1ec02788c7366b4a2e3896c7a625e3d683c68f3b581cc9a9991f",
+        "bytes": 20031794
+      },
+      {
+        "file": "bottle-lake/5c6c8e6.ocd",
+        "sha256": "ab63131d5700d3e3c95e138bf4ffb2368acc8f4d963219c40e597a3eaefecf78",
+        "bytes": 3652931
+      },
+      {
+        "file": "bottle-lake/5c6c8e6.xmap",
+        "sha256": "211861738d55d3e903e457038f0cd81870195386ae732fcb41feb4e9c4ff6d55",
+        "bytes": 19596909
+      },
+      {
+        "file": "bottle-lake/7f36fe7.ocd",
+        "sha256": "58d3707c0f51a19a061af53049eee872f21c5fb58ba681a53e4bebe34d403cbc",
+        "bytes": 3594600
+      },
+      {
+        "file": "bottle-lake/7f36fe7.xmap",
+        "sha256": "c9d216562281c362ee12d8faf405a084cf8a65290dc323c26bc5ca4015c23056",
+        "bytes": 20159744
+      },
+      {
+        "file": "bottle-lake/bc98714-updated-coady.ocd",
+        "sha256": "dec775312c86cda0b0b192a36a26a28945e237d5014698b8709e7f8104bc23e9",
+        "bytes": 3579364
+      },
+      {
+        "file": "bottle-lake/bc98714.ocd",
+        "sha256": "8fcd53c06e8e2ee4785a95e1c2d4584eda1e3700f6dea01426a88df5f23d6714",
+        "bytes": 3591872
+      },
+      {
+        "file": "bottle-lake/bc98714.xmap",
+        "sha256": "9626893587459e37a630cae9904a0aa3e9e8bfb0bf2fa52bf68b18ae56973580",
+        "bytes": 19578679
+      }
+    ],
+    "butlers-bush": [
+      {
+        "file": "butlers-bush/bdc004d.ocd",
+        "sha256": "be61f5bf308bd4ce4e0ad8e24f906bbd0ffaa327fdaa4127857f7120f60d62b3",
+        "bytes": 1927760
+      },
+      {
+        "file": "butlers-bush/bdc004d.xmap",
+        "sha256": "6004a54b35bc206b0927b69eebfca5e11cd7437eb9a6c936711cb5b7004bbe87",
+        "bytes": 11801931
+      }
+    ],
+    "castle-hill-village": [
+      {
+        "file": "castle-hill-village/22e8154.ocd",
+        "sha256": "2ed6b5e725e12b765b71f8309dc07482c6006e8c8937e70c2500e675049fa239",
+        "bytes": 942788
+      },
+      {
+        "file": "castle-hill-village/22e8154.xmap",
+        "sha256": "e5654e0006a97be539e8c66eb26af28c07e308a651c9cf756a2823befd6e012a",
+        "bytes": 5446678
+      }
+    ],
+    "hillmorton": [
+      {
+        "file": "hillmorton/6275ebc.ocd",
+        "sha256": "ca9c310e5db3e402b677af75cc60c147b8a1e088ce9523190aad86639ccd51ef",
+        "bytes": 473032
+      },
+      {
+        "file": "hillmorton/6275ebc.xmap",
+        "sha256": "632c4c794e12ed5b1a616514005159046d5a83ff992218a9db620b77e0ad2a09",
+        "bytes": 1658282
+      }
+    ],
+    "jarnvag": [
+      {
+        "file": "jarnvag/jarnvag.ocd",
+        "sha256": "aec3832c61667c247a67559275f9c60feda0f387744d21ac0932f60d5f4d2f31",
+        "bytes": 201040
+      }
+    ],
+    "kura-tawhiti": [
+      {
+        "file": "kura-tawhiti/0b613b2.ocd",
+        "sha256": "1b163968158ec5566bc052eeaab4d0aaeee3f9e6ced568095c121efb58fe421f",
+        "bytes": 2861896
+      },
+      {
+        "file": "kura-tawhiti/0b613b2.xmap",
+        "sha256": "5a4b88888cd69777381746756c59b49c4c9cf22d7f278d0015f895202aa424e2",
+        "bytes": 17752490
+      }
+    ],
+    "laidmore": [
+      {
+        "file": "laidmore/0f52898.ocd",
+        "sha256": "ec0a2241222fcab02436a33d7de5570f51c5f763480499ed4dbc6f004d1eae8d",
+        "bytes": 1625224
+      },
+      {
+        "file": "laidmore/0f52898.xmap",
+        "sha256": "29ed5d2a8fc4b838b6904acb5f73f36fcceb8e22d86b824806cae274d5ef1716",
+        "bytes": 8077328
+      }
+    ],
+    "leithfield": [
+      {
+        "file": "leithfield/69f0423.ocd",
+        "sha256": "3b5fc3bac56c5913e77ec2d594dcdec534abab60964314f939f4308c3bfdefe9",
+        "bytes": 1529752
+      },
+      {
+        "file": "leithfield/69f0423.xmap",
+        "sha256": "5e6864136b8e790e6eb02a3fc5f2c42eed64d3471417da2ec806693310fee1ab",
+        "bytes": 8176171
+      }
+    ],
+    "lincoln-university": [
+      {
+        "file": "lincoln-university/d44e8ce.ocd",
+        "sha256": "92070f3512339f4aacf0b44f18ab6559d09410e4cf9aad5a3b2d810b45d9d974",
+        "bytes": 870512
+      },
+      {
+        "file": "lincoln-university/d44e8ce.xmap",
+        "sha256": "4964959759e53469738806de40ccdd091759fc0591956a89c4548af8dab4a6cb",
+        "bytes": 4123543
+      }
+    ],
+    "myggfritt": [
+      {
+        "file": "myggfritt/byggnad2.ocd",
+        "sha256": "0b67fdf3de6d63dd7490e0a0289d6a7583705892c2fdd26c637d4260f1fea7ec",
+        "bytes": 185672
+      }
+    ],
+    "nga-puna-wai-canterbury-park": [
+      {
+        "file": "nga-puna-wai-canterbury-park/beba671.ocd",
+        "sha256": "c684a03786860ab47d11b023fcca2aa67c343056d28c321f090dbb07b2f4f8b6",
+        "bytes": 902454
+      },
+      {
+        "file": "nga-puna-wai-canterbury-park/beba671.xmap",
+        "sha256": "40cacf0581f054658fdea664e8f832d8751cf3e6fa040afb3d715f95d71ac655",
+        "bytes": 4090289
+      }
+    ],
+    "orua-paeroa": [
+      {
+        "file": "orua-paeroa/bf353d6.ocd",
+        "sha256": "5c07dee9f68473b7dc9a937053468737c7db7f34a345f7de2303ff6085dc00da",
+        "bytes": 472120
+      },
+      {
+        "file": "orua-paeroa/bf353d6.xmap",
+        "sha256": "8b8602148da9c58b9bed7e047c4fa93bc28a1b9528ec8a66c6f42eea30013b60",
+        "bytes": 1783628
+      }
+    ],
+    "port-hills": [
+      {
+        "file": "port-hills/d302447.ocd",
+        "sha256": "3a042498c586463062874b6d21d88f0a14207cfdad91048079d1e52bda15a750",
+        "bytes": 3888047
+      },
+      {
+        "file": "port-hills/d302447.xmap",
+        "sha256": "a4b58ec7fc132f07812c3b425e6e75d43b7e63dcfd7cb121849ac28266bad4d9",
+        "bytes": 21392502
+      }
+    ],
+    "rangiora": [
+      {
+        "file": "rangiora/7545c63.ocd",
+        "sha256": "122d93ec06dd3489ef0c83cc26a8c53f06ab2f1f87dcb0e45dbfa9427efe7830",
+        "bytes": 432349
+      },
+      {
+        "file": "rangiora/7545c63.xmap",
+        "sha256": "7bd69788b385a22d7fd9dffe7f91084dccaa0bcacc55b8e73dab1691ce9780cd",
+        "bytes": 1490645
+      }
+    ],
+    "tahunanui": [
+      {
+        "file": "tahunanui/202012.ocd",
+        "sha256": "54807825091d559ede377ad306051bb9fe45c968a288df3b94f61ec438ad6766",
+        "bytes": 1380072
+      }
+    ],
+    "university-of-canterbury": [
+      {
+        "file": "university-of-canterbury/f3dd92a.ocd",
+        "sha256": "eb389e951c845a0f0f87ceb42800290bb51a2b6543f9300a707944b7c3570e56",
+        "bytes": 1776773
+      },
+      {
+        "file": "university-of-canterbury/f3dd92a.xmap",
+        "sha256": "64000db4866c078fc60ffc139a51d7e6de807e7c7a3d6f9018ce5dfb5be9493d",
+        "bytes": 8591709
+      }
+    ],
+    "woodend": [
+      {
+        "file": "woodend/4a10570.ocd",
+        "sha256": "6639d5bd418b0e12ffd5871f11976683eb658afefa6ff6167f01edf7da5b26cb",
+        "bytes": 2217124
+      },
+      {
+        "file": "woodend/4a10570.xmap",
+        "sha256": "94beddbd0fa0e37baed612b7cc31a473f56cac3b9bfdef3c23e05117b9a67890",
+        "bytes": 11029023
+      },
+      {
+        "file": "woodend/b5d4d39.ocd",
+        "sha256": "f24f740741a77a3b73bbbf088de11bb3f98e8d13059309707f8a400560377394",
+        "bytes": 2217116
+      },
+      {
+        "file": "woodend/b5d4d39.xmap",
+        "sha256": "79a130a8a5053efebdd391732c6e47eaf9b1db44cae8e1ea1dccf8a872cdbfd2",
+        "bytes": 11029016
+      }
+    ]
+  }
+}

@@ -30,6 +30,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/main.js",
     "test": "tsc --noEmit && npm run lint && ava --node-arguments='--import tsx'",
+    "test:full": "npm run fetch:test-data && npm test",
+    "fetch:test-data": "node scripts/fetch-test-data.mjs",
+    "build:fixtures": "node scripts/build-fixtures-tarball.mjs",
     "lint": "eslint src/",
     "prepublishOnly": "npm run build"
   },

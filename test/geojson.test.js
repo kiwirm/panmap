@@ -1,16 +1,13 @@
 /**
  * @typedef {import('../node_modules/ava/types/test-fn').ExecutionContext} ExecutionContext
  */
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import test from 'ava'
 import { coordEach } from '@turf/meta'
 import { ocad, mapToGeoJson } from '../src/index.ts'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import { fixtureFile } from './helpers/fixtures.js'
 
 async function readOcadMap(fixture) {
-  return ocad.read(path.join(__dirname, 'data', fixture))
+  return ocad.read(fixtureFile(fixture))
 }
 
 test('can convert GeoJSON', async (/** @type {ExecutionContext} */ t) => {

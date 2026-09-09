@@ -1,21 +1,19 @@
 /**
  * @typedef {import('../node_modules/ava/types/test-fn').ExecutionContext} ExecutionContext
  */
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { Buffer } from 'node:buffer'
 import test from 'ava'
 import { ocad } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 
 const readOcad = ocad.readRaw
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 test('too small files can not be opened', async (/** @type {ExecutionContext} */ t) => {
   await t.throwsAsync(() => readOcad(Buffer.alloc(10)))
 })
 
 test('can open valid file', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readOcad(fixtureFile('basic-1.ocd'))
   t.is(12, map.header.version, 'Version mismatch')
   t.is(0, map.header.subVersion, 'Subversion mismatch')
   t.is(0, map.header.subSubVersion, 'Subsubversion mismatch')
@@ -24,17 +22,17 @@ test('can open valid file', async (/** @type {ExecutionContext} */ t) => {
 })
 
 test('can read symbols from file', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readOcad(fixtureFile('basic-1.ocd'))
   t.is(map.symbols.length, 289)
 })
 
 test('can read objects from file', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readOcad(fixtureFile('basic-1.ocd'))
   t.is(map.objects.length, 2)
 })
 
 test('can get CRS', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readOcad(fixtureFile('basic-1.ocd'))
   const crs = map.getCrs()
   t.is(316000, crs.easting)
   t.is(6404000, crs.northing)
@@ -44,13 +42,13 @@ test('can get CRS', async (/** @type {ExecutionContext} */ t) => {
 })
 
 test('can convert to projected CRS', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readOcad(fixtureFile('basic-1.ocd'))
   const crs = map.getCrs()
   t.deepEqual([316000, 6404000], crs.toProjectedCoord([0, 0]))
 })
 
 test('can convert to map coord', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readOcad(fixtureFile('basic-1.ocd'))
   const crs = map.getCrs()
   t.deepEqual([0, 0], crs.toMapCoord([316000, 6404000]))
 })

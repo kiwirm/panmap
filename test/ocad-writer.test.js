@@ -6,11 +6,9 @@ import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { ocad, write as writeMap } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 const readOcad = ocad.readRaw
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Byte- and structural round-trip tests for OCD → PanMap → OCD were
 // removed together with the `sourceObject` / `sourceSymbol` sidecar.
@@ -27,7 +25,7 @@ const FIXTURES = [
 ]
 
 for (const fixture of FIXTURES) {
-  const fixturePath = path.join(__dirname, 'data', fixture)
+  const fixturePath = fixtureFile(fixture)
   const exists = fsSync.existsSync(fixturePath)
   const t = exists ? test : test.skip
 

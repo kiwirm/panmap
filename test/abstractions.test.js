@@ -15,12 +15,10 @@ import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { ocad, omap, read as readMap, write as writeMap } from '../src/index.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 const readOcad = ocad.readRaw
 const writeOmap = omap.write
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // --------------------------------------------------------------------------
 // helpers
@@ -36,7 +34,7 @@ async function xmapRoundTrip(map) {
 // 1. CMYK + opacity
 
 test('OCAD colors carry canonical cmyk and opacity', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readMap(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readMap(fixtureFile('basic-1.ocd'))
   const nonNull = map.colors.filter(Boolean)
   t.true(nonNull.length > 0, 'has colors')
   for (const color of nonNull) {
@@ -112,8 +110,8 @@ test('XMap writer uses canonical cmyk instead of recomputing from RGB', async (/
 // 2. objectString + objectStringType
 
 const OCAD_FIXTURES = [
-  path.join(__dirname, 'data', '202012_Tahunanui.ocd'),
-  path.join(__dirname, 'data', 'bottle-lake-bc98714_UpdatedCoady.ocd'),
+  fixtureFile('202012_Tahunanui.ocd'),
+  fixtureFile('bottle-lake-bc98714_UpdatedCoady.ocd'),
 ]
 
 for (const fixture of OCAD_FIXTURES) {
@@ -142,7 +140,7 @@ for (const fixture of OCAD_FIXTURES) {
 }
 
 test('objectString not leaked on objects that have none (basic-1.ocd)', async (/** @type {ExecutionContext} */ t) => {
-  const map = await readMap(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const map = await readMap(fixtureFile('basic-1.ocd'))
   for (const obj of map.objects) {
     t.is(obj.objectString, undefined, 'no objectString on basic objects')
     t.is(obj.objectStringType, undefined)
@@ -194,7 +192,7 @@ test('XMap text symbol populates full TextTypography', async (/** @type {Executi
 })
 
 test('OCAD text symbol populates full TextTypography', async (/** @type {ExecutionContext} */ t) => {
-  const ocadFile = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
   // legacy re-import moved to top of file
   const map = ocad.toMap(ocadFile)
   const textSymbols = map.symbols.filter(s => s.type === 'text')
@@ -223,7 +221,7 @@ test('TextTypography survives omap round-trip', async (/** @type {ExecutionConte
 })
 
 test('OCAD text symbol fontSize is millimetres at symbol and layer level', async (/** @type {ExecutionContext} */ t) => {
-  const ocadFile = await readOcad(path.join(__dirname, 'data', 'basic-1.ocd'))
+  const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
   // legacy re-import moved to top of file
   const map = ocad.toMap(ocadFile)
   const sym = map.symbols.find(s => s.type === 'text')

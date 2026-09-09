@@ -13,12 +13,12 @@ import ocadFileToMap from '../src/formats/ocad/to-map.ts'
 import { readOmap } from "./helpers/omap.js"
 import omapFileToMap from '../src/formats/omap/to-map.ts'
 import mapToSvg from '../src/export/svg.ts'
+import { fixtureFile } from './helpers/fixtures.js'
 
 const serializer = new XMLSerializer()
 const svgString = (map) => serializer.serializeToString(mapToSvg(map))
 
 const SNAPSHOTS_DIR = fileURLToPath(new URL('./snapshots/svg/', import.meta.url))
-const DATA_DIR = fileURLToPath(new URL('./data/', import.meta.url))
 const UPDATE = process.env.UPDATE_SVG_SNAPSHOTS === '1'
 
 async function ensureDir(dir) {
@@ -57,13 +57,13 @@ async function compareOrWrite(t, snapshotName, actual) {
 }
 
 async function readMapFromOcad(fixture) {
-  const buffer = await fs.readFile(path.join(DATA_DIR, fixture))
+  const buffer = await fs.readFile(fixtureFile(fixture))
   const ocadFile = await readOcad(buffer)
   return ocadFileToMap(ocadFile)
 }
 
 async function readMapFromXmap(fixture) {
-  const xml = await fs.readFile(path.join(DATA_DIR, fixture), 'utf-8')
+  const xml = await fs.readFile(fixtureFile(fixture), 'utf-8')
   const xmap = await readOmap(xml)
   return omapFileToMap(xmap)
 }
