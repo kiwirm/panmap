@@ -771,10 +771,17 @@ function doubleLineToStroke(layer: RenderLayer): RenderLayer {
   // colorId=-1 signals "structural stroke, don't paint the centre" to the
   // OCD writer's `deriveDoubleLine` and the xmap writer's stroke serialiser.
   const hasFill = ((l.flags ?? 0) & 1) !== 0
+  // A structural casing (no centre fill) is `line_width = inner gap + border` in
+  // Mapper but `dblWidth = inner gap` in OCAD, so the two sources diverge by the
+  // border width. Emit Mapper's convention (centerWidth + border) so they
+  // converge; deriveDoubleLine subtracts the border back on the OCD write. A
+  // FILLED double-line keeps `line_width = dblWidth`, so leave it as centerWidth.
+  const centerWidth = l.centerWidth ?? 0
+  const borderWidth = (borders[0] as { width?: number } | undefined)?.width ?? 0
   return {
     type: 'stroke',
     colorId: hasFill ? (l.fillColorId ?? -1) : -1,
-    width: l.centerWidth ?? 0,
+    width: hasFill ? centerWidth : centerWidth + borderWidth,
     joinStyle: 1,
     capStyle: 0,
     borders,

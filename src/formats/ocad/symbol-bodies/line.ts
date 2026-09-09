@@ -111,7 +111,15 @@ export function deriveDoubleLine(
   const borderStrokeVisible = borderStroke !== primary && strokeColorValid(borderStroke)
   if (!leftValid && !rightValid && !borderStrokeVisible) return empty
 
-  const fillWidth = normUnits(borderStroke?.width)
+  // A structural casing (no centre fill) folded its border into the stroke width
+  // (see gitmap doubleLineToStroke) — subtract it back to recover OCAD's
+  // inner-gap dblWidth. A filled double-line already has width == dblWidth.
+  const rawFillId = borderStroke?.colorId
+  const structural = rawFillId === undefined || rawFillId === null || Number(rawFillId) < 0
+  const firstBorderWidth = left ? normUnits(left.width) : 0
+  const fillWidth = structural
+    ? Math.max(0, normUnits(borderStroke?.width) - firstBorderWidth)
+    : normUnits(borderStroke?.width)
   let fillColor = 0
   const borderStrokeIsPrimary = borderStroke === primary
   if (!borderStrokeIsPrimary || !primaryVisible) {
