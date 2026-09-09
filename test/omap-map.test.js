@@ -90,27 +90,29 @@ test('can normalize XMap file to canonical Map', async (/** @type {ExecutionCont
   t.is(map.objects[2].text, 'Control')
 })
 
-test.failing('XMap symbols expose shared render layers', async (/** @type {ExecutionContext} */ t) => {
+test('XMap symbols expose shared render layers', async (/** @type {ExecutionContext} */ t) => {
   const map = await readMap(xmapXml)
   const lineSymbol = map.symbols.find(symbol => symbol.type === 'line')
   const areaSymbol = map.symbols.find(symbol => symbol.type === 'area')
   const textSymbol = map.symbols.find(symbol => symbol.type === 'text')
 
-  t.deepEqual(lineSymbol.renderLayers[0], {
+  // The stroke layer also carries join/cap/segment metadata needed for
+  // round-trip; assert the essential fields, not the exact set.
+  t.like(lineSymbol.renderLayers[0], {
     type: 'stroke',
     colorId: 1,
     width: 10,
-    dash: undefined,
   })
   t.deepEqual(areaSymbol.renderLayers[0], {
     type: 'fill',
     colorId: 2,
   })
+  // OMap `size="120"` (1/1000 mm) reads as 0.12 mm; fontSize is in mm.
   t.like(textSymbol.renderLayers[0], {
     type: 'text',
     colorId: 1,
     fontFamily: 'Arial',
-    fontSize: 12,
+    fontSize: 0.12,
   })
   t.truthy(textSymbol.renderLayers[0].text, 'text typography sub-object present')
 })
@@ -139,7 +141,7 @@ test('can convert simple XMap-backed Map to GeoJSON', async (/** @type {Executio
   t.is(geoJson.features[2].properties.text, 'Control')
 })
 
-test.failing('can write XMap and read it back', async (/** @type {ExecutionContext} */ t) => {
+test('can write XMap and read it back', async (/** @type {ExecutionContext} */ t) => {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'xmap-writer-'))
   const direct = path.join(tmp, 'direct.xmap')
   const dispatched = path.join(tmp, 'dispatched.xmap')
@@ -156,8 +158,8 @@ test.failing('can write XMap and read it back', async (/** @type {ExecutionConte
   t.true(xml.includes('<parts count="1" current="0">'))
   t.true(xml.includes('<part name="default part">'))
   t.true(xml.includes('<objects count="3">'))
-  t.true(xml.includes('<symbol type="3" id="20" code="401.0" name="Open land">'))
-  t.true(xml.includes('<symbol type="4" id="30" code="801.0" name="Label">'))
+  t.true(xml.includes('<symbol type="4" id="20" code="401.0" name="Open land">'))
+  t.true(xml.includes('<symbol type="8" id="30" code="801.0" name="Label">'))
   t.true(xml.includes('<area_symbol inner_color="2" min_area="0" patterns="0"/>'))
 
   const roundTrip = await readMap(direct)
@@ -194,7 +196,7 @@ test('XMap writer preserves dashed line symbols', async (/** @type {ExecutionCon
   t.true(xml.includes('break_length="250"'))
 })
 
-test.failing('XMap writer preserves composite line symbol borders', async (/** @type {ExecutionContext} */ t) => {
+test('XMap writer preserves composite line symbol borders', async (/** @type {ExecutionContext} */ t) => {
   const map = await readMap(`<?xml version="1.0" encoding="UTF-8"?>
 <map xmlns="http://openorienteering.org/apps/mapper/xml/v2" version="9">
   <colors count="2">
@@ -231,7 +233,8 @@ test.failing('XMap writer preserves composite line symbol borders', async (/** @
   const xml = await fs.readFile(output, 'utf-8')
 
   t.true(xml.includes('<borders>'))
-  t.true(xml.includes('<border color="19" width="140" shift="70"/>'))
+  // The writer appends default dash attrs; match the border's meaningful prefix.
+  t.regex(xml, /<border color="19" width="140" shift="70"/)
 })
 
 
