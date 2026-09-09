@@ -781,6 +781,22 @@ function doubleLineToStroke(layer: RenderLayer): RenderLayer {
   } as unknown as RenderLayer
 }
 
+// Both dialects describe the same casing, but a border's `shift` (offset from
+// the main line) arrives differently: `doubleLineToStroke` sets it to
+// borderWidth/2 (the verified geometry the OCD writer reconstructs from) for an
+// OCAD double-line, while an OMap-native bordered stroke carries the xmap
+// `<border>` shift — which Mapper omits, so it reads back as 0. Normalise every
+// stroke border to borderWidth/2 so the two sources converge. Writer-only: the
+// in-memory model (and thus rendering) is untouched.
+function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
+  const l = layer as { type?: string; borders?: Array<{ width?: number; shift?: number }> }
+  if (l.type !== 'stroke' || !Array.isArray(l.borders)) return layer
+  return {
+    ...layer,
+    borders: l.borders.map(b => ({ ...b, shift: (b.width ?? 0) / 2 })),
+  } as unknown as RenderLayer
+}
+
 // When my `doubleLineToStroke` transform runs on an OCAD line with both a
 // visible primary stroke AND a double-line, it produces two strokes: the
 // primary (infill, no borders) and a secondary (double-line-centre + borders).
@@ -960,6 +976,7 @@ function toGitmapSymbol(
       .map(doubleLineToStroke)
       .map(canonicaliseFrameStroke)
       .map(stripPhantomBorders)
+      .map(canonicaliseBorderShift)
       .map(l => dereferenceBorderSymbol(l, symbolsById))
       .flatMap(lineSymbolsToLineElements)
       .map(stripLineElementsRedundancy)
