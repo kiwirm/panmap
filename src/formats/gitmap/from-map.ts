@@ -823,6 +823,18 @@ function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
   return node
 }
 
+// OCAD stores line widths at integer resolution; Mapper keeps sub-integer (a
+// 112.5 stroke vs OCAD's 113, a 67.5 vs 68). Snap a stroke's width to the OCAD
+// grid — the same lossy-to-OCAD rule as rotation/CMYK/pattern geometry — so the
+// two sources converge. Writer-only. (Does NOT touch borders: their width is
+// already integer here, and shift = width/2 which the OCD writer reconstructs
+// from.)
+function canonicaliseStrokeWidth(layer: RenderLayer): RenderLayer {
+  const l = layer as { type?: string; width?: number }
+  if (l.type !== 'stroke' || typeof l.width !== 'number') return layer
+  return { ...layer, width: Math.round(l.width) } as RenderLayer
+}
+
 // When my `doubleLineToStroke` transform runs on an OCAD line with both a
 // visible primary stroke AND a double-line, it produces two strokes: the
 // primary (infill, no borders) and a secondary (double-line-centre + borders).
@@ -1003,6 +1015,7 @@ function toGitmapSymbol(
       .map(canonicaliseFrameStroke)
       .map(stripPhantomBorders)
       .map(canonicaliseBorderShift)
+      .map(canonicaliseStrokeWidth)
       .map(l => dereferenceBorderSymbol(l, symbolsById))
       .flatMap(lineSymbolsToLineElements)
       .map(stripLineElementsRedundancy)
