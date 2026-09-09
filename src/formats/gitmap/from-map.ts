@@ -132,10 +132,6 @@ function pointElementToLayer(el: unknown): RenderLayer | null {
 function canonicalisePointElementsLayer(layer: RenderLayer): RenderLayer[] {
   const l = layer as { type?: string; elements?: unknown[] }
   if (l.type !== 'point-elements' || !Array.isArray(l.elements)) return [layer]
-  if (l.elements.length === 1) {
-    const extracted = pointElementToLayer(l.elements[0])
-    if (extracted) return [extracted]
-  }
   // Flatten any OMap-nested `{symbol, object}` elements to OCD-flat records
   // so both dialects agree. Records that already look OCD-flat pass through
   // stripPointElementXyFlags.
@@ -151,32 +147,27 @@ function canonicalisePointElementsLayer(layer: RenderLayer): RenderLayer[] {
   // (innerRadius=0, outerWidth=0) that renders nothing. My OCD side never
   // creates such phantoms; drop OMap's to match (e.g. butlers-bush 113.1).
   if (canonical.length === 0) return []
-  // OMap's opinionated split: extract each leading disc/ring-at-origin as
-  // a typed layer, but stop before the last remaining element — OMap keeps
-  // at least one element in the residual `point-elements`. Rule verified
-  // across paired maps:
-  //   301.5 [disc, ring]         → point-fill + point-elements (ring stays)
-  //   307.3 [ring, other]        → point-stroke + point-elements (other)
-  //   417   [disc, ring, disc]   → point-fill + point-stroke + point-elements
-  //   526   [ring, other]        → point-stroke + point-elements
-  // Each type (disc/ring) is extracted at most once — a second occurrence
-  // stays in the residual.
+  // Extract EVERY leading disc/ring-at-origin element into a typed point-fill/
+  // point-stroke layer, stopping at the first element that isn't one. This is a
+  // FIXED POINT: the residual (when non-empty) starts with a non-extractable
+  // element, so re-reading a gitmap and re-canonicalising extracts nothing more
+  // — a single disc/ring and a multi-element point symbol serialise the same on
+  // every write. (Earlier this stopped one short and capped each type once to
+  // mirror an assumed OMap residual; that wasn't idempotent — the leftover
+  // single element re-extracted on the next write.)
   const extras: RenderLayer[] = []
-  const seenTypes = new Set<string>()
   let splitIndex = 0
-  while (splitIndex < canonical.length - 1) {
+  while (splitIndex < canonical.length) {
     const ex = pointElementToLayer(canonical[splitIndex])
     if (!ex) break
-    const t = (ex as { type: string }).type
-    if (seenTypes.has(t)) break
-    seenTypes.add(t)
     extras.push(ex)
     splitIndex++
   }
-  if (extras.length > 0) {
-    return [...extras, { ...layer, elements: canonical.slice(splitIndex) } as RenderLayer]
-  }
-  return [{ ...layer, elements: canonical } as RenderLayer]
+  if (extras.length === 0) return [{ ...layer, elements: canonical } as RenderLayer]
+  const residual = canonical.slice(splitIndex)
+  return residual.length > 0
+    ? [...extras, { ...layer, elements: residual } as RenderLayer]
+    : extras
 }
 
 // Strip derived xFlags/yFlags from OCD-flat element coords. The OCAD reader
