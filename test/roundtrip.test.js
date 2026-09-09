@@ -56,23 +56,33 @@ const FIXTURES = [
   { name: 'bottle-lake', file: fixtureFile('bottle-lake-5c6c8e6.xmap'), format: 'xmap' },
 ]
 
-for (const { name, file, format } of FIXTURES) {
-  // Geometry is fully canonical today: object coordinates and flags survive a
-  // format round-trip byte-for-byte. This assertion is the guard — any change
-  // that makes a writer/reader pair non-inverse on geometry (a hole-flag shift,
-  // a Y-flip regression, a coordinate-precision drift) turns it red.
-  test(`objects.ndjson is stable across a ${format} round-trip (${name})`, async (/** @type {ExecutionContext} */ t) => {
-    const { before, after } = await roundTrip(file, format)
-    t.is(after.objects, before.objects)
-  })
+// Residual symbol round-trip drift per fixture (differing symbols.ndjson lines).
+// Symbols aren't byte-canonical on a native round-trip yet: the readers speak
+// different render-layer dialects the writers don't reproduce (see the gitmap
+// spec's Known gaps). Ratchet downward only — lower a baseline when a change
+// shrinks it, and switch to an exact `t.is` byte check once a fixture hits zero.
+const SYMBOL_DRIFT = { 'basic-1': 19, 'bottle-lake': 28 }
 
-  // Symbols are NOT yet canonical: the readers speak different render-layer
-  // dialects and the writers don't reproduce them, so even a same-format
-  // round-trip drifts (OCD ~19 lines, XMAP ~105). This is a KNOWN gap (the
-  // symbol renderLayers dialect — see the gitmap spec's roadmap) — promote to
-  // `test(...)` with a byte assertion once the render-layer model is
-  // canonicalised, and this becomes the regression guard for that work.
-  test.todo(`symbols.ndjson stable across a ${format} round-trip (${name}) — pending symbol canonicalisation`)
+for (const { name, file, format } of FIXTURES) {
+  // One native round-trip per fixture, two guards on the result:
+  //   - objects are fully canonical, so they must round-trip byte-for-byte. A
+  //     non-inverse writer/reader pair (hole-flag shift, Y-flip regression,
+  //     coordinate-precision drift) turns this red.
+  //   - symbols aren't byte-canonical yet (render-layer dialect, see the gitmap
+  //     spec's Known gaps), so their drift is only ratcheted downward.
+  test(`${format} round-trip: objects stable, symbol drift bounded (${name})`, async (/** @type {ExecutionContext} */ t) => {
+    const { before, after } = await roundTrip(file, format)
+    t.is(after.objects, before.objects, 'objects.ndjson byte-identical')
+
+    const b = before.symbols.split('\n')
+    const a = after.symbols.split('\n')
+    let drift = 0
+    for (let i = 0; i < Math.max(a.length, b.length); i++) if (a[i] !== b[i]) drift++
+    t.true(
+      drift <= SYMBOL_DRIFT[name],
+      `${name} symbol drift ${drift} exceeds baseline ${SYMBOL_DRIFT[name]} (regression)`,
+    )
+  })
 }
 
 // End-to-end guard for the hole-flag codec on REAL holed data: bottle-lake has

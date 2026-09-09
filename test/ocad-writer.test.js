@@ -18,10 +18,12 @@ const readOcad = ocad.readRaw
 // PanMap-level mutation test: modify the PanMap, write, re-read,
 // verify the mutation stuck.
 
+// One small always-present fixture and one large holed map (corpus-only,
+// skipped in a bare clone). The invariant is format-agnostic, so a third map
+// added nothing.
 const FIXTURES = [
-  '202012_Tahunanui.ocd',
-  'bottle-lake-bc98714_UpdatedCoady.ocd',
   'basic-1.ocd',
+  'bottle-lake-bc98714_UpdatedCoady.ocd',
 ]
 
 for (const fixture of FIXTURES) {
