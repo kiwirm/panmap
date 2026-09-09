@@ -6,18 +6,19 @@ import { canonicalSymbolCode } from '../../util/symbol-code.js'
 function toGitmapColor(color: MapColor) {
   return {
     id: stableColorId(color),
-    sourceId: color.sourceId ?? color.id,
+    order: color.sourceId ?? color.id,
     name: color.name || '',
-    // RGB to 6 dp (well under 8-bit precision) to drop float-conversion noise.
-    rgb: roundTuple(color.rgb, 6),
-    // OCAD-side rendering uses CMYK, not RGB — persist it in gitmap so a
-    // gitmap → ocd round-trip preserves ink density. OCAD stores CMYK as whole
-    // percentages, so snap to that grid (2 dp): an OCD-sourced colour is already
-    // quantised while an OMap-sourced copy keeps half-percent values (0.135 vs
-    // 0.14) — snapping makes them agree, below OCAD's own resolution.
+    // Screen colour as an integer [r, g, b] (0–255), matching cmyk's array shape.
+    rgb: rgbToArray(color.rgb),
+    // OCAD-side rendering uses CMYK, not RGB — persist it so a gitmap → ocd
+    // round-trip preserves ink density. OCAD stores CMYK as whole percentages,
+    // so snap to that grid (2 dp): an OCD-sourced colour is already quantised
+    // while an OMap-sourced copy keeps half-percent values — snapping matches.
     cmyk: roundTuple(color.cmyk, 2),
     opacity: color.opacity,
-    renderOrder: (color.renderOrder ?? 0) * 1000,
+    // Paint priority (higher = drawn on top). Distinct from `order` (palette
+    // index): the two diverge in OCAD maps where list order ≠ draw order.
+    renderOrder: color.renderOrder ?? 0,
   }
 }
 
@@ -25,6 +26,22 @@ function roundTuple(tuple: unknown, dp: number): unknown {
   if (!Array.isArray(tuple)) return tuple
   const f = 10 ** dp
   return tuple.map(v => (typeof v === 'number' ? Math.round(v * f) / f : v))
+}
+
+// Normalise a model RGB (a CSS `rgb(r,g,b)` string, or an [r,g,b] array in 0–255
+// or 0–1) to a canonical integer [r, g, b] triple (0–255).
+function rgbToArray(rgb: unknown): [number, number, number] | undefined {
+  if (typeof rgb === 'string') {
+    const m = rgb.match(/-?\d+(?:\.\d+)?/g)
+    if (!m || m.length < 3) return undefined
+    return m.slice(0, 3).map(n => Math.round(Number(n))) as [number, number, number]
+  }
+  if (Array.isArray(rgb) && rgb.length >= 3) {
+    const max = Math.max(rgb[0], rgb[1], rgb[2])
+    const scale = max <= 1 ? 255 : 1
+    return rgb.slice(0, 3).map(v => Math.round(Number(v) * scale)) as [number, number, number]
+  }
+  return undefined
 }
 
 // Derive the canonical symbol type from the (already-canonicalised) layers.
@@ -78,8 +95,12 @@ function pointElementToLayer(el: unknown): RenderLayer | null {
   const coords = e.coords
   if (!Array.isArray(coords) || coords.length !== 1) return null
   const c = coords[0] as { x?: number; y?: number } | [number?, number?]
-  const cx = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
-  const cy = Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0)
+  // Snap the coord the same way serialisation (stripPointElementXyFlags) will,
+  // BEFORE the origin test — otherwise a disc centred a fraction off origin
+  // (e.g. [1,0] → snaps to [0,0]) reads as "not a disc" on the source write but
+  // as a disc on the gitmap-read re-write, breaking round-trip idempotence.
+  const cx = snapSymCoord(Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0))
+  const cy = snapSymCoord(Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0))
   if (cx !== 0 || cy !== 0 || e.flags) return null
   const diameter = Number(e.diameter ?? 0)
   const lineWidth = Number(e.lineWidth ?? 0)
@@ -410,16 +431,16 @@ function canonicaliseInnerElement(el: unknown): unknown {
     object?: { coords?: unknown[]; pattern?: unknown } & Record<string, unknown>;
   }
   if (!e.symbol) return el
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id: _id, pointSymbol, lineSymbol, areaSymbol, ...restSym } = e.symbol
-  void _id
   const cleanSym: Record<string, unknown> = { ...restSym }
   if (pointSymbol) cleanSym.pointSymbol = normaliseInnerPointSymbol(pointSymbol)
   if (lineSymbol) cleanSym.lineSymbol = normaliseInnerLineSymbol(lineSymbol)
   if (areaSymbol) cleanSym.areaSymbol = normaliseInnerAreaSymbol(areaSymbol)
   let restObj: unknown = e.object
   if (e.object && typeof e.object === 'object') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { pattern: _pat, coords, ...rest } = e.object
-    void _pat
     const cleanedCoords = Array.isArray(coords)
       ? coords.map(c => {
         if (!c || typeof c !== 'object' || Array.isArray(c)) return c
@@ -956,7 +977,7 @@ function toGitmapSymbol(
   )
   return {
     id: stableSymbolId(symbol),
-    sourceId: symbol.sourceId ?? symbol.id,
+    order: symbol.sourceId ?? symbol.id,
     code: canonicalSymbolCode(symbol.code) || undefined,
     name: symbol.name,
     // Derive type from CANONICAL layers, not raw — my transforms can
@@ -967,16 +988,16 @@ function toGitmapSymbol(
     // shows up in `git diff` as a real field add, not a value swap.
     hidden: symbol.hidden ? true : undefined,
     rotatable: symbol.rotatable || undefined,
-    fontSize: symbol.fontSize == null ? undefined : snapFontSizeMm(symbol.fontSize),
+    // Text typography lives once, in the `text` render layer's `text` object
+    // (no duplicate top-level fontSize / per-layer fontSize+fontFamily).
     textSymbol: toJsonSafe(symbol.textSymbol),
-    renderLayers: canonLayers.map(layer => renderLayerToGitmap(layer, colorIds, symbolIds)),
+    layers: canonLayers.map(layer => renderLayerToGitmap(layer, colorIds, symbolIds)),
   }
 }
 
 function toGitmapObject(
   object: MapObject,
   symbolIds: Map<string | number, string>,
-  symbolCodes: Map<string | number, string>,
   partId = 'part_main',
   // Negate object-coordinate Y so an OCAD-sourced (y-up) map is stored in
   // gitmap's canonical visual (y-down) space — matching omap output and the
@@ -993,19 +1014,21 @@ function toGitmapObject(
   zRank?: number,
 ) {
   const symbolId = symbolIds.get(object.symbolId) || String(object.symbolId)
-  const symbolCode = symbolCodes.get(object.symbolId)
+  const rings = ringsToJson(object.coordinates || [], flipY)
   return {
     id: stableObjectId(object, symbolId, partId, flipY),
     // Render order, as a canonical dense rank rather than the format-specific
-    // source id (falls back to the raw id when no rank is supplied).
-    sourceId: zRank ?? object.id,
+    // source id (falls back to the raw id when no rank is supplied). The symbol
+    // is referenced by `symbolId` (which is code-derived, e.g. sym_101, so the
+    // code is already readable in a diff — no separate symbolCode needed).
+    order: zRank ?? object.id,
     partId,
     symbolId,
-    // Denormalised from the referenced symbol so `git diff` on
-    // objects.ndjson is readable without cross-referencing symbols.ndjson.
-    symbolCode,
     type: object.type,
-    coordinates: coordinatesToJson(object.coordinates || [], flipY),
+    // The outer boundary; interior rings (holes) go in `holes`. Ring structure
+    // is explicit, so no positional `hole` coord flag is stored.
+    coordinates: rings.coordinates,
+    holes: rings.holes,
     // Omit default/empty fields so the same object serialises identically no
     // matter which reader produced it (one format emits `text:""`/`rotation:0`/
     // a zero pattern, another omits them). The id hash already normalises these
@@ -1224,8 +1247,9 @@ function renderLayerToGitmap(
       output[key] = remapColors(toJsonSafe(canonicaliseTextBody(value)), colorIds)
       return
     }
-    if (layerType === 'text' && key === 'fontSize' && typeof value === 'number') {
-      output[key] = snapFontSizeMm(value)
+    // Text typography is authoritative in the nested `text` object; drop the
+    // duplicated per-layer fontSize / fontFamily.
+    if (layerType === 'text' && (key === 'fontSize' || key === 'fontFamily')) {
       return
     }
     if (layerType === 'stroke' && key === 'dash') {
@@ -1294,7 +1318,9 @@ function elementToGitmap(colorIds: Map<string | number, string>, element) {
       return
     }
     if (key === 'coords') {
-      output[key] = coordinatesToJson(value as unknown[])
+      // Element (icon primitive) coords use the same compact `[x, y]` tuple form
+      // as object coordinates (see elementCoordToJson).
+      output[key] = (value as unknown[]).map(elementCoordToJson)
       return
     }
     // XMap-style element.symbol carries a full nested symbol tree
@@ -1310,34 +1336,81 @@ function coordinatesToJson(coordinates: unknown[], flipY = false): unknown[] {
   return coordinates.map(coord => coordToJson(coord, flipY))
 }
 
+// Split flat model coordinates into explicit rings. A multi-ring area marks its
+// ring boundaries with the hole bit (yFlags 0x02) on the LAST coord of each ring
+// that a hole follows (Mapper's isHolePoint). Emit the first ring as the outer
+// boundary and the rest as `holes`; the boundary is now structural, so the
+// `hole` flag is not written on any tuple. A single-ring object (line, simple
+// area, point, text) yields just `coordinates` with no `holes`.
+function ringsToJson(
+  coordinates: unknown[],
+  flipY = false,
+): { coordinates: unknown[]; holes?: unknown[][] } {
+  const rings: unknown[][] = [[]]
+  coordinates.forEach((coord, i) => {
+    rings[rings.length - 1].push(coord)
+    const yF = (coord as { yFlags?: number }).yFlags ?? 0
+    if ((yF & 0x02) && i < coordinates.length - 1) rings.push([])
+  })
+  const [outer, ...inner] = rings
+  const out: { coordinates: unknown[]; holes?: unknown[][] } = {
+    coordinates: coordinatesToJson(outer, flipY),
+  }
+  if (inner.length) out.holes = inner.map(ring => coordinatesToJson(ring, flipY))
+  return out
+}
+
+// Element (icon primitive) coord as a compact tuple `[x, y]` / `[x, y, flags]`,
+// the same shape as object coords. Unlike an object, an icon primitive is a
+// single shape that isn't ring-split, so `hole` stays a valid semantic flag here
+// (an icon area primitive can carry a hole boundary). Element coords are
+// symbol-internal (y-up), so they are never Y-flipped.
+function elementCoordToJson(coord: unknown): unknown {
+  const src = coord as { 0?: number; 1?: number; x?: number; y?: number; xFlags?: number; yFlags?: number }
+  const isTuple = Array.isArray(coord)
+  const x = cleanNumber(isTuple ? src[0] : src.x)
+  const y = cleanNumber(isTuple ? src[1] : src.y)
+  const flags = semanticCoordFlags(src.xFlags ?? 0, src.yFlags ?? 0, true)
+  return flags ? [x, y, flags] : [x, y]
+}
+
 /**
- * Serialise a coordinate.
+ * Serialise a coordinate as a compact tuple.
  *
- * Always emits `{x, y, ...nonZeroFlags}` for schema consistency. Zero-
- * valued flag fields are omitted so plain coords stay compact — that's
- * where the diff-noise reduction comes from, not from switching shapes.
+ * Plain vertex: `[x, y]`. A vertex carrying path flags: `[x, y, flags]`, where
+ * `flags` is an object of SEMANTIC boolean keys — `control` (a Bézier control
+ * point), `corner`, `dash`. Hole-ring boundaries are structural (see
+ * `ringsToJson`), not a coord flag. The OCAD-shaped xFlags/yFlags bytes are
+ * translated to these on write and back on read; the raw OMap byte is not stored.
  */
 function coordToJson(coord: unknown, flipY = false): unknown {
   const src = coord as {
     0?: number; 1?: number; x?: number; y?: number;
-    flags?: number; xFlags?: number; yFlags?: number; omapFlags?: number;
+    xFlags?: number; yFlags?: number;
   }
   const isTuple = Array.isArray(coord)
   const x = cleanNumber(isTuple ? src[0] : src.x)
   const rawY = cleanNumber(isTuple ? src[1] : src.y)
   // Negate for the visual (y-down) space; avoid -0 so serialisation is stable.
   const y = flipY && rawY !== 0 ? -rawY : rawY
+  const flags = semanticCoordFlags(src.xFlags ?? 0, src.yFlags ?? 0)
+  return flags ? [x, y, flags] : [x, y]
+}
 
-  const out: Record<string, unknown> = { x, y }
-  if (src.flags) out.flags = src.flags
-  if (src.xFlags) out.xFlags = src.xFlags
-  if (src.yFlags) out.yFlags = src.yFlags
-  // `omapFlags` (the raw OMap flag byte) is deliberately NOT emitted: it's
-  // source-format round-trip data that makes an OMap-sourced coordinate differ
-  // from the byte-identical OCD-sourced one. The canonical semantic flags
-  // (bezier / corner / hole / dash) live in xFlags/yFlags, which both readers
-  // populate; the omap writer re-derives its byte from those.
-  return out
+// OCAD flag bytes → semantic flags. xFlags 0x01/0x02 are the two Bézier control
+// points (both -> `control`; cp1 vs cp2 is recovered by position on read).
+// yFlags: 0x01 corner, 0x02 hole, 0x08 dash point. Object coords pass
+// `includeHole = false` — their hole rings are structural (outer `coordinates` +
+// `holes`); element (icon) coords pass `true`, since a primitive isn't ring-split.
+function semanticCoordFlags(
+  xF: number, yF: number, includeHole = false,
+): Record<string, true> | undefined {
+  const f: Record<string, true> = {}
+  if (xF & 0x03) f.control = true
+  if (yF & 0x01) f.corner = true
+  if (includeHole && (yF & 0x02)) f.hole = true
+  if (yF & 0x08) f.dash = true
+  return Object.keys(f).length ? f : undefined
 }
 
 function toJsonSafe(value: unknown): unknown {

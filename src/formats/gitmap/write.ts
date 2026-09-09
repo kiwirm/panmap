@@ -10,7 +10,6 @@ import {
 } from './from-map.js'
 import { stableJson, stableJsonPretty } from './stable-json.js'
 import { needsYFlip } from '../codecs/index.js'
-import { canonicalSymbolCode } from '../../util/symbol-code.js'
 
 interface WriteGitmapOptions {
   overwrite?: boolean
@@ -52,12 +51,6 @@ async function writeGitmap(
       symbolIds.set(symbol.id, n === 1 ? base : `${base}_v${n}`)
     }
   }
-  const symbolCodes = new Map<string | number, string>(
-    map.symbols
-      .filter(s => s.code !== undefined && s.code !== null)
-      .map(s => [s.id, canonicalSymbolCode(s.code)])
-  )
-
   // `symbolsById` lets canonicalisers dereference cross-symbol references
   // (e.g. `border-symbol.symbolId` → the referenced line symbol's stroke).
   const symbolsById = new Map<string | number, typeof map.symbols[number]>()
@@ -77,12 +70,11 @@ async function writeGitmap(
         String(a.code || '').localeCompare(String(b.code || '')) ||
         a.id.localeCompare(b.id)
     )
-    // `sourceId` as a canonical dense rank (index in this code-sorted order),
-    // not the format-specific source symbol number, so the same map from OCD vs
-    // OMAP serialises identical symbol ids. The id is code-derived (independent
-    // of sourceId), so this changes bytes, not identity; gitmap read still sorts
-    // by sourceId to restore this order.
-    .map((symbol, i) => ({ ...symbol, sourceId: i }))
+    // `order` is a canonical dense rank (index in this code-sorted order), not
+    // the format-specific source symbol number, so the same map from OCD vs OMAP
+    // serialises identically. The id is code-derived (independent of order), so
+    // this changes bytes, not identity; gitmap read sorts by `order` to restore.
+    .map((symbol, i) => ({ ...symbol, order: i }))
 
   // OCAD stores coordinates y-up; every other format (omap, gitmap) is
   // y-down "visual" space. Flip an ocad-sourced map's object coordinates on
@@ -94,27 +86,22 @@ async function writeGitmap(
   // z-rank, written as `sourceId` so the same map serialises identically across
   // source formats (which assign different raw object ids but the same order).
   const objects = makeObjectIdsUnique(map.objects
-    .map((object, i) => toGitmapObject(object, symbolIds, symbolCodes, 'part_main', flipY, i))
+    .map((object, i) => toGitmapObject(object, symbolIds, 'part_main', flipY, i))
     .sort((a, b) =>
       a.partId.localeCompare(b.partId)
-      || String(a.symbolCode ?? '').localeCompare(String(b.symbolCode ?? ''))
+      || String(a.symbolId ?? '').localeCompare(String(b.symbolId ?? ''))
       || a.id.localeCompare(b.id)
     )
   )
-
-  const files: Record<string, string> = {
-    colors: 'colors.ndjson',
-    symbols: 'symbols.ndjson',
-    parts: 'parts.json',
-    objects: 'objects.ndjson',
-  }
 
   const manifest: Record<string, unknown> = {
     format: 'gitmap',
     version: 1,
     units: 'map-units',
     precision: 3,
-    files,
+    // Parts are inline (single 'part_main' for now; a genuine multi-part map
+    // would list them here). Filenames are fixed by convention — no `files` map.
+    parts: [{ id: 'part_main', name: 'Main' }],
   }
   if (map.notes) manifest.notes = map.notes
   if (map.extensions && Object.keys(map.extensions).length > 0) {
@@ -130,11 +117,6 @@ async function writeGitmap(
   await writeJson(directory, 'gitmap.json', manifest)
   await writeNdjson(directory, 'colors.ndjson', colors)
   await writeNdjson(directory, 'symbols.ndjson', symbols)
-  // Parts: omit `visible`/`locked` when they equal the defaults (true/false)
-  // so toggling a part's visibility appears as a real field addition in diffs.
-  await writeJson(directory, 'parts.json', [
-    { id: 'part_main', name: 'Main' },
-  ])
   await fs.writeFile(
     path.join(directory, 'objects.ndjson'),
     `${objects.map(stableJson).join('\n')}\n`

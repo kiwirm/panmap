@@ -26,7 +26,7 @@ test('can write and read a GitMap package deterministically', async (/** @type {
   await writeGitmap(map, first)
   await writeGitmap(map, second)
 
-  const files = ['gitmap.json', 'colors.ndjson', 'symbols.ndjson', 'parts.json', 'objects.ndjson']
+  const files = ['gitmap.json', 'colors.ndjson', 'symbols.ndjson', 'objects.ndjson']
   for (const file of files) {
     t.is(
       await fs.readFile(path.join(first, file), 'utf-8'),
@@ -98,15 +98,15 @@ test('GitMap preserves Mapper source symbols and coordinate flags', async (/** @
   // Canonical symbol code: OCAD's variant-zero suffix ".0" collapses to "501"
   // (OMap already writes it that way), so an OCD- and OMap-sourced copy agree.
   t.is(symbols[0].code, '501')
-  // Canonical coords: the SEMANTIC bezier flags survive on the control points
-  // (xFlags 1 and 2), so the same map serialises identically no matter which
-  // reader produced it. The raw OMap curve-start byte (omapFlags) is NOT
-  // stored — it's redundant with the control-point flags and format-specific.
-  t.deepEqual(object.coordinates[0], { x: 0, y: 0 })
-  t.is(object.coordinates[1].xFlags, 1)
-  t.is(object.coordinates[2].xFlags, 2)
-  t.true(object.coordinates.every(c => c.omapFlags === undefined))
-  // The semantic flags round-trip back through a gitmap read.
+  // v2 coords are compact tuples: a plain vertex is `[x, y]`; the two Bézier
+  // control points carry a semantic `{ control: true }` third element (the raw
+  // OCAD xFlags 1/2 and the OMap curve-start byte are not stored).
+  t.deepEqual(object.coordinates[0], [0, 0])
+  t.deepEqual(object.coordinates[1][2], { control: true })
+  t.deepEqual(object.coordinates[2][2], { control: true })
+  t.true(object.coordinates.every(c => c.length === 2 || (c[2] && c[2].omapFlags === undefined)))
+  // The semantic flags reconstruct to OCAD's cp1/cp2 xFlags on read (control
+  // points come in pairs: first is cp1 = 0x01, second is cp2 = 0x02).
   t.is(roundTrip.objects[0].coordinates[1].xFlags, 1)
   t.is(roundTrip.objects[0].coordinates[2].xFlags, 2)
 })

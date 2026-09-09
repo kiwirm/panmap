@@ -3,7 +3,7 @@ import path from 'node:path'
 import PanMap from '../../map/model.js'
 import { boundsForCoords } from '../../map/coord.js'
 import {
-  parseJson, parseNdjson, parseJsonOrNdjson,
+  parseJson, parseNdjson,
 } from '../../util/ndjson.js'
 
 // A gitmap is a small set of named files (gitmap.json + colors/symbols/
@@ -69,24 +69,20 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanM
     throw new Error(`Not a GitMap package: ${label}`)
   }
 
-  const files = manifest.files || {}
+  // Filenames are fixed by convention (no manifest `files` map).
   const readEntry = async (name: string): Promise<string> =>
     (await source.read(name)) ?? ''
-  const colorsName = files.colors || 'colors.ndjson'
-  const symbolsName = files.symbols || 'symbols.ndjson'
-  const objectsName = files.objects || 'objects.ndjson'
-  const colors = parseJsonOrNdjson(await readEntry(colorsName), colorsName)
-  const symbols = parseJsonOrNdjson(await readEntry(symbolsName), symbolsName)
-  const objects = parseNdjson(await readEntry(objectsName), objectsName)
+  const colors = parseNdjson(await readEntry('colors.ndjson'), 'colors.ndjson') as any[]
+  const symbols = parseNdjson(await readEntry('symbols.ndjson'), 'symbols.ndjson') as any[]
+  const objects = parseNdjson(await readEntry('objects.ndjson'), 'objects.ndjson') as any[]
 
   // `view` / `print` live under `private/` for gitignoring editor state.
-  // Older gitmaps kept them in the manifest — read either shape.
-  const privText = await source.read(files.private || 'private/view.json')
+  const privText = await source.read('private/view.json')
   const privateData = privText
-    ? (parseJson(privText, files.private || 'private/view.json') as Record<string, unknown>)
+    ? (parseJson(privText, 'private/view.json') as Record<string, unknown>)
     : undefined
-  const view = pickObject(privateData?.view) ?? pickObject(manifest.view)
-  const print = pickObject(privateData?.print) ?? pickObject(manifest.print)
+  const view = pickObject(privateData?.view)
+  const print = pickObject(privateData?.print)
 
   const symbolIds = new Map<string | number, string | number>(
     symbols.map(symbol => [symbol.id, symbol.id]),
@@ -99,12 +95,12 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanM
     colors: colors.map(colorFromGitmap),
     symbols: symbols.map(symbol => symbolFromGitmap(symbol)),
     // Preserve source rendering order: gitmap files are sorted by
-    // (partId, symbolCode, id) for deterministic git diffs, which loses
-    // the original OMap/OCAD document order. `sourceId` is the original
-    // numeric object id, so sorting on that restores z-order.
+    // (partId, symbolId, id) for deterministic git diffs, which loses
+    // the original OMap/OCAD document order. `order` is the object's
+    // canonical z-rank, so sorting on it restores render order.
     objects: sortBySourceId(
       objects.map(object => objectFromGitmap(object, symbolIds)),
-    ) as any, // sourceId-preserving reorder; MapObject typing is nominal here
+    ) as any, // order-preserving reorder; MapObject typing is nominal here
     warnings: [],
     extensions: manifest.extensions && typeof manifest.extensions === 'object'
       ? manifest.extensions
@@ -143,35 +139,56 @@ function numericIfPossible(v: unknown): number | string {
 function colorFromGitmap(color) {
   return {
     id: color.id,
-    sourceId: color.sourceId ?? color.id,
+    sourceId: color.order,
     name: color.name || '',
-    rgb: color.rgb,
+    // A valid gitmap colour always has an [r,g,b] array → a string here.
+    rgb: rgbToString(color.rgb) as string,
     cmyk: color.cmyk,
     opacity: color.opacity,
     renderOrder: color.renderOrder ?? 0,
   }
 }
 
+// gitmap stores rgb as an [r, g, b] integer array; the model uses a CSS rgb()
+// string (the SVG exporter renders it directly).
+function rgbToString(rgb: unknown): string | undefined {
+  if (Array.isArray(rgb) && rgb.length >= 3) {
+    return `rgb(${Math.round(rgb[0])}, ${Math.round(rgb[1])}, ${Math.round(rgb[2])})`
+  }
+  return undefined
+}
+
 function symbolFromGitmap(symbol) {
+  const layers = symbol.layers ?? []
   return {
     id: symbol.id,
-    sourceId: symbol.sourceId ?? symbol.id,
+    sourceId: symbol.order,
     code: symbol.code,
     name: symbol.name,
     type: symbol.type,
     hidden: !!symbol.hidden,
     rotatable: !!symbol.rotatable,
-    fontSize: symbol.fontSize,
+    // Typography is authoritative in the text layer; surface fontSize on the
+    // model for the OCAD/OMap writers.
+    fontSize: fontSizeFromLayers(layers),
     textSymbol: symbol.textSymbol,
-    renderLayers: (symbol.renderLayers || []).map(renderLayerFromGitmap),
+    renderLayers: layers.map(renderLayerFromGitmap),
   }
 }
 
+function fontSizeFromLayers(layers: unknown[]): number | undefined {
+  for (const l of layers || []) {
+    const layer = l as { type?: string; text?: { fontSize?: number }; fontSize?: number }
+    if (layer.type === 'text') return layer.text?.fontSize ?? layer.fontSize
+  }
+  return undefined
+}
+
 function objectFromGitmap(object, symbolIds: Map<string | number, string | number>) {
-  const coordinates = (object.coordinates || []).map(coordFromGitmap)
+  const coordinates = ringsFromGitmap(object.coordinates || [], object.holes)
   return {
     id: object.id,
-    sourceId: object.sourceId,
+    sourceId: object.order,
     symbolId: symbolIds.get(object.symbolId) || object.symbolId,
     type: object.type,
     coordinates,
@@ -190,13 +207,6 @@ function objectFromGitmap(object, symbolIds: Map<string | number, string | numbe
 
 function renderLayerFromGitmap(layer) {
   const output = { ...layer }
-  // Legacy gitmap files (pre-consolidation) sometimes carry `color`
-  // on a render layer instead of `colorId`. Normalize on read so
-  // callers only need to read `colorId`.
-  if (output.color !== undefined && output.colorId === undefined) {
-    output.colorId = output.color
-    delete output.color
-  }
   if (Array.isArray(output.elements)) {
     output.elements = output.elements.map(elementFromGitmap)
   }
@@ -216,35 +226,56 @@ function renderLayerFromGitmap(layer) {
 function elementFromGitmap(element) {
   const output = { ...element }
   if (Array.isArray(output.coords)) {
-    output.coords = output.coords.map(coordFromGitmap)
+    output.coords = coordsFromGitmap(output.coords)
   }
   return output
 }
 
-function coordFromGitmap(coord) {
-  type CoordArray = Array<number> & {
-    flags?: number
-    xFlags?: number
-    yFlags?: number
-    omapFlags?: number
-  }
-  // Object form is the only shape the writer emits. Bare `[x, y]`
-  // tuples are accepted for backwards compatibility with the short-
-  // lived tuple-when-no-flags variant; in-memory arrays with attached
-  // flag properties are the pre-serialisation shape and pass through.
-  if (Array.isArray(coord) && coord.length === 2 && typeof coord[0] === 'number') {
-    return [coord[0], coord[1]] as CoordArray
-  }
-  if (Array.isArray(coord)) return coord
-  if (coord && typeof coord === 'object' && 'x' in coord && 'y' in coord) {
-    const tuple = [coord.x, coord.y] as CoordArray
-    if (coord.flags !== undefined) tuple.flags = coord.flags
-    if (coord.xFlags !== undefined) tuple.xFlags = coord.xFlags
-    if (coord.yFlags !== undefined) tuple.yFlags = coord.yFlags
-    if (coord.omapFlags !== undefined) tuple.omapFlags = coord.omapFlags
+type CoordArray = Array<number> & { xFlags?: number; yFlags?: number }
+
+// Rebuild the model's flat coordinate list from explicit rings: the outer
+// `coordinates` plus each `holes` ring, concatenated. Ring boundaries are
+// restored by setting the hole bit (yFlags 0x02) on the LAST coord of every ring
+// except the last — the inverse of the writer's `ringsToJson` split. Bézier
+// control-runs never cross a ring, so each ring is parsed independently.
+function ringsFromGitmap(outer: unknown[], holes: unknown): CoordArray[] {
+  const rings = [outer, ...(Array.isArray(holes) ? (holes as unknown[][]) : [])]
+  const flat: CoordArray[] = []
+  rings.forEach((ring, ri) => {
+    const coords = coordsFromGitmap(ring)
+    if (ri < rings.length - 1 && coords.length > 0) {
+      const last = coords[coords.length - 1]
+      last.yFlags = (last.yFlags ?? 0) | 0x02
+    }
+    flat.push(...coords)
+  })
+  return flat
+}
+
+// Parse a coord list of tuples: `[x, y]` or `[x, y, {control?, corner?, hole?,
+// dash?}]`. Both object coordinates and element (icon) coords use this shape.
+// Semantic flags translate back to OCAD's xFlags/yFlags; `control` points come in
+// pairs, so the first in a run is cp1 (0x01), the second cp2 (0x02). Object coords
+// never carry `hole` (their rings are structural); element coords may.
+function coordsFromGitmap(coords: unknown[]): CoordArray[] {
+  let controlRun = 0
+  return (coords || []).map((c): CoordArray => {
+    if (!Array.isArray(c)) return c as CoordArray
+    const flags = c.length > 2 && c[2] && typeof c[2] === 'object'
+      ? (c[2] as Record<string, unknown>)
+      : undefined
+    let xFlags = 0
+    let yFlags = 0
+    if (flags?.control) { controlRun += 1; xFlags |= controlRun % 2 === 1 ? 0x01 : 0x02 }
+    else controlRun = 0
+    if (flags?.corner) yFlags |= 0x01
+    if (flags?.hole) yFlags |= 0x02
+    if (flags?.dash) yFlags |= 0x08
+    const tuple = [Number(c[0]), Number(c[1])] as CoordArray
+    if (xFlags) tuple.xFlags = xFlags
+    if (yFlags) tuple.yFlags = yFlags
     return tuple
-  }
-  return coord
+  })
 }
 
 export { readGitmap }
