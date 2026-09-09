@@ -77,6 +77,7 @@ const METRICS = ['colors', 'objects', 'symbols']
 function discover() {
   if (!fs.existsSync(FIX)) return []
   const maps = fs.readdirSync(FIX).filter(name => {
+    if (name.startsWith('.')) return false // skip dotfiles / macOS ._ AppleDouble
     try { return fs.statSync(path.join(FIX, name)).isDirectory() } catch { return false }
   }).sort()
   const out = []
@@ -84,6 +85,7 @@ function discover() {
     const files = fs.readdirSync(path.join(FIX, map))
     const byRev = new Map()
     for (const f of files) {
+      if (f.startsWith('.')) continue // skip dotfiles / macOS ._ AppleDouble
       const dot = f.lastIndexOf('.')
       if (dot < 0) continue
       const rev = f.slice(0, dot)

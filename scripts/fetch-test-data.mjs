@@ -69,7 +69,14 @@ async function fetchAndExtract(manifest) {
   console.log(`✔ tarball sha ok (${(manifest.asset_bytes / 1024 / 1024).toFixed(1)} MiB)`)
   await mkdir(FIX, { recursive: true })
   console.log(`→ extracting to ${path.relative(ROOT, FIX)}/`)
-  await run('tar', ['-xzf', tmp, '-C', FIX])
+  // GNU tar (git-for-Windows) misreads a "C:\…" archive path as a remote host
+  // ("Cannot connect to C:"); Windows' bundled bsdtar handles drive paths.
+  const tarCmd = process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+    : 'tar'
+  // Exclude macOS AppleDouble sidecars (._*) that leak into tarballs built on a
+  // Mac — they aren't in the manifest and confuse fixture discovery.
+  await run(tarCmd, ['-xzf', tmp, '-C', FIX, '--exclude', '._*'])
   await rm(tmp, { force: true })
 }
 
