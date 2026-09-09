@@ -38,15 +38,11 @@ test('fenced block yields extensions and preserves surrounding text', t => {
   t.is(userText, 'Prologue line.\n\nPostscript line.')
 })
 
-test('unknown fence version throws', t => {
-  const err = t.throws(
-    () =>
-      parseNotes(
-        '--- gitmap-extensions v99 ---\n{}\n--- end gitmap-extensions ---'
-      ),
-    { instanceOf: ExtensionsError }
-  )
-  t.regex(err.message, /v99/)
+test('unknown fence version is preserved verbatim, not an error', t => {
+  // A reader that doesn't know the block version leaves the notes field intact
+  // (the block rides through as user text) rather than dropping it or aborting.
+  const text = '--- gitmap-extensions v99 ---\n{}\n--- end gitmap-extensions ---'
+  t.deepEqual(parseNotes(text), { userText: text, extensions: {} })
 })
 
 test('missing close fence throws', t => {

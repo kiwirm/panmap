@@ -27,7 +27,7 @@ test('can write and read a GitMap package deterministically', async (/** @type {
   await writeGitmap(map, first)
   await writeGitmap(map, second)
 
-  const files = ['gitmap.json', 'colors.ndjson', 'symbols.ndjson', 'objects.ndjson']
+  const files = ['manifest.json', 'colors.ndjson', 'symbols.ndjson', 'objects.ndjson']
   for (const file of files) {
     t.is(
       await fs.readFile(path.join(first, file), 'utf-8'),

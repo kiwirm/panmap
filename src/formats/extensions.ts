@@ -2,7 +2,7 @@
  * GitMap extensions — arbitrary key/value metadata that survives round-trips
  * through OCAD/OMap files via the map notes text field.
  *
- * See gitmap/extensions.md for the format spec. Summary:
+ * See the gitmap README ("Extensions & notes") for the format spec. Summary:
  *   --- gitmap-extensions v1 ---
  *   { ...pretty JSON, keys sorted... }
  *   --- end gitmap-extensions ---
@@ -33,7 +33,9 @@ export class ExtensionsError extends Error {
 
 /**
  * Parse the map notes text field into user free text plus a structured
- * extensions object. Aborts on malformed fences rather than dropping data.
+ * extensions object. A malformed or nested fence aborts rather than dropping
+ * data; an UNKNOWN block version is left verbatim (the block rides through as
+ * user text) so a newer file doesn't break an older reader.
  */
 export function parseNotes(text: string | null | undefined): ParsedNotes {
   if (text == null || text === '') return { userText: '', extensions: {} }
@@ -50,10 +52,13 @@ export function parseNotes(text: string | null | undefined): ParsedNotes {
     }
   }
   if (openIndex === -1) return { userText: text, extensions: {} }
+  // Unknown block version: this reader doesn't know the shape, so leave the
+  // notes field untouched — the block rides through as plain user text instead
+  // of being dropped or aborting the read. (A malformed or nested fence of a
+  // KNOWN version is still a hard error below; that's corruption, not a newer
+  // format.) Mirrors the preserve-don't-discard rule for unrecognised keys.
   if (openVersion !== FENCE_VERSION) {
-    throw new ExtensionsError(
-      `Unsupported gitmap-extensions version v${openVersion}; this build understands v${FENCE_VERSION}`
-    )
+    return { userText: text, extensions: {} }
   }
 
   let closeIndex = -1

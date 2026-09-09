@@ -5,8 +5,12 @@ import { boundsForCoords } from '../../map/coord.js'
 import {
   parseJson, parseNdjson,
 } from '../../util/ndjson.js'
+import {
+  capStyleFromGitmap, joinStyleFromGitmap,
+  hAlignFromGitmap, vAlignFromGitmap, rotationFromGitmap,
+} from './enums.js'
 
-// A gitmap is a small set of named files (gitmap.json + colors/symbols/
+// A gitmap is a small set of named files (manifest.json + colors/symbols/
 // objects ndjson + optional private/view.json). A `GitmapSource` abstracts
 // WHERE those bytes come from — the on-disk directory reader, or an
 // in-memory bundle fetched straight from git (`git cat-file`) with no tar
@@ -60,11 +64,11 @@ export async function readGitmapBundle(
 
 /** Core reader, agnostic to where the bytes come from. */
 async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanMap> {
-  const manifestText = await source.read('gitmap.json')
+  const manifestText = await source.read('manifest.json')
   if (manifestText == null) {
-    throw new Error(`Not a GitMap package: ${label} (missing gitmap.json)`)
+    throw new Error(`Not a GitMap package: ${label} (missing manifest.json)`)
   }
-  const manifest = parseJson(manifestText, 'gitmap.json')
+  const manifest = parseJson(manifestText, 'manifest.json')
   if (manifest?.format !== 'gitmap') {
     throw new Error(`Not a GitMap package: ${label}`)
   }
@@ -93,13 +97,13 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanM
     sourceFile: { directory: label, manifest },
     metadata: { gitmap: manifest },
     colors: colors.map(colorFromGitmap),
-    symbols: symbols.map(symbol => symbolFromGitmap(symbol)),
+    symbols: symbols.map((symbol, i) => symbolFromGitmap(symbol, i)),
     // Preserve source rendering order: gitmap files are sorted by
     // (partId, symbolId, id) for deterministic git diffs, which loses
     // the original OMap/OCAD document order. `order` is the object's
     // canonical z-rank, so sorting on it restores render order.
     objects: sortBySourceId(
-      objects.map(object => objectFromGitmap(object, symbolIds)),
+      objects.map((object, i) => objectFromGitmap(object, symbolIds, i)),
     ) as any, // order-preserving reorder; MapObject typing is nominal here
     warnings: [],
     extensions: manifest.extensions && typeof manifest.extensions === 'object'
@@ -158,11 +162,15 @@ function rgbToString(rgb: unknown): string | undefined {
   return undefined
 }
 
-function symbolFromGitmap(symbol) {
+function symbolFromGitmap(symbol, index = 0) {
   const layers = symbol.layers ?? []
   return {
     id: symbol.id,
-    sourceId: symbol.order,
+    // symbols.ndjson has no stored `order` — it was just the code-sorted line
+    // position (derivable, and it diverged cross-format when the two exports'
+    // symbol sets differed). Re-derive the same value from the read index; the
+    // OCD/OMap writers use it only as a numbering fallback.
+    sourceId: index,
     code: symbol.code,
     name: symbol.name,
     type: symbol.type,
@@ -184,29 +192,35 @@ function fontSizeFromLayers(layers: unknown[]): number | undefined {
   return undefined
 }
 
-function objectFromGitmap(object, symbolIds: Map<string | number, string | number>) {
+function objectFromGitmap(object, symbolIds: Map<string | number, string | number>, index = 0) {
   const coordinates = ringsFromGitmap(object.coordinates || [], object.holes)
   return {
-    id: object.id,
+    // Gitmap stores no object id (objects.ndjson is geometry-sorted, not
+    // id-keyed); use the canonical z-rank as the stable in-memory handle.
+    id: object.order ?? index,
     sourceId: object.order,
     symbolId: symbolIds.get(object.symbolId) || object.symbolId,
     type: object.type,
     coordinates,
     text: object.text,
-    rotation: object.rotation,
+    rotation: rotationFromGitmap(object.rotation),
     hidden: !!object.hidden,
-    hAlign: object.hAlign,
-    vAlign: object.vAlign,
+    hAlign: hAlignFromGitmap(object.hAlign),
+    vAlign: vAlignFromGitmap(object.vAlign),
     textBox: object.textBox,
-    pattern: object.pattern,
-    objectString: object.objectString,
-    objectStringType: object.objectStringType,
+    pattern: patternFromGitmap(object.pattern),
+    objectString: object.tag,
+    objectStringType: object.tagType,
     bounds: boundsForCoords(coordinates),
   }
 }
 
 function renderLayerFromGitmap(layer) {
   const output = { ...layer }
+  // Reverse the canonical enum strings back to the model's OCAD/Mapper ints.
+  if (output.capStyle !== undefined) output.capStyle = capStyleFromGitmap(output.capStyle)
+  if (output.joinStyle !== undefined) output.joinStyle = joinStyleFromGitmap(output.joinStyle)
+  if (Array.isArray(output.borders)) output.borders = output.borders.map(borderFromGitmap)
   if (Array.isArray(output.elements)) {
     output.elements = output.elements.map(elementFromGitmap)
   }
@@ -223,12 +237,35 @@ function renderLayerFromGitmap(layer) {
   return output
 }
 
+// A stroke casing line: restore the model's `color` field from `colorId`.
+function borderFromGitmap(border) {
+  if (!border || typeof border !== 'object' || border.colorId === undefined) return border
+  const { colorId, ...rest } = border
+  return { color: colorId, ...rest }
+}
+
 function elementFromGitmap(element) {
   const output = { ...element }
-  if (Array.isArray(output.coords)) {
-    output.coords = coordsFromGitmap(output.coords)
+  // Restore the model field names the OCD/OMap writers expect: gitmap renamed
+  // color→colorId and coords→coordinates and dropped the derived numberCoords
+  // (= coordinates.length).
+  if (output.colorId !== undefined) { output.color = output.colorId; delete output.colorId }
+  if (output.radius !== undefined) { output.diameter = output.radius * 2; delete output.radius }
+  const coordSrc = Array.isArray(output.coordinates) ? output.coordinates
+    : Array.isArray(output.coords) ? output.coords : undefined
+  if (coordSrc) {
+    output.coords = coordsFromGitmap(coordSrc)
+    delete output.coordinates
+    output.numberCoords = output.coords.length
   }
   return output
+}
+
+// Object/pattern rotation is stored in degrees in gitmap; the model uses
+// radians. Convert the pattern override's rotation back on read.
+function patternFromGitmap(pattern) {
+  if (!pattern || typeof pattern !== 'object' || pattern.rotation === undefined) return pattern
+  return { ...pattern, rotation: rotationFromGitmap(pattern.rotation) }
 }
 
 type CoordArray = Array<number> & { xFlags?: number; yFlags?: number }

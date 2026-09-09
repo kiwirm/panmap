@@ -39,8 +39,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const FIX = path.join(HERE, 'fixtures')
 
 // Per-map convergence ratchet — { colors, objects, symbols } counting records
-// (matched by `id`, not array position) that were byte-identical across every
-// endpoint we ran for the map's revisions. Bump when a canonicalisation lands;
+// byte-identical across every endpoint we ran for the map's revisions. Colours
+// and symbols are matched by `id`; objects have no id (objects.ndjson is
+// geometry-sorted), so they match on the whole line. Bump when a canonicalisation lands;
 // do NOT lower without capturing the regression. A new fixture map with no entry
 // hard-fails until added — forces awareness of the corpus growing.
 const BASELINES = {
@@ -54,19 +55,19 @@ const BASELINES = {
   'ara':                          { colors:  8, objects:  1116, symbols: 164 },
   'basic-1':                      { colors:  0, objects:     0, symbols:   0 },
   'bottle-lake':                  { colors: 44, objects: 14221, symbols: 209 },
-  'butlers-bush':                 { colors: 10, objects:  5387, symbols: 113 },
+  'butlers-bush':                 { colors: 10, objects:  5387, symbols: 179 },
   'castle-hill-village':          { colors:  8, objects:  1311, symbols: 164 },
   'double-line':                  { colors:  0, objects:     0, symbols:   0 },
   'hillmorton':                   { colors:  4, objects:  1340, symbols: 185 },
   'jarnvag':                      { colors:  0, objects:     0, symbols:   0 },
-  'kura-tawhiti':                 { colors: 12, objects:  4201, symbols:  81 },
-  'laidmore':                     { colors: 10, objects:  6715, symbols: 114 },
+  'kura-tawhiti':                 { colors: 12, objects:  4201, symbols: 151 },
+  'laidmore':                     { colors: 10, objects:  6715, symbols: 178 },
   'leithfield':                   { colors: 39, objects:  4393, symbols: 188 },
   'lincoln-university':           { colors: 15, objects:  1744, symbols: 173 },
   'myggfritt':                    { colors:  0, objects:     0, symbols:   0 },
   'nga-puna-wai-canterbury-park': { colors:  8, objects:  3232, symbols: 167 },
-  'orua-paeroa':                  { colors:  8, objects:  1293, symbols:  79 },
-  'port-hills':                   { colors: 50, objects:     0, symbols: 251 },
+  'orua-paeroa':                  { colors:  8, objects:  1293, symbols: 148 },
+  'port-hills':                   { colors: 50, objects:     1, symbols: 251 },
   'rangiora':                     { colors:  8, objects:   998, symbols: 164 },
   'tahunanui':                    { colors:  0, objects:     0, symbols:   0 },
   'university-of-canterbury':     { colors:  9, objects:  5173, symbols: 173 },
@@ -137,12 +138,15 @@ async function endpointsFor({ formats }) {
 // Per-metric convergence across endpoints, matched by record `id` (NOT array
 // position). The two source formats can carry slightly different symbol/colour
 // sets, so position-pairing misses a record that converged but landed at a
-// shifted index. `total` is the union of ids seen across endpoints; `identical`
-// is the count of ids present in EVERY endpoint with a byte-identical line.
+// shifted index. `total` is the union of match keys seen across endpoints;
+// `identical` is the count present in EVERY endpoint with a byte-identical line.
 function measureLines(endpoints, metric) {
   const names = Object.keys(endpoints)
-  // `id` is the first key in stable-key-order ndjson, so a regex is far cheaper
-  // than JSON.parse across a 15k-record stream.
+  // Colours/symbols carry a stable `id` (the first key) — match on it so a
+  // record that shifted position still pairs, and a regex is far cheaper than
+  // JSON.parse across a 15k-record stream. Objects carry NO id (objects.ndjson
+  // is geometry-sorted, not id-keyed), so they fall back to the whole line —
+  // object convergence is measured as the count of byte-identical object lines.
   const idOf = line => {
     const m = /"id":"([^"]*)"/.exec(line)
     return m ? m[1] : line

@@ -57,12 +57,10 @@ to work below the `PanMap` model:
 ## GitMap
 
 GitMap is the revision-control-friendly package format used to store maps in
-Git. Version 1 writes a small directory containing stable JSON metadata and
-one `objects.ndjson` file with one object per line, so `git diff` on map
-edits produces a minimal, human-readable diff. See
-[gitmap/README.md](../gitmap/README.md) for the spec, plus the companion
-specs [distributions.md](../gitmap/distributions.md) and
-[extensions.md](../gitmap/extensions.md).
+Git. A package is a small directory: `manifest.json` plus `colors.ndjson`,
+`symbols.ndjson`, and `objects.ndjson`, one record per line, so `git diff` on
+map edits produces a minimal, human-readable diff. See
+[gitmap/README.md](../gitmap/README.md) for the format specification.
 
 ## SVG rendering
 
@@ -85,8 +83,6 @@ panmap export map.gitmap map.svg
 
 ## Missing / partial features
 
-- Hatch fills are emulated with semi-transparent fills when exporting to
-  Mapbox styles.
 - Text kerning and complex text layouts are best-effort.
 - OCAD binary encoding for from-scratch (non-OCAD-sourced) maps is
   best-effort; OCAD-sourced maps round-trip via a mix of byte preservation

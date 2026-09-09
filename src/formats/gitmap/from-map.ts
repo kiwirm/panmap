@@ -1,6 +1,8 @@
-import crypto from 'node:crypto'
 import type { MapColor, MapObject, MapSymbol, RenderLayer } from '../../map/model.js'
-import { snapRotationToOcadGrid } from '../codecs/index.js'
+import {
+  capStyleToGitmap, joinStyleToGitmap,
+  hAlignToGitmap, vAlignToGitmap, rotationToGitmap,
+} from './enums.js'
 import { canonicalSymbolCode } from '../../util/symbol-code.js'
 
 function toGitmapColor(color: MapColor) {
@@ -830,9 +832,27 @@ function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
 // already integer here, and shift = width/2 which the OCD writer reconstructs
 // from.)
 function canonicaliseStrokeWidth(layer: RenderLayer): RenderLayer {
-  const l = layer as { type?: string; width?: number }
-  if (l.type !== 'stroke' || typeof l.width !== 'number') return layer
-  return { ...layer, width: Math.round(l.width) } as RenderLayer
+  const l = layer as {
+    type?: string; width?: number; startOffset?: number; endOffset?: number
+  }
+  if (l.type !== 'stroke') return layer
+  const out = { ...layer } as Record<string, unknown>
+  if (typeof l.width === 'number') out.width = Math.round(l.width)
+  // OCAD stores decoration offsets as whole units; OMap keeps sub-unit precision
+  // (74.7 vs 75). Snap to the OCAD grid so both sources agree.
+  if (typeof l.startOffset === 'number') out.startOffset = Math.round(l.startOffset)
+  if (typeof l.endOffset === 'number') out.endOffset = Math.round(l.endOffset)
+  return out as RenderLayer
+}
+
+// OCAD stores a point disc/ring as an integer-diameter element, so its radius
+// lands on a 0.5 grid; OMap keeps sub-unit precision (16.7 vs 16.5). Snap the
+// radius so both sources agree.
+function canonicalisePointRadius(layer: RenderLayer): RenderLayer {
+  const l = layer as { type?: string; radius?: number }
+  if (l.type !== 'point-fill' && l.type !== 'point-stroke') return layer
+  if (typeof l.radius !== 'number') return layer
+  return { ...layer, radius: Math.round(l.radius * 2) / 2 } as RenderLayer
 }
 
 // When my `doubleLineToStroke` transform runs on an OCAD line with both a
@@ -1016,6 +1036,7 @@ function toGitmapSymbol(
       .map(stripPhantomBorders)
       .map(canonicaliseBorderShift)
       .map(canonicaliseStrokeWidth)
+      .map(canonicalisePointRadius)
       .map(l => dereferenceBorderSymbol(l, symbolsById))
       .flatMap(lineSymbolsToLineElements)
       .map(stripLineElementsRedundancy)
@@ -1025,7 +1046,6 @@ function toGitmapSymbol(
   )
   return {
     id: stableSymbolId(symbol),
-    order: symbol.sourceId ?? symbol.id,
     code: canonicalSymbolCode(symbol.code) || undefined,
     name: symbol.name,
     // Derive type from CANONICAL layers, not raw — my transforms can
@@ -1064,7 +1084,6 @@ function toGitmapObject(
   const symbolId = symbolIds.get(object.symbolId) || String(object.symbolId)
   const rings = ringsToJson(object.coordinates || [], flipY)
   return {
-    id: stableObjectId(object, symbolId, partId, flipY),
     // Render order, as a canonical dense rank rather than the format-specific
     // source id (falls back to the raw id when no rank is supplied). The symbol
     // is referenced by `symbolId` (which is code-derived, e.g. sym_101, so the
@@ -1079,21 +1098,22 @@ function toGitmapObject(
     holes: rings.holes,
     // Omit default/empty fields so the same object serialises identically no
     // matter which reader produced it (one format emits `text:""`/`rotation:0`/
-    // a zero pattern, another omits them). The id hash already normalises these
-    // to their defaults, so omitting them here changes bytes, not identity.
+    // a zero pattern, another omits them).
     text: object.text || undefined,
-    rotation: snapRotationToOcadGrid(object.rotation) || undefined,
+    rotation: rotationToGitmap(object.rotation) || undefined,
     hidden: object.hidden ? true : undefined,
     // Omit default alignment (0 = left / baseline): the OMap reader emits it
     // explicitly while the OCAD reader leaves it undefined, so dropping the
     // default makes the same label serialise identically. Non-default alignment
     // is preserved.
-    hAlign: object.hAlign || undefined,
-    vAlign: object.vAlign || undefined,
+    hAlign: object.hAlign ? hAlignToGitmap(object.hAlign) : undefined,
+    vAlign: object.vAlign ? vAlignToGitmap(object.vAlign) : undefined,
     textBox: object.textBox,
     pattern: cleanPattern(object.pattern),
-    objectString: object.objectString,
-    objectStringType: object.objectStringType,
+    // A free-form per-object string payload with a type discriminator (OCAD's
+    // "object string" — course/control codes, database links). Neutral names.
+    tag: object.objectString,
+    tagType: object.objectStringType,
   }
 }
 
@@ -1105,7 +1125,7 @@ function toGitmapObject(
 function cleanPattern(pattern: unknown): unknown {
   if (!pattern || typeof pattern !== 'object') return undefined
   const p = pattern as { rotation?: number; origin?: { x?: number; y?: number } }
-  const rotation = snapRotationToOcadGrid(p.rotation)
+  const rotation = rotationToGitmap(p.rotation)
   const ox = p.origin?.x || 0
   const oy = p.origin?.y || 0
   if (rotation === 0 && ox === 0 && oy === 0) return undefined
@@ -1148,9 +1168,9 @@ function strokeCanonicalDrops(layer: RenderLayer): ReadonlySet<string> {
   }
   if (!hasMidSymbols) {
     drop.add('segmentLength')
-    if (l.midSymbolsPerSpot === 1 || l.midSymbolsPerSpot === undefined) {
-      drop.add('midSymbolsPerSpot')
-    }
+    // No mid-symbol geometry → the count is dead data whatever its value (OCD
+    // omits it; OMap may emit 0 or 1). Drop it unconditionally.
+    drop.add('midSymbolsPerSpot')
     if (!l.midSymbolDistance) drop.add('midSymbolDistance')
     // `minimumMidSymbolCount` gates whether Mapper draws mid-symbols on short
     // segments; if the stroke has no mid-symbol geometry to place, the field
@@ -1279,8 +1299,17 @@ function renderLayerToGitmap(
   Object.entries(layer).forEach(([key, value]) => {
     if (value === undefined) return
     if (drop.has(key)) return
+    // Canonical colour reference is `colorId` everywhere; a layer that mirrored
+    // its source with a bare `color` is renamed here.
     if (key === 'colorId' || key === 'color') {
-      output[key] = colorIds.get(value as string | number) || value
+      output.colorId = colorIds.get(value as string | number) || value
+      return
+    }
+    // OCAD/Mapper integer enums → semantic strings (see ./enums).
+    if (key === 'capStyle') { output[key] = capStyleToGitmap(value); return }
+    if (key === 'joinStyle') { output[key] = joinStyleToGitmap(value); return }
+    if (key === 'borders' && Array.isArray(value)) {
+      output[key] = value.map(b => borderToGitmap(b, colorIds))
       return
     }
     // `border-symbol.symbolId` points to another map symbol. OCD stores the
@@ -1357,18 +1386,43 @@ function remapColors(
   return out
 }
 
+// A stroke casing line. Mirrors the layer rename: the source's bare `color`
+// becomes the canonical `colorId`.
+function borderToGitmap(
+  border: unknown, colorIds: Map<string | number, string>,
+): unknown {
+  if (!border || typeof border !== 'object') return border
+  const output: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(border as Record<string, unknown>)) {
+    if (value === undefined) continue
+    if (key === 'color') { output.colorId = colorIds.get(value as string | number) ?? value; continue }
+    output[key] = value
+  }
+  return output
+}
+
 function elementToGitmap(colorIds: Map<string | number, string>, element) {
   const output: Record<string, unknown> = {}
   Object.entries(element).forEach(([key, value]) => {
     if (value === undefined) return
+    // `numberCoords` is a derived count (= coordinates.length); the canonical
+    // form omits derived counts. The reader restores it from the array.
+    if (key === 'numberCoords') return
     if (key === 'color') {
-      output[key] = colorIds.get(value as string | number) || value
+      // Canonical colour reference is `colorId` everywhere.
+      output.colorId = colorIds.get(value as string | number) || value
       return
     }
     if (key === 'coords') {
-      // Element (icon primitive) coords use the same compact `[x, y]` tuple form
-      // as object coordinates (see elementCoordToJson).
-      output[key] = (value as unknown[]).map(elementCoordToJson)
+      // Icon-primitive geometry uses the same tuple form AND the same field
+      // name as object `coordinates` (see elementCoordToJson).
+      output.coordinates = (value as unknown[]).map(elementCoordToJson)
+      return
+    }
+    if (key === 'diameter') {
+      // Canonical circular size is `radius`, matching point-fill/point-stroke;
+      // OCAD icon primitives store diameter, so halve it here.
+      output.radius = (value as number) / 2
       return
     }
     // XMap-style element.symbol carries a full nested symbol tree
@@ -1497,53 +1551,12 @@ function stableSymbolId(symbol: MapSymbol): string {
   return `sym_${slug(code)}`
 }
 
-function stableObjectId(
-  object: MapObject,
-  symbolId?: string,
-  partId = 'part_main',
-  flipY = false,
-): string {
-  return `obj_${hashObject({
-    partId,
-    symbolId: symbolId || object.symbolId,
-    type: object.type,
-    // Hash the SAME (possibly y-flipped) coords that get serialised, so the
-    // id identifies the geometry as actually stored.
-    coordinates: coordinatesToIdentityJson(object.coordinates || [], flipY),
-    text: object.text || '',
-    rotation: snapRotationToOcadGrid(object.rotation),
-  })}`
-}
-
-function coordinatesToIdentityJson(coordinates: unknown[], flipY = false): unknown[] {
-  return coordinates.map(coord => {
-    const src = coord as { 0?: number; 1?: number; x?: number; y?: number }
-    const isTuple = Array.isArray(coord)
-    if (!isTuple && (!coord || typeof coord !== 'object' || !('x' in src))) {
-      return coord
-    }
-    const rawY = cleanNumber(isTuple ? src[1] : src.y)
-    return {
-      x: cleanNumber(isTuple ? src[0] : src.x),
-      y: flipY && rawY !== 0 ? -rawY : rawY,
-    }
-  })
-}
-
 function slug(value: string): string {
   return value
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
-}
-
-function hashObject(value: unknown): string {
-  return crypto
-    .createHash('sha1')
-    .update(JSON.stringify(toJsonSafe(value)))
-    .digest('hex')
-    .slice(0, 12)
 }
 
 function cleanNumber(value: unknown): number {
@@ -1557,6 +1570,5 @@ export {
   toGitmapObject,
   stableColorId,
   stableSymbolId,
-  stableObjectId,
   coordinatesToJson,
 }

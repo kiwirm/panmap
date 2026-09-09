@@ -29,7 +29,7 @@ test('extensions round-trip through the gitmap package', async t => {
     await writeGitmap(original, dir, { overwrite: true })
 
     const manifest = JSON.parse(
-      await fs.readFile(path.join(dir, 'gitmap.json'), 'utf-8')
+      await fs.readFile(path.join(dir, 'manifest.json'), 'utf-8')
     )
     t.is(manifest.notes, 'Human-authored map notes.')
     t.deepEqual(manifest.extensions, original.extensions)
@@ -53,7 +53,7 @@ test('gitmap package omits extensions when empty', async t => {
     })
     await writeGitmap(original, dir, { overwrite: true })
     const manifest = JSON.parse(
-      await fs.readFile(path.join(dir, 'gitmap.json'), 'utf-8')
+      await fs.readFile(path.join(dir, 'manifest.json'), 'utf-8')
     )
     t.false('extensions' in manifest)
     t.false('notes' in manifest)
