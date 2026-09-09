@@ -38,11 +38,11 @@ import { read, write } from '../src/index.ts'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const FIX = path.join(HERE, 'fixtures')
 
-// Per-map convergence ratchet — { colors, objects, symbols } counting
-// ndjson lines that were byte-identical across every endpoint we ran for
-// the map's revisions. Bump when a canonicalisation lands; do NOT lower
-// without capturing the regression. A new fixture map with no entry hard-
-// fails until added — forces awareness of the corpus growing.
+// Per-map convergence ratchet — { colors, objects, symbols } counting records
+// (matched by `id`, not array position) that were byte-identical across every
+// endpoint we ran for the map's revisions. Bump when a canonicalisation lands;
+// do NOT lower without capturing the regression. A new fixture map with no entry
+// hard-fails until added — forces awareness of the corpus growing.
 const BASELINES = {
   // Filled lazily — see "IMPROVEMENT" log lines / the ratchet summary in
   // test output for the exact numbers to paste here.
@@ -51,26 +51,26 @@ const BASELINES = {
   // the eventual goal is 100% on all three but for now this ratchet is
   // the drift budget. Any regression here means a canonicalisation
   // change lost ground; investigate before lowering.
-  'ara':                          { colors:  8, objects:  1013, symbols: 164 },
+  'ara':                          { colors:  8, objects:  1116, symbols: 164 },
   'basic-1':                      { colors:  0, objects:     0, symbols:   0 },
-  'bottle-lake':                  { colors: 44, objects: 14220, symbols: 209 },
-  'butlers-bush':                 { colors: 10, objects:  3610, symbols: 110 },
-  'castle-hill-village':          { colors:  8, objects:   914, symbols: 164 },
+  'bottle-lake':                  { colors: 44, objects: 14221, symbols: 209 },
+  'butlers-bush':                 { colors: 10, objects:  5387, symbols: 110 },
+  'castle-hill-village':          { colors:  8, objects:  1311, symbols: 164 },
   'double-line':                  { colors:  0, objects:     0, symbols:   0 },
   'hillmorton':                   { colors:  4, objects:  1340, symbols: 185 },
   'jarnvag':                      { colors:  0, objects:     0, symbols:   0 },
   'kura-tawhiti':                 { colors: 12, objects:  4201, symbols:  80 },
-  'laidmore':                     { colors: 10, objects:  3473, symbols: 111 },
+  'laidmore':                     { colors: 10, objects:  6715, symbols: 111 },
   'leithfield':                   { colors: 39, objects:  4393, symbols: 188 },
   'lincoln-university':           { colors: 15, objects:  1744, symbols: 173 },
   'myggfritt':                    { colors:  0, objects:     0, symbols:   0 },
   'nga-puna-wai-canterbury-park': { colors:  8, objects:  3232, symbols: 167 },
-  'orua-paeroa':                  { colors:  8, objects:  1112, symbols:  78 },
+  'orua-paeroa':                  { colors:  8, objects:  1293, symbols:  78 },
   'port-hills':                   { colors: 50, objects:     0, symbols: 251 },
   'rangiora':                     { colors:  8, objects:   998, symbols: 164 },
   'tahunanui':                    { colors:  0, objects:     0, symbols:   0 },
   'university-of-canterbury':     { colors:  9, objects:  5173, symbols: 173 },
-  'woodend':                      { colors: 11, objects:  9932, symbols: 204 },
+  'woodend':                      { colors: 11, objects:  9933, symbols: 204 },
 }
 const METRICS = ['colors', 'objects', 'symbols']
 
@@ -134,19 +134,34 @@ async function endpointsFor({ formats }) {
   return out
 }
 
-// Line-by-line convergence for one metric across a set of endpoints.
-// (ndjson order is stable — gitmap writer sorts objects/symbols by id
-// and colors by their internal order, so array-position pairing is valid.)
+// Per-metric convergence across endpoints, matched by record `id` (NOT array
+// position). The two source formats can carry slightly different symbol/colour
+// sets, so position-pairing misses a record that converged but landed at a
+// shifted index. `total` is the union of ids seen across endpoints; `identical`
+// is the count of ids present in EVERY endpoint with a byte-identical line.
 function measureLines(endpoints, metric) {
   const names = Object.keys(endpoints)
-  const sets = names.map(n => endpoints[n][metric].split('\n').filter(Boolean))
-  const total = Math.max(...sets.map(l => l.length), 0)
+  // `id` is the first key in stable-key-order ndjson, so a regex is far cheaper
+  // than JSON.parse across a 15k-record stream.
+  const idOf = line => {
+    const m = /"id":"([^"]*)"/.exec(line)
+    return m ? m[1] : line
+  }
+  const byId = names.map(n => {
+    const m = new Map()
+    for (const line of endpoints[n][metric].split('\n')) {
+      if (line) m.set(idOf(line), line)
+    }
+    return m
+  })
+  const allIds = new Set()
+  for (const m of byId) for (const id of m.keys()) allIds.add(id)
+  const total = allIds.size
   if (names.length < 2) return { identical: total, total }
   let identical = 0
-  for (let i = 0; i < total; i++) {
-    const first = sets[0][i]
-    if (first === undefined) continue
-    if (sets.every(s => s[i] === first)) identical++
+  for (const id of allIds) {
+    const first = byId[0].get(id)
+    if (first !== undefined && byId.every(m => m.get(id) === first)) identical++
   }
   return { identical, total }
 }
