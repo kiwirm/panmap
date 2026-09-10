@@ -2,7 +2,7 @@
  * Shared render-layer classifiers + narrowed subtypes.
  *
  * Each format writer (OCAD synth, XMap from-map, SVG export, …) needs
- * to bucket a symbol's `renderLayers` by layer type before it can
+ * to bucket a symbol's `layers` by layer type before it can
  * emit anything. Rather than have every writer re-implement the same
  * `.filter(l => l.type === '…')` sequence — which is where subtle
  * classification bugs tend to hide — the shared classifiers live here.
@@ -170,7 +170,7 @@ export interface AreaLayers {
 }
 
 export function classifyAreaLayers(symbol: MapSymbol): AreaLayers {
-  const layers = symbol.renderLayers ?? []
+  const layers = symbol.layers ?? []
   const fills: FillLayer[] = []
   const strokes: StrokeLayer[] = []
   const hatches: HatchLayer[] = []
@@ -202,7 +202,7 @@ export function classifyPointLayers(symbol: MapSymbol): PointLayers {
   let fill: PointFillLayer | undefined
   let stroke: PointStrokeLayer | undefined
   let elements: PointElementsLayer | undefined
-  for (const l of symbol.renderLayers ?? []) {
+  for (const l of symbol.layers ?? []) {
     switch (l.type) {
       case 'point-fill':
         if (!fill) fill = l as PointFillLayer
@@ -223,7 +223,7 @@ export interface TextLayers {
 }
 
 export function classifyTextLayers(symbol: MapSymbol): TextLayers {
-  for (const l of symbol.renderLayers ?? []) {
+  for (const l of symbol.layers ?? []) {
     if (l.type === 'text') return { text: l as TextLayer }
   }
   return { text: undefined }
@@ -241,7 +241,7 @@ export function classifyLineLayers(symbol: MapSymbol): LineLayers {
   let doubleLine: DoubleLineLayer | undefined
   let lineElements: LineElementsLayer | undefined
   let lineSymbols: LineSymbolsLayer | undefined
-  for (const l of symbol.renderLayers ?? []) {
+  for (const l of symbol.layers ?? []) {
     switch (l.type) {
       case 'stroke': strokes.push(l as StrokeLayer); break
       case 'double-line':

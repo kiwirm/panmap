@@ -138,7 +138,7 @@ function toMapSymbol(symbol: BaseSymbol): MapSymbol {
     // OMap reader) is millimetres. Convert here so a text symbol's top-level
     // fontSize matches cross-format (the text render layer already does this).
     fontSize: convertOcadFontSizeToMm((symbol as { fontSize?: number }).fontSize),
-    renderLayers: symbolToRenderLayers(symbol),
+    layers: symbolToRenderLayers(symbol),
   }
 }
 
@@ -403,8 +403,8 @@ function toMapObject(
     // (and Panmap→anything) object list.
     hidden: object.objIndex?.status === 2,
     bounds: object.objIndex?.rc,
-    objectString: object.objectString || undefined,
-    objectStringType:
+    tag: object.objectString || undefined,
+    tagType:
       object.nObjectString > 0 ? object.objectStringType ?? 0 : undefined,
   }
 }

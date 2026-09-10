@@ -25,7 +25,7 @@ function makeMap(objects) {
         name: 'Road',
         type: 'line',
         hidden: false,
-        renderLayers: [{ type: 'stroke', colorId: 'black', width: 10 }],
+        layers: [{ type: 'stroke', colorId: 'black', width: 10 }],
       },
       {
         id: 'point',
@@ -34,7 +34,7 @@ function makeMap(objects) {
         name: 'Point',
         type: 'point',
         hidden: false,
-        renderLayers: [{ type: 'point-fill', colorId: 'black', radius: 10 }],
+        layers: [{ type: 'point-fill', colorId: 'black', radius: 10 }],
       },
       {
         id: 'text',
@@ -43,7 +43,7 @@ function makeMap(objects) {
         name: 'Text',
         type: 'text',
         hidden: false,
-        renderLayers: [{ type: 'text', colorId: 'black', fontSize: 12 }],
+        layers: [{ type: 'text', colorId: 'black', fontSize: 12 }],
       },
       {
         id: 'area',
@@ -52,7 +52,7 @@ function makeMap(objects) {
         name: 'Area',
         type: 'area',
         hidden: false,
-        renderLayers: [{ type: 'fill', colorId: 'black' }],
+        layers: [{ type: 'fill', colorId: 'black' }],
       },
     ],
     objects,
@@ -374,7 +374,7 @@ test('diffMaps matches symbols across OMap/OCAD code formats (101 vs 101.0)', (/
           name: 'Contour',
           type: 'line',
           hidden: false,
-          renderLayers: [{ type: 'stroke', colorId: 'brown', width: 10 }],
+          layers: [{ type: 'stroke', colorId: 'brown', width: 10 }],
         },
       ],
       objects: [
@@ -403,7 +403,7 @@ test('diffChanges reports per-feature changes and pairs modified across code for
     name: 'Contour',
     type: 'line',
     hidden: false,
-    renderLayers: [{ type: 'stroke', colorId: 'brown', width: 10 }],
+    layers: [{ type: 'stroke', colorId: 'brown', width: 10 }],
   })
   const ptSym = (code, name) => ({
     id: `sym_${code}`,
@@ -412,7 +412,7 @@ test('diffChanges reports per-feature changes and pairs modified across code for
     name,
     type: 'point',
     hidden: false,
-    renderLayers: [{ type: 'point-fill', colorId: 'black', radius: 10 }],
+    layers: [{ type: 'point-fill', colorId: 'black', radius: 10 }],
   })
   const line = (code, coords) => ({
     id: `line-${code}`,
@@ -471,7 +471,7 @@ test('diffChanges distinguishes symbol changes from geometry changes', (/** @typ
   const lineSym = code => ({
     id: `sym_${code}`, sourceId: `sym_${code}`, code, name: `Sym ${code}`,
     type: 'line', hidden: false,
-    renderLayers: [{ type: 'stroke', colorId: 'black', width: 10 }],
+    layers: [{ type: 'stroke', colorId: 'black', width: 10 }],
   })
   const line = (code, id, coords) => ({
     id, symbolId: `sym_${code}`, type: 'line', coordinates: coords, hidden: false,
@@ -509,7 +509,7 @@ test('diffChanges reports a reclassified + reshaped line as a "both" change', (/
   const lineSym = code => ({
     id: `sym_${code}`, sourceId: `sym_${code}`, code, name: `Sym ${code}`,
     type: 'line', hidden: false,
-    renderLayers: [{ type: 'stroke', colorId: 'black', width: 10 }],
+    layers: [{ type: 'stroke', colorId: 'black', width: 10 }],
   })
   const line = (code, id, coords) => ({
     id, symbolId: `sym_${code}`, type: 'line', coordinates: coords, hidden: false,
@@ -534,7 +534,7 @@ test('diffChanges renders an edited area with a hole without crossing rings', (/
   const areaSym = code => ({
     id: `sym_${code}`, sourceId: `sym_${code}`, code, name: 'Forest',
     type: 'area', hidden: false,
-    renderLayers: [{ type: 'fill', colorId: 'green' }],
+    layers: [{ type: 'fill', colorId: 'green' }],
   })
   // Outer ring (last coord flags the hole) + hole ring. Edit one outer
   // vertex between before/after; the hole is unchanged. Array coords with

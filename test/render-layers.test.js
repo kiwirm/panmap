@@ -13,8 +13,8 @@ import {
 } from '../src/panmap/render-layers.ts'
 
 /** Build a minimal MapSymbol with just the fields the classifiers touch. */
-function symbol(renderLayers) {
-  return { id: 1, sourceId: 1, type: 'area', hidden: false, renderLayers }
+function symbol(layers) {
+  return { id: 1, sourceId: 1, type: 'area', hidden: false, layers }
 }
 
 test('classifyAreaLayers buckets by type', t => {
@@ -70,7 +70,7 @@ test('classifyAreaLayers on an empty symbol', t => {
   t.deepEqual(buckets.pointPatterns, [])
 })
 
-test('classifyAreaLayers tolerates missing renderLayers', t => {
+test('classifyAreaLayers tolerates missing layers', t => {
   const buckets = classifyAreaLayers({ id: 1, sourceId: 1, type: 'area', hidden: false })
   t.deepEqual(buckets.strokes, [])
   t.is(buckets.fill, undefined)

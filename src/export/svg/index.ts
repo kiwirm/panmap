@@ -68,7 +68,7 @@ export interface MapSvgRenderSupport {
 /**
  * Render a `Panmap` object to SVG.
  *
- * Simple symbols are rendered directly from source-independent `renderLayers`.
+ * Simple symbols are rendered directly from source-independent `layers`.
  * More complex normalized maps are handled by shared SVG renderers that can use
  * retained source metadata while the render-layer model grows.
  */
@@ -153,7 +153,7 @@ function getUnsupportedReasons(object, symbol) {
   if (!symbol) return ['missing symbol']
   if (symbol.hidden || object.hidden) return []
 
-  const layers = symbol.renderLayers || []
+  const layers = symbol.layers || []
   if (layers.length === 0) reasons.push('no render layers')
 
   layers.forEach(layer => {
@@ -215,7 +215,7 @@ function renderDirectly(map: Panmap, options: MapToSvgOptions = {}): DOMElement 
   map.objects.forEach(object => {
     const symbol = symbols[object.symbolId]
     if (!symbol || symbol.hidden || object.hidden) return
-    const layers = symbol.renderLayers || []
+    const layers = symbol.layers || []
     layers.forEach(layer => {
       const rendered = objectLayerToSvg(
         object,
@@ -377,7 +377,7 @@ function objectLayerToSvg(
         const borderSymbol = symbols[layer.symbolId]
         if (!borderSymbol) return null
         const lineObject = { ...object, type: 'line' }
-        return (borderSymbol.renderLayers || [])
+        return (borderSymbol.layers || [])
           .map(borderLayer =>
             objectLayerToSvg(
               lineObject,

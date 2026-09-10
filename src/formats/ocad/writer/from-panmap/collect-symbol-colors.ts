@@ -48,6 +48,6 @@ export function collectSymbolColors(
       }
     }
   }
-  for (const layer of symbol.renderLayers ?? []) walk(layer)
+  for (const layer of symbol.layers ?? []) walk(layer)
   return [...seen].sort((a, b) => a - b).slice(0, 14)
 }

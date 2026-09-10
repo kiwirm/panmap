@@ -38,7 +38,7 @@ function synthMap(coordinates) {
     sourceFormat: 'test',
     colors: [{ id: 0, sourceId: 0, name: 'black', rgb: 'rgb(0,0,0)', renderOrder: 0 }],
     symbols: [
-      { id: 1, sourceId: 1, type: 'line', hidden: false, renderLayers: [
+      { id: 1, sourceId: 1, type: 'line', hidden: false, layers: [
         { type: 'stroke', colorId: 0, width: 10 },
       ] },
     ],

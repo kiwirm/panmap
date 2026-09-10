@@ -383,12 +383,12 @@ const OUTLINE_SYMBOLS = [
     {
       id: `outline-line-${k}`, sourceId: `outline-line-${k}`, code: `outline-line-${k}`,
       name: k, type: 'line', hidden: false,
-      renderLayers: [{ type: 'stroke', colorId: k, width: DIFF_OUTLINE_WIDTH }],
+      layers: [{ type: 'stroke', colorId: k, width: DIFF_OUTLINE_WIDTH }],
     },
     {
       id: `outline-point-${k}`, sourceId: `outline-point-${k}`, code: `outline-point-${k}`,
       name: k, type: 'point', hidden: false,
-      renderLayers: [{ type: 'point-fill', colorId: k, radius: 40 }],
+      layers: [{ type: 'point-fill', colorId: k, radius: 40 }],
     },
   ]),
   // Hatched area fills: yellow when the area shares geometry (edited in
@@ -396,12 +396,12 @@ const OUTLINE_SYMBOLS = [
   {
     id: 'diff-hatch-modified', sourceId: 'diff-hatch-modified', code: 'diff-hatch-modified',
     name: 'Modified', type: 'area', hidden: false,
-    renderLayers: [{ type: 'hatch-fill', colorId: 'modified', spacing: 120, lineWidth: 14, angle: 45 }],
+    layers: [{ type: 'hatch-fill', colorId: 'modified', spacing: 120, lineWidth: 14, angle: 45 }],
   },
   {
     id: 'diff-hatch-added', sourceId: 'diff-hatch-added', code: 'diff-hatch-added',
     name: 'Added', type: 'area', hidden: false,
-    renderLayers: [{ type: 'hatch-fill', colorId: 'added', spacing: 120, lineWidth: 14, angle: 45 }],
+    layers: [{ type: 'hatch-fill', colorId: 'added', spacing: 120, lineWidth: 14, angle: 45 }],
   },
 ] as unknown as MapSymbol[]
 

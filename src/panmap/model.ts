@@ -191,7 +191,7 @@ export interface MapSymbol {
    *  text_symbol). Only the fields consumed cross-format are typed
    *  here; format-specific extras fall through. */
   textSymbol?: { rotatable?: boolean }
-  renderLayers: RenderLayer[]
+  layers: RenderLayer[]
 }
 
 export interface MapObject {
@@ -212,9 +212,9 @@ export interface MapObject {
   /** Area-pattern override placed on an individual object (xmap `<pattern>`). */
   pattern?: { rotation?: number; origin?: { x: number; y: number } }
   /** Per-object linked string used by course-setting / control description tools. */
-  objectString?: string
-  /** Semantic type of `objectString` (0=none, 1=course-setting, 4=db-link, etc.). */
-  objectStringType?: number
+  tag?: string
+  /** Semantic type of `tag` (0=none, 1=course-setting, 4=db-link, etc.). */
+  tagType?: number
 }
 
 /**

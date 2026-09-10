@@ -362,13 +362,13 @@ export function diffAreaSymbols(
       id: `diff-border-${kind}`, sourceId: `diff-border-${kind}`,
       code: `diff-border-${kind}`, name: `diff-border-${kind}`,
       type: 'line', hidden: false,
-      renderLayers: [{ type: 'stroke', colorId: kind, width: DIFF_OUTLINE_WIDTH }],
+      layers: [{ type: 'stroke', colorId: kind, width: DIFF_OUTLINE_WIDTH }],
     } as unknown as MapSymbol)
     out.push({
       id: `diff-area-${kind}`, sourceId: `diff-area-${kind}`,
       code: `diff-area-${kind}`, name: `diff-area-${kind}`,
       type: 'area', hidden: false,
-      renderLayers: [
+      layers: [
         { type: 'hatch-fill', colorId: kind, spacing: 120, lineWidth: 14, angle: 45 },
         { type: 'border-symbol', symbolId: `diff-border-${kind}` },
       ],
@@ -381,7 +381,7 @@ function diffSymbol(
   id: string,
   type: string,
   diffKind: DiffKind,
-  renderLayers: RenderLayer[]
+  layers: RenderLayer[]
 ): DiffSymbol {
   return {
     id,
@@ -391,7 +391,7 @@ function diffSymbol(
     type,
     hidden: false,
     diffKind,
-    renderLayers,
+    layers,
   }
 }
 
@@ -650,7 +650,7 @@ export function recolorSymbol(
   clone.id = `diff-${kind}-${orig.id}`
   clone.sourceId = clone.id
   if (kind === 'unchanged') {
-    for (const layer of (clone.renderLayers ?? []) as Array<{ opacity?: number }>) {
+    for (const layer of (clone.layers ?? []) as Array<{ opacity?: number }>) {
       layer.opacity = unchangedOpacity
     }
   }

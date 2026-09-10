@@ -96,7 +96,7 @@ function hoistTextAlignmentIntoSymbols(
   return symbols.map(symbol => {
     const align = byId.get(symbol.id)
     if (!align) return symbol
-    const layers = (symbol as any).renderLayers as any[] | undefined
+    const layers = (symbol as any).layers as any[] | undefined
     if (!Array.isArray(layers)) return symbol
     const newLayers = layers.map(layer => {
       if (!layer || layer.type !== 'text') return layer
@@ -107,6 +107,6 @@ function hoistTextAlignmentIntoSymbols(
       }
       return { ...layer, text }
     })
-    return { ...symbol, renderLayers: newLayers }
+    return { ...symbol, layers: newLayers }
   })
 }

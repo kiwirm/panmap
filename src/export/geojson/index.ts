@@ -325,7 +325,7 @@ function getProperties(object) {
     text: object.text,
     rotation: object.rotation,
     hidden: object.hidden,
-    objectString: object.objectString,
-    objectStringType: object.objectStringType,
+    objectString: object.tag,
+    objectStringType: object.tagType,
   }
 }

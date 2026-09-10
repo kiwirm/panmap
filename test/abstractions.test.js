@@ -3,7 +3,7 @@
  * OCAD and XMap carry natively:
  *
  *   1. MapColor.cmyk + opacity
- *   2. MapObject.objectString + objectStringType
+ *   2. MapObject.tag + tagType
  *   3. TextTypography on the 'text' RenderLayer
  */
 
@@ -107,7 +107,7 @@ test('XMap writer uses canonical cmyk instead of recomputing from RGB', async (/
 })
 
 // --------------------------------------------------------------------------
-// 2. objectString + objectStringType
+// 2. tag + tagType
 
 const OCAD_FIXTURES = [
   fixtureFile('202012_Tahunanui.ocd'),
@@ -118,32 +118,32 @@ for (const fixture of OCAD_FIXTURES) {
   const exists = fsSync.existsSync(fixture)
   const t = exists ? test : test.skip
 
-  t(`objectString populated for objects that have one (${path.basename(fixture)})`, async (/** @type {ExecutionContext} */ tt) => {
+  t(`tag populated for objects that have one (${path.basename(fixture)})`, async (/** @type {ExecutionContext} */ tt) => {
     const map = await readMap(fixture)
-    const withStr = map.objects.filter(o => o.objectString)
-    const withStrType = map.objects.filter(o => o.objectStringType !== undefined)
-    // Not all maps have objectStrings; if none exist the test still verifies
+    const withStr = map.objects.filter(o => o.tag)
+    const withStrType = map.objects.filter(o => o.tagType !== undefined)
+    // Not all maps have tags; if none exist the test still verifies
     // the field is properly absent (undefined, not empty string).
     tt.true(
-      map.objects.every(o => o.objectString === undefined || typeof o.objectString === 'string'),
-      'objectString is string or undefined'
+      map.objects.every(o => o.tag === undefined || typeof o.tag === 'string'),
+      'tag is string or undefined'
     )
     tt.true(
-      map.objects.every(o => o.objectStringType === undefined || typeof o.objectStringType === 'number'),
-      'objectStringType is number or undefined'
+      map.objects.every(o => o.tagType === undefined || typeof o.tagType === 'number'),
+      'tagType is number or undefined'
     )
     if (withStr.length > 0) {
-      tt.log(`found ${withStr.length} objects with objectString`)
-      tt.truthy(withStrType.length > 0, 'objectStringType set when objectString present')
+      tt.log(`found ${withStr.length} objects with tag`)
+      tt.truthy(withStrType.length > 0, 'tagType set when tag present')
     }
   })
 }
 
-test('objectString not leaked on objects that have none (basic-1.ocd)', async (/** @type {ExecutionContext} */ t) => {
+test('tag not leaked on objects that have none (basic-1.ocd)', async (/** @type {ExecutionContext} */ t) => {
   const map = await readMap(fixtureFile('basic-1.ocd'))
   for (const obj of map.objects) {
-    t.is(obj.objectString, undefined, 'no objectString on basic objects')
-    t.is(obj.objectStringType, undefined)
+    t.is(obj.tag, undefined, 'no tag on basic objects')
+    t.is(obj.tagType, undefined)
   }
 })
 
@@ -176,7 +176,7 @@ test('XMap text symbol populates full TextTypography', async (/** @type {Executi
   const map = await readMap(XMAP_TEXT_SYM)
   const sym = map.symbols[0]
   t.is(sym.type, 'text')
-  const layer = sym.renderLayers[0]
+  const layer = sym.layers[0]
   t.is(layer.type, 'text')
   t.truthy(layer.text, 'text sub-object present')
   const typo = layer.text
@@ -198,7 +198,7 @@ test('OCAD text symbol populates full TextTypography', async (/** @type {Executi
   const textSymbols = map.symbols.filter(s => s.type === 'text')
   t.true(textSymbols.length > 0, 'has text symbols')
   for (const sym of textSymbols) {
-    const layer = sym.renderLayers.find(l => l.type === 'text')
+    const layer = sym.layers.find(l => l.type === 'text')
     t.truthy(layer, `${sym.name} has text layer`)
     t.truthy(layer.text, `${sym.name} has text.typography sub-object`)
     const typo = layer.text
@@ -213,7 +213,7 @@ test('TextTypography survives omap round-trip', async (/** @type {ExecutionConte
   const map = await readMap(XMAP_TEXT_SYM)
   const rt = await xmapRoundTrip(map)
   const rtSym = rt.symbols[0]
-  const rtLayer = rtSym.renderLayers[0]
+  const rtLayer = rtSym.layers[0]
   const typo = rtLayer.text
   t.is(typo.fontFamily, 'Noto Sans')
   t.is(typo.fontWeight, 700)
@@ -225,7 +225,7 @@ test('OCAD text symbol fontSize is millimetres at symbol and layer level', async
   // legacy re-import moved to top of file
   const map = ocadFileToMap(ocadFile)
   const sym = map.symbols.find(s => s.type === 'text')
-  const layer = sym.renderLayers.find(l => l.type === 'text')
+  const layer = sym.layers.find(l => l.type === 'text')
   // The model contract is millimetres. The top-level `sym.fontSize` used to leak
   // OCAD's raw 1/10pt value while the text render layer was mm — so an OCD- and
   // an OMap-sourced copy differed. Both are now mm and agree.

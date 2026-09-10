@@ -172,7 +172,7 @@ function synthesizeBorderLine(
     name: (areaSymbol.name ?? '') + ' — border',
     type: 'line',
     hidden: false,
-    renderLayers: [stroke],
+    layers: [stroke],
   }
   return synthesizeSymbol(fake, colorNumber, colors, false, undefined, /* forcedSymNum */ symNum)
 }
@@ -188,7 +188,7 @@ function synthesizeSymbol(
   const symNum = forcedSymNum
     ?? parseSymbolCode(symbol.code || String(symbol.sourceId ?? symbol.id))
   // xmap's Panmap converter flattens `combined` symbols' component
-  // renderLayers into a single symbol; the composite type in OCAD is
+  // layers into a single symbol; the composite type in OCAD is
   // whichever primitive geometry the layers describe. Infer that from
   // the flattened layer types.
   const effectiveType = symbol.type === 'combined'
@@ -307,7 +307,7 @@ function computeExtent(
  * stroke means line, then point primitives, then text.
  */
 function inferOcadTypeFromLayers(symbol: MapSymbol): string {
-  const types = new Set((symbol.renderLayers ?? []).map(l => l.type))
+  const types = new Set((symbol.layers ?? []).map(l => l.type))
   if (types.has('fill') || types.has('hatch-fill') || types.has('point-pattern-fill')) {
     return 'area'
   }
@@ -380,7 +380,7 @@ function isRotatable(symbol: MapSymbol): boolean {
   // or hand-built symbols that only set it on a nested pattern.
   if (symbol.rotatable) return true
   if (symbol.textSymbol?.rotatable) return true
-  for (const layer of symbol.renderLayers ?? []) {
+  for (const layer of symbol.layers ?? []) {
     if (layer.rotatable) return true
     if (isPatternLayer(layer) && layer.pattern?.rotatable) return true
     for (const key of ['pointSymbol', 'symbol'] as const) {

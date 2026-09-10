@@ -99,23 +99,23 @@ test('XMap symbols expose shared render layers', async (/** @type {ExecutionCont
 
   // The stroke layer also carries join/cap/segment metadata needed for
   // round-trip; assert the essential fields, not the exact set.
-  t.like(lineSymbol.renderLayers[0], {
+  t.like(lineSymbol.layers[0], {
     type: 'stroke',
     colorId: 1,
     width: 10,
   })
-  t.deepEqual(areaSymbol.renderLayers[0], {
+  t.deepEqual(areaSymbol.layers[0], {
     type: 'fill',
     colorId: 2,
   })
   // OMap `size="120"` (1/1000 mm) reads as 0.12 mm; fontSize is in mm.
-  t.like(textSymbol.renderLayers[0], {
+  t.like(textSymbol.layers[0], {
     type: 'text',
     colorId: 1,
     fontFamily: 'Arial',
     fontSize: 0.12,
   })
-  t.truthy(textSymbol.renderLayers[0].text, 'text typography sub-object present')
+  t.truthy(textSymbol.layers[0].text, 'text typography sub-object present')
 })
 
 test('readMap supports XMap XML strings and buffers', async (/** @type {ExecutionContext} */ t) => {

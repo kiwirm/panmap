@@ -25,7 +25,7 @@
  *   new map needs a baseline entry — forces awareness of corpus growth).
  *
  *   Goal state is 100% agreement (byte-identity) on all three; the
- *   ratchet just prevents silent regression while the renderLayers/
+ *   ratchet just prevents silent regression while the layers/
  *   objects/colors canonicalisation work is in flight.
  */
 import test from 'ava'

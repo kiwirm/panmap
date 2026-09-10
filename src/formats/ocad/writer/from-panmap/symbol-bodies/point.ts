@@ -18,7 +18,7 @@ export function pointBody(
   colorNumber: ColorNumber,
   flipY: boolean,
 ) {
-  return { elements: pointElementsFor(symbol.renderLayers ?? [], colorNumber, flipY) }
+  return { elements: pointElementsFor(symbol.layers ?? [], colorNumber, flipY) }
 }
 
 /**

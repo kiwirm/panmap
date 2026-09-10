@@ -176,7 +176,7 @@ function pickPrimaryColor(
 ): MapColor | undefined {
   // Walk the render layers for the first color reference; fall back
   // to the first symbol color if none.
-  for (const layer of symbol.renderLayers ?? []) {
+  for (const layer of symbol.layers ?? []) {
     for (const key of ['color', 'colorId', 'fillColor', 'hatchColor', 'innerColor']) {
       const v = (layer as Record<string, unknown>)[key]
       if (v === undefined || v === null) continue

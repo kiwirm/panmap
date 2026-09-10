@@ -180,7 +180,7 @@ function symbolFromGitmap(symbol, index = 0) {
     // model for the OCAD/OMap writers.
     fontSize: fontSizeFromLayers(layers),
     textSymbol: symbol.textSymbol,
-    renderLayers: layers.map(renderLayerFromGitmap),
+    layers: layers.map(renderLayerFromGitmap),
   }
 }
 
@@ -209,8 +209,8 @@ function objectFromGitmap(object, symbolIds: Map<string | number, string | numbe
     vAlign: vAlignFromGitmap(object.vAlign),
     textBox: object.textBox,
     pattern: patternFromGitmap(object.pattern),
-    objectString: object.tag,
-    objectStringType: object.tagType,
+    tag: object.tag,
+    tagType: object.tagType,
     bounds: boundsForCoords(coordinates),
   }
 }

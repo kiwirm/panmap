@@ -994,7 +994,7 @@ function dereferenceBorderSymbol(
   if (ref && typeof ref.code === 'string' && ref.code.startsWith('990.')) {
     return layer
   }
-  const refStroke = (ref?.renderLayers || []).find(
+  const refStroke = (ref?.layers || []).find(
     (r): r is RenderLayer => (r as { type?: string }).type === 'stroke',
   ) as { colorId?: unknown; width?: number; capStyle?: number; joinStyle?: number } | undefined
   if (!refStroke) return layer
@@ -1013,7 +1013,7 @@ function toGitmapSymbol(
   symbolIds: Map<string | number, string> = new Map(),
   symbolsById: Map<string | number, MapSymbol> = new Map(),
 ) {
-  const layers = symbol.renderLayers || []
+  const layers = symbol.layers || []
   // Only drop phantom strokes when the symbol also has a `double-line`
   // (or already-canonicalised `stroke.borders`): the phantom's sole job
   // is to mark "the primary is invisible; visible geometry lives in the
@@ -1112,8 +1112,8 @@ function toGitmapObject(
     pattern: cleanPattern(object.pattern),
     // A free-form per-object string payload with a type discriminator (OCAD's
     // "object string" — course/control codes, database links). Neutral names.
-    tag: object.objectString,
-    tagType: object.objectStringType,
+    tag: object.tag,
+    tagType: object.tagType,
   }
 }
 
