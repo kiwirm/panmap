@@ -95,7 +95,9 @@ async function writeGitmap(
   // diff. `order` (the z-rank) is deliberately NOT a sort key — it diverges
   // cross-format, which would reintroduce the identity gap this sort closes.
   const objects = map.objects
-    .map((object, i) => toGitmapObject(object, symbolIds, 'part_main', flipY, i))
+    .map((object, i) =>
+      toGitmapObject(object, symbolIds, object.partId ?? 'part_main', flipY, i)
+    )
     .sort(compareObjects)
 
   const manifest: Record<string, unknown> = {
@@ -103,9 +105,12 @@ async function writeGitmap(
     version: 1,
     units: 'map-units',
     precision: 3,
-    // Parts are inline (single 'part_main' for now; a genuine multi-part map
-    // would list them here). Filenames are fixed by convention — no `files` map.
-    parts: [{ id: 'part_main', name: 'Main' }],
+    // Parts are inline. Single-part maps carry the default 'part_main';
+    // multi-part maps (map.parts) list every part. Filenames are fixed by
+    // convention — no `files` map.
+    parts: map.parts?.length
+      ? map.parts.map(part => ({ id: part.id, name: part.name ?? part.id }))
+      : [{ id: 'part_main', name: 'Main' }],
   }
   if (map.notes) manifest.notes = map.notes
   if (map.extensions && Object.keys(map.extensions).length > 0) {

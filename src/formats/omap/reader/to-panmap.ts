@@ -40,15 +40,29 @@ function omapFileToMap(xmapFile: OmapFile): Panmap {
   const templates = extractTemplates(xmapFile.extras?.templates)
   const georeferencing = extractGeoreferencing(xmapFile.extras?.georeferencing)
 
+  // Parts activate only for genuine multi-part maps; a single part keeps the
+  // pre-parts behaviour (no `parts`, no per-object `partId`) so output is
+  // byte-identical. First part is `part_main` (matches gitmap's default).
+  const multiPart = xmapFile.parts.length > 1
+  const partIds = xmapFile.parts.map((_, i) => (i === 0 ? 'part_main' : `part_${i}`))
+  const parts = multiPart
+    ? xmapFile.parts.map((part, i) => ({ id: partIds[i], name: part.name }))
+    : undefined
+  let objIndex = 0
+  const objects = xmapFile.parts.flatMap((part, i) =>
+    part.objects.map(object =>
+      toMapObject(object, objIndex++, symbolsById, multiPart ? partIds[i] : undefined)
+    )
+  )
+
   return new Panmap({
     sourceFormat: 'xmap',
     sourceFile: xmapFile,
     metadata: {},
     colors: xmapFile.colors.map(toMapColor),
     symbols: xmapFile.symbols.map(symbol => toMapSymbol(symbol, symbolsById)),
-    objects: xmapFile.objects.map((object, index) =>
-      toMapObject(object, index, symbolsById)
-    ),
+    objects,
+    parts,
     warnings: [],
     view,
     print,
@@ -584,7 +598,8 @@ function symbolToRenderLayers(
 function toMapObject(
   object: OmapObject,
   index: number,
-  symbolsById: Record<number, OmapSymbol>
+  symbolsById: Record<number, OmapSymbol>,
+  partId?: string
 ) {
   const symbol = symbolsById[object.symbol]
   const coordinates = mapCoords(object.coords)
@@ -592,6 +607,7 @@ function toMapObject(
   return {
     ...object,
     id: index + 1,
+    partId,
     symbolId: object.symbol,
     type: objectTypeName(object, symbol, symbolsById),
     coordinates,

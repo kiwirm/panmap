@@ -15,6 +15,7 @@ import type {
   MapColor,
   MapCrs,
   MapObject,
+  MapPart,
   MapPrint,
   MapSymbol,
   MapTemplates,
@@ -116,7 +117,7 @@ function mapToOmapXml(map: Panmap): string {
     ...mapExtras,
     `<barrier ${barrierAttrs}>`,
     symbolsToXml(map.symbols, symbolIds, colorIds),
-    partsToXml(map.objects, objectSymbolIds, flipY),
+    partsToXml(map.objects, map.parts, objectSymbolIds, flipY),
     '</barrier>',
     '</map>',
     '',
@@ -351,25 +352,39 @@ function symbolToXml(
 
 function partsToXml(
   objects: MapObject[],
+  parts: MapPart[] | undefined,
   symbolIds: Map<string | number, number>,
   flipY: boolean
 ): string {
-  const visibleObjects = objects.filter(object => !object.hidden)
-  const objectsXml = block(
-    `objects count="${visibleObjects.length}"`,
-    visibleObjects.map(object => objectToXml(object, symbolIds, flipY))
-  )
+  const renderPart = (name: string, partObjects: MapObject[]): string => {
+    const visible = partObjects.filter(object => !object.hidden)
+    const objectsXml = block(
+      `objects count="${visible.length}"`,
+      visible.map(object => objectToXml(object, symbolIds, flipY))
+    )
+    return [
+      `  <part name="${attr(name)}">`,
+      indent(objectsXml, 4),
+      '  </part>',
+    ].join('\n')
+  }
 
-  return block(
-    'parts count="1" current="0"',
-    [
-      [
-        '  <part name="default part">',
-        indent(objectsXml, 4),
-        '  </part>',
-      ].join('\n'),
-    ]
-  )
+  if (parts && parts.length > 1) {
+    const firstId = parts[0].id
+    return block(
+      `parts count="${parts.length}" current="0"`,
+      parts.map(part =>
+        renderPart(
+          part.name ?? 'default part',
+          objects.filter(object => (object.partId ?? firstId) === part.id)
+        )
+      )
+    )
+  }
+
+  return block('parts count="1" current="0"', [
+    renderPart('default part', objects),
+  ])
 }
 
 function objectToXml(

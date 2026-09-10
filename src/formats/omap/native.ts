@@ -15,7 +15,11 @@ export const MAP_UNIT_SCALE = 0.1
 export interface OmapFile {
   colors: OmapColor[]
   symbols: OmapSymbol[]
+  /** Flat list of every object across all parts (retained for consumers that
+   *  don't care about part membership). Part-aware code uses `parts`. */
   objects: OmapObject[]
+  /** Object groupings, one per `<part>`. Always at least one part. */
+  parts: OmapPart[]
   /**
    * Document-level extras captured verbatim from the parsed XML so writers
    * can round-trip sections we don't yet model (templates, georeferencing,
@@ -44,6 +48,12 @@ export interface OmapExtras {
   print?: unknown
   /** Raw `<parts>` subtree (multi-part documents); single-part is flattened. */
   parts?: unknown
+}
+
+export interface OmapPart {
+  /** `<part name="…">` if present. */
+  name?: string
+  objects: OmapObject[]
 }
 
 export interface OmapColor {

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { XMLParser } from 'fast-xml-parser'
 import { cmykFractionToRgb } from '../../../util/cmyk-to-rgb.js'
 import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../native.js'
-import type { OmapFile, OmapExtras } from '../native.js'
+import type { OmapFile, OmapExtras, OmapPart } from '../native.js'
 
 
 async function readOmapFile(filename: string): Promise<OmapFile> {
@@ -315,22 +315,35 @@ function parseOmapXml(xml: string): OmapFile {
     .concat(ensureArray(map?.symbols?.symbol))
   const symbols = symbolNodes.map(symbol => parseSymbolNode(symbol))
 
-  const parts = barriers
+  const partNodes = barriers
     .flatMap(barrier => ensureArray(barrier?.parts?.part))
     .concat(ensureArray(map?.parts?.part))
-  const objectNodes = barriers
+  const parts: OmapPart[] = partNodes.map(part => ({
+    name: typeof part?.name === 'string' ? part.name : undefined,
+    objects: ensureArray(part?.objects?.object).map(parseObject).filter(Boolean),
+  }))
+  // Objects placed directly under a barrier/map (non-standard) join the first
+  // part, or form an implicit single part when there are no <part> elements.
+  const looseObjects = barriers
     .flatMap(barrier =>
       ensureArray(barrier?.symbols?.objects?.object).concat(
         ensureArray(barrier?.objects?.object)
       )
     )
     .concat(ensureArray(map?.objects?.object))
-    .concat(parts.flatMap(part => ensureArray(part?.objects?.object)))
-  const objects = objectNodes.map(obj => parseObject(obj)).filter(Boolean)
+    .map(parseObject)
+    .filter(Boolean)
+  if (looseObjects.length) {
+    if (parts.length) parts[0].objects.push(...looseObjects)
+    else parts.push({ objects: looseObjects })
+  }
+  if (!parts.length) parts.push({ objects: [] })
+
+  const objects = parts.flatMap(part => part.objects)
 
   const extras = collectExtras(xml)
 
-  return { colors, symbols, objects, extras }
+  return { colors, symbols, objects, parts, extras }
 }
 
 const RAW_PASSTHROUGH_KEYS = [
@@ -383,13 +396,6 @@ function collectExtras(xml: string): OmapExtras {
         break
       }
     }
-  }
-
-  // Multi-part documents: keep the full parts subtree so multi-part round-trips.
-  const parts = mapNode?.parts ?? barriers[0]?.parts
-  if (parts) {
-    const partList = ensureArray(parts.part)
-    if (partList.length > 1) extras.parts = parts
   }
 
   return extras

@@ -194,10 +194,24 @@ export interface MapSymbol {
   layers: RenderLayer[]
 }
 
+/**
+ * A map part — a named grouping of objects. OMap stores objects inside
+ * `<part>` elements under `<parts>`; gitmap carries `parts[]` on the manifest
+ * with each object referencing a `partId`. OCAD has no part concept, so
+ * OCAD-sourced maps have a single implicit part.
+ */
+export interface MapPart {
+  id: string
+  name?: string
+}
+
 export interface MapObject {
   id: number | string
   symbolId: number | string
   type: string
+  /** Owning part id (references a `MapPart.id`). Undefined = the map's
+   *  single/default part. Only meaningful for multi-part maps. */
+  partId?: string
   coordinates?: import('./coord.js').Coord[]
   text?: string
   rotation?: number
@@ -270,6 +284,8 @@ export interface MapOptions {
   colors?: MapColor[]
   symbols?: MapSymbol[]
   objects?: MapObject[]
+  /** Named object groupings. Absent/single-element = single-part map. */
+  parts?: MapPart[]
   warnings?: Array<string | Error>
   view?: MapView
   print?: MapPrint
@@ -299,6 +315,8 @@ export default class Panmap {
   colors: MapColor[]
   symbols: MapSymbol[]
   objects: MapObject[]
+  /** Named object groupings. See `MapPart`. Single-part maps may omit it. */
+  parts?: MapPart[]
   warnings: Array<string | Error>
   /** Persisted viewport state (centre, zoom, rotation). See `MapView`. */
   view?: MapView
@@ -320,6 +338,7 @@ export default class Panmap {
     this.colors = options.colors ?? []
     this.symbols = options.symbols ?? []
     this.objects = options.objects ?? []
+    this.parts = options.parts
     this.warnings = options.warnings ?? []
     this.view = options.view
     this.print = options.print

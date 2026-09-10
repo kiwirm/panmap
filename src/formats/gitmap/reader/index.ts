@@ -92,6 +92,16 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panm
     symbols.map(symbol => [symbol.id, symbol.id]),
   )
 
+  // Parts only matter for multi-part maps; a lone default part stays implicit.
+  const gitmapParts = Array.isArray(manifest.parts) ? manifest.parts : []
+  const multiPart = gitmapParts.length > 1
+  const parts = multiPart
+    ? gitmapParts.map((part: { id: unknown; name?: unknown }) => ({
+      id: String(part.id),
+      name: typeof part.name === 'string' ? part.name : undefined,
+    }))
+    : undefined
+
   return new Panmap({
     sourceFormat: 'gitmap',
     sourceFile: { directory: label, manifest },
@@ -103,8 +113,9 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panm
     // the original OMap/OCAD document order. `order` is the object's
     // canonical z-rank, so sorting on it restores render order.
     objects: sortBySourceId(
-      objects.map((object, i) => objectFromGitmap(object, symbolIds, i)),
+      objects.map((object, i) => objectFromGitmap(object, symbolIds, i, multiPart)),
     ) as any, // order-preserving reorder; MapObject typing is nominal here
+    parts,
     warnings: [],
     extensions: manifest.extensions && typeof manifest.extensions === 'object'
       ? manifest.extensions
@@ -192,13 +203,16 @@ function fontSizeFromLayers(layers: unknown[]): number | undefined {
   return undefined
 }
 
-function objectFromGitmap(object, symbolIds: Map<string | number, string | number>, index = 0) {
+function objectFromGitmap(object, symbolIds: Map<string | number, string | number>, index = 0, multiPart = false) {
   const coordinates = ringsFromGitmap(object.coordinates || [], object.holes)
   return {
     // Gitmap stores no object id (objects.ndjson is geometry-sorted, not
     // id-keyed); use the canonical z-rank as the stable in-memory handle.
     id: object.order ?? index,
     sourceId: object.order,
+    // Part membership only surfaces for genuine multi-part maps; a single
+    // part is the implicit default and leaves `partId` undefined.
+    partId: multiPart ? object.partId : undefined,
     symbolId: symbolIds.get(object.symbolId) || object.symbolId,
     type: object.type,
     coordinates,
