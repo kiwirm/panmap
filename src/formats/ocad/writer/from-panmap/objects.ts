@@ -4,7 +4,7 @@ import {
   radiansToOcadAngle,
   expandTextBoxCoords,
 } from '../../codecs/index.js'
-import { needsYFlip } from '../../../codecs/index.js'
+import { needsYFlip } from '../../../y-axis.js'
 import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
 
 /**

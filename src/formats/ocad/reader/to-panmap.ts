@@ -32,7 +32,7 @@ import { parseNotes } from '../../extensions.js'
 import { OCAD_NOTES_RECTYPE } from '../notes.js'
 import { ocadSymbolTypeName, ocadObjectTypeName } from './symbol-codec.js'
 
-import { decodeLineStyle } from '../../codecs/line-style.js'
+import { decodeLineStyle } from '../codecs/line-style.js'
 
 /**
  * Convert the low-level OCAD file representation into the Panmap.

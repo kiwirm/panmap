@@ -9,7 +9,7 @@ import {
   DotElementType,
 } from '../../formats/ocad/native/symbol-element-types.js'
 import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../../panmap/coord.js'
-import { needsYFlip } from '../../formats/codecs/index.js'
+import { needsYFlip } from '../../formats/y-axis.js'
 import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../../util/xml.js'
 import {
   coordsToPath,

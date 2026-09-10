@@ -9,7 +9,7 @@ import {
   toGitmapSymbol,
 } from './from-panmap.js'
 import { stableJson, stableJsonPretty } from '../stable-json.js'
-import { needsYFlip } from '../../codecs/index.js'
+import { needsYFlip } from '../../y-axis.js'
 
 interface WriteGitmapOptions {
   overwrite?: boolean

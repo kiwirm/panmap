@@ -1,7 +1,7 @@
 import type { MapSymbol } from '../../../../../panmap/model.js'
 import { classifyLineLayers } from '../../../../../panmap/render-layers.js'
 import type { StrokeLayer , DoubleLineLayer } from '../../../../../panmap/render-layers.js'
-import { encodeLineStyle } from '../../../../codecs/line-style.js'
+import { encodeLineStyle } from '../../../codecs/line-style.js'
 import {
   strokeColorValid, pickMainStroke, mainStrokeVisible,
 } from '../../../../../panmap/stroke-classifier.js'

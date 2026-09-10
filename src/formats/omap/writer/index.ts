@@ -33,7 +33,7 @@ import type {
 } from '../native.js'
 import { formatNotes } from '../../extensions.js'
 import { coordinatesForOmap } from '../codecs/index.js'
-import { needsYFlip } from '../../codecs/index.js'
+import { needsYFlip } from '../../y-axis.js'
 import { escapeXmlAttr as xmlAttr } from '../../../util/xml.js'
 import {
   toOmapSymbol,
