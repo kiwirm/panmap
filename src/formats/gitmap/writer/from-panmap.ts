@@ -3,7 +3,7 @@ import {
   capStyleToGitmap, joinStyleToGitmap,
   hAlignToGitmap, vAlignToGitmap, rotationToGitmap,
 } from '../enums.js'
-import { canonicalSymbolCode } from '../../../util/symbol-code.js'
+import { canonicalSymbolCode } from '../../../map/symbol-code.js'
 
 function toGitmapColor(color: MapColor) {
   return {

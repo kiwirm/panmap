@@ -1,10 +1,10 @@
 import type { MapSymbol } from '../../../../../map/model.js'
 import { classifyLineLayers } from '../../../../../map/render-layers.js'
 import type { StrokeLayer , DoubleLineLayer } from '../../../../../map/render-layers.js'
-import { encodeLineStyle } from '../../../../../util/line-style-codec.js'
+import { encodeLineStyle } from '../../../../../map/line-style-codec.js'
 import {
   strokeColorValid, pickMainStroke, mainStrokeVisible,
-} from '../../../../../util/stroke-classifier.js'
+} from '../../../../../map/stroke-classifier.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
 import { pointElementFromXmap } from './point.js'

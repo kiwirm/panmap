@@ -1,9 +1,9 @@
 import type { MapColor, MapSymbol } from '../../../../map/model.js'
 import { classifyAreaLayers , isPatternLayer } from '../../../../map/render-layers.js'
-import { parseSymbolCode } from '../../../../util/symbol-code.js'
-import { colorNumberLookup } from '../../../../util/color.js'
-import { strokeColorValid } from '../../../../util/stroke-classifier.js'
-import { collectSymbolColors } from '../../../../util/collect-symbol-colors.js'
+import { parseSymbolCode } from '../../../../map/symbol-code.js'
+import { colorNumberLookup } from '../../../../map/color.js'
+import { strokeColorValid } from '../../../../map/stroke-classifier.js'
+import { collectSymbolColors } from '../../../../map/collect-symbol-colors.js'
 import {
   PointSymbolType,
   LineSymbolType,

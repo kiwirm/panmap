@@ -5,13 +5,11 @@ import reproject from 'reproject'
 import geojsonvt from 'geojson-vt'
 import vtpbf from 'vt-pbf'
 import { read, exportMap, mapToGeoJson } from '../index.js'
-import { parseSymNums } from './sym-nums.js'
 
 const { toWgs84 } = reproject
 
 interface ExportCmdOptions {
   format?: string
-  symbols?: string
   exportHidden?: boolean
   crs?: string
   whiteBackground?: boolean
@@ -33,10 +31,7 @@ export async function runExport(
 
   const exportOpts: ExportOpts = {
     exportHidden: !!options.exportHidden,
-    includeSymbols:
-      typeof options.symbols === 'string'
-        ? parseSymNums(options.symbols)
-        : undefined,
+    includeSymbols: undefined,
     applyCrs: options.crs !== 'source',
     backgroundColor: options.whiteBackground ? 'white' : undefined,
   }

@@ -6,7 +6,7 @@ import Panmap, {
 } from './model.js'
 import mapToSvg from '../export/svg.js'
 import { boundsForCoords as sharedBoundsForCoords } from './coord.js'
-import { parseSymbolCode } from '../util/symbol-code.js'
+import { parseSymbolCode } from './symbol-code.js'
 
 export interface DiffMapsOptions {
   coordinateTolerance?: number

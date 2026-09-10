@@ -1,4 +1,4 @@
-import type { MapSymbol } from '../map/model.js'
+import type { MapSymbol } from './model.js'
 import { parseSymbolCode } from './symbol-code.js'
 
 /**

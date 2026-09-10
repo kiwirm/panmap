@@ -4,7 +4,7 @@ import diffMaps, { type DiffMapsOptions , DIFF_OUTLINE_WIDTH, recolorSymbol } fr
 import mapToSvg from '../export/svg.js'
 
 import { isFirstBezier, isSecondBezier, isFirstHolePoint } from './coord.js'
-import { parseSymbolCode } from '../util/symbol-code.js'
+import { parseSymbolCode } from './symbol-code.js'
 
 // A single navigable change: one changed source feature (or a
 // removed+added pair recognised as the same feature moved/edited).

@@ -1,4 +1,4 @@
-import type { RenderLayer, StrokeLayer } from '../map/render-layers.js'
+import type { RenderLayer, StrokeLayer } from './render-layers.js'
 
 /**
  * A stroke has a "valid" color when its colorId is a non-negative number

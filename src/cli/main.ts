@@ -39,10 +39,6 @@ program
     '-f, --format <string>',
     'output format; otherwise guessed from output file extension'
   )
-  .option(
-    '--symbols <identifiers>',
-    'limit the output by a comma separated list of symbol identifiers'
-  )
   .option('--export-hidden', 'include hidden objects in the export', false)
   .option(
     '--crs <string>',

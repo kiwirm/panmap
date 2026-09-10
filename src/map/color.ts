@@ -1,4 +1,4 @@
-import type { MapColor } from '../map/model.js'
+import type { MapColor } from './model.js'
 
 /**
  * Build a `MapColor.id → numeric slot` lookup. The numeric

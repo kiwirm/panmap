@@ -19,7 +19,7 @@ import {
   lineAngleEndSampler,
 } from './svg/path.js'
 import { dashToSvg, lineJoinToSvg, lineCapToSvg } from './svg/style.js'
-import { cmykFractionToRgb } from '../cmyk-to-rgb.js'
+import { cmykFractionToRgb } from '../util/cmyk-to-rgb.js'
 
 const supportedLayerTypes = new Set([
   'stroke',

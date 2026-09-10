@@ -1,7 +1,7 @@
 import { coordEach } from '@turf/meta'
 import { featureCollection } from '@turf/helpers'
 import Bezier from 'bezier-js'
-import transformFeatures from '../map/transform.js'
+import selectFeatures from './select-features.js'
 import {
   LineElementType,
   AreaElementType,
@@ -94,7 +94,7 @@ export default mapToGeoJson
 function mapToGeoJson(map, options) {
   options = { ...defaultOptions, ...options }
 
-  const features = transformFeatures(
+  const features = selectFeatures(
     map,
     mapObjectToGeoJson,
     createElement,

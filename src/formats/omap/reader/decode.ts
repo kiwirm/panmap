@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { XMLParser } from 'fast-xml-parser'
-import { cmykFractionToRgb } from '../../../cmyk-to-rgb.js'
+import { cmykFractionToRgb } from '../../../util/cmyk-to-rgb.js'
 import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../native.js'
 import type { OmapFile, OmapExtras } from '../native.js'
 

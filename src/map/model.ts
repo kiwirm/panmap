@@ -9,7 +9,7 @@
  * new xmap/ocad element matters, model it here.
  */
 
-import { crsFromCanonical, type CrsView } from '../util/crs.js'
+import { crsFromCanonical, type CrsView } from './crs.js'
 
 /**
  * A single template map/image referenced by the main map. Templates

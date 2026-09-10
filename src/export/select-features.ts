@@ -2,7 +2,7 @@ const defaultOptions = {
   exportHidden: false,
 }
 
-export default transformFeatures
+export default selectFeatures
 
 /**
  * Translate a Panmap into feature objects using the caller's
@@ -14,7 +14,7 @@ export default transformFeatures
  * when the source sidecar was removed — decoration is now the SVG
  * exporter's job. GeoJSON output stays at the object level.
  */
-function transformFeatures(map, createObjects, _createElement, options) {
+function selectFeatures(map, createObjects, _createElement, options) {
   options = {
     ...defaultOptions,
     ...options,

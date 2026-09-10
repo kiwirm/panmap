@@ -5,7 +5,7 @@ import {
   expandTextBoxCoords,
 } from '../../codecs/index.js'
 import { needsYFlip } from '../../../codecs/index.js'
-import { parseSymbolCode } from '../../../../util/symbol-code.js'
+import { parseSymbolCode } from '../../../../map/symbol-code.js'
 
 /**
  * Translate MapObject[] into the record + index-entry shape
