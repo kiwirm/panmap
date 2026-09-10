@@ -4,7 +4,6 @@ import {
   radiansToOcadAngle,
   expandTextBoxCoords,
 } from '../../codecs/index.js'
-import { needsYFlip } from '../../../y-axis.js'
 import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
 
 /**
@@ -34,7 +33,7 @@ export function synthesizeObjects(
   // coords with Y-down (paper origin at top-left). Without a flip,
   // maps sourced from either open upside-down in Mapper. OCAD-sourced
   // maps already have Y-up coords, so leave them alone.
-  const flipY = needsYFlip(sourceFormat, 'ocad')
+  const flipY = true // OCAD is y-up; the model is y-down, so always flip on write
   const symToOcadNum = buildSymNumLookup(symbols, symNums)
   const out: unknown[] = []
   for (const obj of objects) {

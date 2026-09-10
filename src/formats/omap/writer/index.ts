@@ -33,7 +33,6 @@ import type {
 } from '../native.js'
 import { formatNotes } from '../../extensions.js'
 import { coordinatesForOmap } from '../codecs/index.js'
-import { needsYFlip } from '../../y-axis.js'
 import { escapeXmlAttr as xmlAttr } from '../../../util/xml.js'
 import {
   toOmapSymbol,
@@ -89,7 +88,7 @@ function mapToOmapXml(map: Panmap): string {
     const n = symbolIds.get(symbol)
     if (n !== undefined) objectSymbolIds.set(symbol.id, n)
   }
-  const flipY = needsYFlip(map.sourceFormat, 'omap')
+  const flipY = false // model is already canonical y-down
 
   const mapAttrs = mapAttributes()
   const barrierAttrs = barrierAttributes()

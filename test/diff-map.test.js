@@ -559,18 +559,20 @@ test('diffChanges renders an edited area with a hole without crossing rings', (/
   t.true(changes[0].svg.includes('45') && changes[0].svg.includes('60'))
 })
 
-test('diffMaps keeps canonical coordinates and SVG export orients OCAD diffs', (/** @type {ExecutionContext} */ t) => {
+test('diffMaps keeps canonical coordinates and SVG renders them directly', (/** @type {ExecutionContext} */ t) => {
+  // Coordinates are canonical y-down (what the OCAD reader now produces after
+  // negating OCAD's y-up); SVG screen space is y-down too, so no flip on export.
   const before = makeOcadMap([
     {
       id: 'before-line',
       symbolId: 'road',
       type: 'line',
       coordinates: [
-        [0, -10],
-        [10, -10],
+        [0, 10],
+        [10, 10],
       ],
       hidden: false,
-      bounds: { min: [0, -10], max: [10, -10] },
+      bounds: { min: [0, 10], max: [10, 10] },
     },
   ])
   const after = makeOcadMap([])
@@ -580,8 +582,8 @@ test('diffMaps keeps canonical coordinates and SVG export orients OCAD diffs', (
   const xml = serializer.serializeToString(svg)
 
   t.deepEqual(diff.objects[0].coordinates, [
-    [0, -10],
-    [10, -10],
+    [0, 10],
+    [10, 10],
   ])
   t.true(xml.includes('M 0 10 L 10 10'))
 })

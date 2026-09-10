@@ -349,6 +349,26 @@ function hasLineElements(s: LineSymbolDef): boolean {
   ].some(e => Array.isArray(e) && e.length > 0)
 }
 
+/** Negate the y of each coord in place (OCAD y-up → canonical y-down),
+ *  leaving x and the flag bytes untouched. */
+function negateCoordsY<T>(coords: T[]): T[] {
+  for (const c of coords) {
+    if (Array.isArray(c)) c[1] = -c[1]
+  }
+  return coords
+}
+
+/** Negate the y of a bounding rect's corners in place so it stays consistent
+ *  with the y-flipped coordinates (min/max resolve correctly either way). */
+function flipRectY<T>(rc: T): T {
+  if (rc) {
+    for (const corner of Object.values(rc as Record<string, unknown>)) {
+      if (Array.isArray(corner)) corner[1] = -corner[1]
+    }
+  }
+  return rc
+}
+
 function toMapObject(
   object: TObject,
   index: number,
@@ -379,10 +399,15 @@ function toMapObject(
     // exact inverse of the writer's `shiftHoleFlagsToOcad`. Without this, every
     // OCAD-sourced area hole is off by one coord, and each OCD round-trip walks
     // it forward again (measured: 235 interior hole flags on bottle-lake).
-    coordinates:
+    // OCAD is the only y-up format; the canonical model is y-down (matching
+    // omap/gitmap/svg). Negate y on the way in so every downstream consumer
+    // sees one orientation — the OCAD writer flips back on the way out. In
+    // place, like the hole-flag shift above (the model shares the array).
+    coordinates: negateCoordsY(
       type === 'text'
         ? canonicalTextAnchor(object.coordinates)
-        : shiftHoleFlagsFromOcad(object.coordinates),
+        : shiftHoleFlagsFromOcad(object.coordinates)
+    ),
     text: object.text,
     rotation: patternRotated ? 0 : angleRad,
     // Area/combined: the angle is the fill-pattern rotation; expose it on the
@@ -402,7 +427,7 @@ function toMapObject(
     // treated every normal object as hidden and blew away the OCAD→XMap
     // (and Panmap→anything) object list.
     hidden: object.objIndex?.status === 2,
-    bounds: object.objIndex?.rc,
+    bounds: flipRectY(object.objIndex?.rc),
     tag: object.objectString || undefined,
     tagType:
       object.nObjectString > 0 ? object.objectStringType ?? 0 : undefined,

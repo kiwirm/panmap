@@ -9,7 +9,6 @@ import {
   DotElementType,
 } from '../../formats/ocad/native/symbol-element-types.js'
 import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../../panmap/coord.js'
-import { needsYFlip } from '../../formats/y-axis.js'
 import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../../util/xml.js'
 import {
   coordsToPath,
@@ -83,27 +82,10 @@ function mapToSvg(map: Panmap, options: MapToSvgOptions = {}): DOMElement {
   // can still call `getMapSvgRenderSupport` directly.
   return renderDirectly(map, {
     ...options,
-    coordinateTransform:
-      options.coordinateTransform || getVisualCoordinateTransform(map) || undefined,
+    // The model is canonical y-down, same as SVG screen space — no coordinate
+    // flip is ever needed (OCAD's y-up is negated at read time).
+    coordinateTransform: options.coordinateTransform || undefined,
   })
-}
-
-function getVisualCoordinateTransform(map) {
-  if (needsYFlip(map.sourceFormat, 'svg')) return coord => [coord[0], -coord[1]]
-
-  if (map.sourceFormat !== 'diff') return null
-
-  const sourceFile = map.sourceFile || {}
-  if (
-    sourceFile.before &&
-    sourceFile.after &&
-    needsYFlip(sourceFile.before.sourceFormat, 'svg') &&
-    needsYFlip(sourceFile.after.sourceFormat, 'svg')
-  ) {
-    return coord => [coord[0], -coord[1]]
-  }
-
-  return null
 }
 
 /**

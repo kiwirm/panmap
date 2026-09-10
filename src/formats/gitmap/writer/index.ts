@@ -9,7 +9,6 @@ import {
   toGitmapSymbol,
 } from './from-panmap.js'
 import { stableJson, stableJsonPretty } from '../stable-json.js'
-import { needsYFlip } from '../../y-axis.js'
 
 interface WriteGitmapOptions {
   overwrite?: boolean
@@ -81,7 +80,7 @@ async function writeGitmap(
   // the way into gitmap so the package is canonically y-down — otherwise an
   // ocd→gitmap conversion lands upside-down relative to omap-sourced gitmaps
   // and any diff between them reports the whole map as changed.
-  const flipY = needsYFlip(map.sourceFormat, 'gitmap')
+  const flipY = false // model is already canonical y-down
   // `map.objects` is in render (z-) order; the object's index is its canonical
   // z-rank, written as `order` so the same map serialises identically across
   // source formats (which assign different raw object ids but the same order).
