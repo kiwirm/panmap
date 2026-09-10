@@ -1,4 +1,4 @@
-import Panmap from '../../map/model.js'
+import Panmap from '../../../map/model.js'
 import type {
   MapCrs,
   MapCrsGeographic,
@@ -10,18 +10,18 @@ import type {
   MapTemplates,
   MapView,
   RenderLayer,
-} from '../../map/model.js'
-import TdPoly from '../ocad/reader/decode/td-poly.js'
-import { parseNotes } from '../extensions.js'
-import { boundsForCoords, type FlaggedCoord } from '../../map/coord.js'
-import { normaliseOmapFlags } from './codecs/index.js'
+} from '../../../map/model.js'
+import TdPoly from '../../ocad/reader/decode/td-poly.js'
+import { parseNotes } from '../../extensions.js'
+import { boundsForCoords, type FlaggedCoord } from '../../../map/coord.js'
+import { normaliseOmapFlags } from '../codecs/index.js'
 import type {
   OmapColor,
   OmapCoord,
   OmapFile,
   OmapObject,
   OmapSymbol,
-} from './read.js'
+} from './decode.js'
 
 /**
  * Converts a parsed OpenOrienteering Mapper XMap/OMap document into the
@@ -373,7 +373,7 @@ function toMapSymbol(symbol: OmapSymbol, symbolsById: Record<number, OmapSymbol>
 
 /**
  * @param {OmapSymbol} symbol
- * @returns {import('../../map/map').RenderLayer[]}
+ * @returns {import('../../../map/map').RenderLayer[]}
  */
 function symbolToRenderLayers(
   symbol: OmapSymbol,

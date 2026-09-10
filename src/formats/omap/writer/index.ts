@@ -9,8 +9,8 @@
  */
 import fs from 'node:fs/promises'
 import { XMLBuilder } from 'fast-xml-parser'
-import { ATTR_PREFIX, MAP_UNIT_SCALE } from './schema.js'
-import type Panmap from '../../map/model.js'
+import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../schema.js'
+import type Panmap from '../../../map/model.js'
 import type {
   MapColor,
   MapCrs,
@@ -19,7 +19,7 @@ import type {
   MapSymbol,
   MapTemplates,
   MapView,
-} from '../../map/model.js'
+} from '../../../map/model.js'
 import type {
   OmapAreaPattern,
   OmapAreaSymbol,
@@ -29,18 +29,18 @@ import type {
   OmapObject,
   OmapPointSymbol,
   OmapTextSymbol,
-} from './read.js'
-import { formatNotes } from '../extensions.js'
-import { coordinatesForOmap } from './codecs/index.js'
-import { needsYFlip } from '../codecs/index.js'
-import { escapeXmlAttr as xmlAttr } from '../../util/xml.js'
+} from '../reader/decode.js'
+import { formatNotes } from '../../extensions.js'
+import { coordinatesForOmap } from '../codecs/index.js'
+import { needsYFlip } from '../../codecs/index.js'
+import { escapeXmlAttr as xmlAttr } from '../../../util/xml.js'
 import {
   toOmapSymbol,
   colorIdMap,
   symbolIdMap,
   omapObjectType,
-} from './from-map.js'
-import type { RawOmapSymbol } from './from-map.js'
+} from './from-panmap.js'
+import type { RawOmapSymbol } from './from-panmap.js'
 
 /** XMap pattern / text symbol shapes as they actually appear in parsed
  *  records — the strict interfaces omit optional fields the writer emits. */

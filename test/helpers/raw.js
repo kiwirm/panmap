@@ -4,5 +4,5 @@
 // to re-export them. `readXmap` is the input-sniffing OMap reader from ./omap.js.
 export { default as readOcad } from '../../src/formats/ocad/reader/decode/index.ts'
 export { default as ocadFileToMap } from '../../src/formats/ocad/reader/to-panmap.ts'
-export { default as omapFileToMap } from '../../src/formats/omap/to-map.ts'
+export { default as omapFileToMap } from '../../src/formats/omap/reader/to-panmap.ts'
 export { readOmap as readXmap } from './omap.js'

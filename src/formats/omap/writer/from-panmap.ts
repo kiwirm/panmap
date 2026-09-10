@@ -5,15 +5,15 @@
  * The XML emission itself lives in `write.ts`. This file only builds
  * the record shape; nothing here formats XML.
  */
-import type { MapObject, MapSymbol, RenderLayer } from '../../map/model.js'
+import type { MapObject, MapSymbol, RenderLayer } from '../../../map/model.js'
 import {
   classifyAreaLayers, classifyLineLayers,
   classifyPointLayers, classifyTextLayers,
-} from '../../map/render-layers.js'
+} from '../../../map/render-layers.js'
 import type {
   DoubleLineLayer, FillLayer, HatchLayer, LineElementsLayer,
   LineSymbolsLayer, PointPatternLayer, StrokeLayer, StructureLayer,
-} from '../../map/render-layers.js'
+} from '../../../map/render-layers.js'
 import type {
   OmapAreaPattern,
   OmapAreaSymbol,
@@ -23,12 +23,12 @@ import type {
   OmapPointSymbol,
   OmapSymbol,
   OmapTextSymbol,
-} from './read.js'
-import { coordX, coordY, coordFlags } from '../../map/coord.js'
-import type { Coord } from '../../map/coord.js'
-import { buildColorIdMap, colorRefLookup } from '../../util/color.js'
-import { pickMainStroke, strokeVisible } from '../../util/stroke-classifier.js'
-import { decodeLineStyle as decodeLineStyleForXmap } from '../../util/line-style-codec.js'
+} from '../reader/decode.js'
+import { coordX, coordY, coordFlags } from '../../../map/coord.js'
+import type { Coord } from '../../../map/coord.js'
+import { buildColorIdMap, colorRefLookup } from '../../../util/color.js'
+import { pickMainStroke, strokeVisible } from '../../../util/stroke-classifier.js'
+import { decodeLineStyle as decodeLineStyleForXmap } from '../../../util/line-style-codec.js'
 
 /** XMap symbol shape accepted by `xmapSymbolToXml`. Wider than
  *  `OmapSymbol` because the Panmap → xmap adapter may produce

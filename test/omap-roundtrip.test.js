@@ -7,7 +7,7 @@ import test from 'ava'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { readOmap } from "./helpers/omap.js"
-import omapFileToMap from '../src/formats/omap/to-map.ts'
+import omapFileToMap from '../src/formats/omap/reader/to-panmap.ts'
 import { mapToOmapXml } from "./helpers/omap.js"
 import { fixtureFile } from './helpers/fixtures.js'
 
