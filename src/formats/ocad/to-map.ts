@@ -12,6 +12,8 @@ import {
   shiftHoleFlagsFromOcad,
   canonicalTextAnchor,
   ocadAngleToRadians,
+  unpackOcadTextAlign,
+  ocadFontSizeToMm,
 } from './codecs/index.js'
 import type OcadFile from './read/ocad-file.js'
 import type BaseSymbol from './read/symbol.js'
@@ -312,8 +314,8 @@ function textRenderLayers(s: TextSymbolDef): RenderLayer[] {
   // (which multiplies xmap's centi-mm on-disk values by MAP_UNIT_SCALE = 0.1).
   // OCAD stores font size as tenths of a point:
   //   1 pt = 25.4 / 72 mm  →  mm = ocadRaw × 25.4 / 720
-  // Round-trips with symbol-bodies/text.ts' inverse `× 720 / 25.4`.
-  const fontSize = (s.fontSize * 25.4) / 720
+  const fontSize = ocadFontSizeToMm(s.fontSize)
+  const textAlign = unpackOcadTextAlign(s.alignment)
   return [
     {
       type: 'text',
@@ -328,8 +330,8 @@ function textRenderLayers(s: TextSymbolDef): RenderLayer[] {
         charSpace: s.charSpace,
         wordSpace: s.wordSpace,
         lineSpace: s.lineSpace / 100,
-        alignment: s.alignment & 0x03,
-        verticalAlignment: (s.alignment >> 2) & 0x03,
+        alignment: textAlign.horizontal,
+        verticalAlignment: textAlign.vertical,
         paraSpace: s.paraSpace,
         indentFirst: s.indentFirst,
         indentOther: s.indentOther,

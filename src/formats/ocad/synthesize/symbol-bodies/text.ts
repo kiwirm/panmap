@@ -1,5 +1,6 @@
 import type { MapSymbol } from '../../../../map/model.js'
 import { classifyTextLayers } from '../../../../map/render-layers.js'
+import { mmToOcadFontSize, packOcadTextAlign } from '../../codecs/index.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
 
@@ -12,13 +13,9 @@ export function textBody(symbol: MapSymbol, colorNumber: ColorNumber) {
   // zero/empty defaults; visually the text still renders but framing
   // and tab-stop layout are lost.
   //
-  // PanMap fontSize is stored in millimetres. OCAD stores font sizes as
-  // tenths of a point. 1 pt = 25.4/72 mm, so
-  //     ocadRaw = mm × 720 / 25.4
-  //             ≈ mm × 28.346
-  // Inverse of `to-map.ts`' `× 25.4 / 720`.
+  // Default to OCAD's 3pt (raw 30) when no size is present.
   const panmapFontSize = (text.fontSize as number) ?? symbol.fontSize ?? 0
-  const fontSize = Math.round((panmapFontSize * 720) / 25.4) || 30
+  const fontSize = mmToOcadFontSize(panmapFontSize) || 30
   return {
     fontName: (text.fontFamily as string) ?? 'Arial',
     _fontNameBytes: undefined as Uint8Array | undefined,
@@ -29,10 +26,10 @@ export function textBody(symbol: MapSymbol, colorNumber: ColorNumber) {
     res1: 0,
     charSpace: Math.round(((text.charSpace as number) ?? 0) * 100),
     wordSpace: 100,
-    // OCAD packs vertical alignment into the top bits of `alignment`
-    // (low 2 bits = horizontal, next 2 bits = vertical).
-    alignment: ((Number(text.alignment ?? 0) & 0x03)
-       | ((Number(text.verticalAlignment ?? 0) & 0x03) << 2)),
+    alignment: packOcadTextAlign(
+      Number(text.alignment ?? 0),
+      Number(text.verticalAlignment ?? 0),
+    ),
     // OCAD's lineSpace is stored as a percentage of font size (Mapper
     // writes 120 for a 1.20 multiplier). Canonical stores the multiplier
     // verbatim, so scale by 100.

@@ -23,3 +23,9 @@ export {
   expandTextBoxCoords,
   type OcadTextBoxCoord,
 } from './text-box.js'
+export {
+  unpackOcadTextAlign,
+  packOcadTextAlign,
+  ocadFontSizeToMm,
+  mmToOcadFontSize,
+} from './text-symbol.js'
