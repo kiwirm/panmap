@@ -1,10 +1,10 @@
-import type Panmap from '../../../map/model.js'
-import OcadFile from '../read/ocad-file.js'
-import FileHeader, { type OcadVersion } from '../read/file-header.js'
+import type Panmap from '../../../../map/model.js'
+import OcadFile from '../../reader/decode/ocad-file.js'
+import FileHeader, { type OcadVersion } from '../../reader/decode/file-header.js'
 import { synthesizeSymbols } from './symbols.js'
 import { synthesizeParameterStrings } from './strings.js'
 import { synthesizeObjects } from './objects.js'
-import { assignSymNums } from '../../../util/assign-sym-nums.js'
+import { assignSymNums } from '../../../../util/assign-sym-nums.js'
 
 export interface SynthesizeOptions {
   version?: OcadVersion

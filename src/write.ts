@@ -1,7 +1,7 @@
 import path from 'node:path'
 import type Panmap from './map/model.js'
 import writeGitmap from './formats/gitmap/write.js'
-import writeOcad from './formats/ocad/from-map.js'
+import writeOcad from './formats/ocad/writer/index.js'
 import writeOmap from './formats/omap/write.js'
 
 

@@ -1,6 +1,6 @@
 import type BufferWriter from './buffer-writer.js'
 import { writeCoord } from './encode-symbol-element.js'
-import { TOBJECT_V12_HEADER, type FieldType } from '../read/tobject-schema.js'
+import { TOBJECT_V12_HEADER, type FieldType } from '../../reader/decode/tobject-schema.js'
 
 interface TObject12Like {
   sym: number

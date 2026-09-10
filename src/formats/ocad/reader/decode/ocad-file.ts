@@ -1,4 +1,4 @@
-import getRgb from '../../../cmyk-to-rgb.js'
+import getRgb from '../../../../cmyk-to-rgb.js'
 import Crs from './crs.js'
 import type FileHeader from './file-header.js'
 import type LRect from './lrect.js'

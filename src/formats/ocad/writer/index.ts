@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises'
-import type Panmap from '../../map/model.js'
-import { encodeOcadFile } from './write/index.js'
-import { syncNotesIntoOcadFile } from './notes.js'
-import { synthesizeOcadFile } from './synthesize/index.js'
+import type Panmap from '../../../map/model.js'
+import { encodeOcadFile } from './encode/index.js'
+import { syncNotesIntoOcadFile } from '../notes.js'
+import { synthesizeOcadFile } from './from-panmap/index.js'
 
 /**
  * Writes a Map back to an OCAD binary file.

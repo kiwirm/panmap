@@ -2,24 +2,11 @@
  * OCAD format namespace: `read` (bytes → Panmap) and `write` (Panmap → bytes),
  * symmetric with omap and gitmap.
  *
- * The low-level OcadFile stages (parse, toMap) are internal — import them from
- * ./read and ./to-map directly if you need to work below the Panmap model.
+ * The reader and writer live in ./reader and ./writer; their internal stages
+ * (decode/to-panmap on the read side, from-panmap/encode on the write side)
+ * are there if you need to work below the Panmap model.
  */
 
-import readRaw from './read/index.js'
-import toMap from './to-map.js'
-import type Panmap from '../../map/model.js'
-import type { ReadOcadOptions } from './read/index.js'
-
-export { default as write } from './from-map.js'
-
-export type OcadFile = Awaited<ReturnType<typeof readRaw>>
-
-export async function read(
-  input: string | Buffer,
-  options?: ReadOcadOptions
-): Promise<Panmap> {
-  return toMap(await readRaw(input, options))
-}
-
-export type { ReadOcadOptions } from './read/index.js'
+export { default as read } from './reader/index.js'
+export { default as write } from './writer/index.js'
+export type { OcadFile, ReadOcadOptions } from './reader/index.js'

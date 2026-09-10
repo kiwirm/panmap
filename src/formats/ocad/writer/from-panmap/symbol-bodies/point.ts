@@ -1,11 +1,11 @@
-import type { MapSymbol, RenderLayer } from '../../../../map/model.js'
+import type { MapSymbol, RenderLayer } from '../../../../../map/model.js'
 import {
   XFLAG_FIRST_BEZIER, XFLAG_SECOND_BEZIER, YFLAG_DASH_POINT,
-} from '../../../../map/coord.js'
+} from '../../../../../map/coord.js'
 import {
   LineElementType, AreaElementType,
   CircleElementType, DotElementType,
-} from '../../read/symbol-element-types.js'
+} from '../../../reader/decode/symbol-element-types.js'
 import type {
   ColorNumber, OcadAnchor, OcadElement,
   XmapAreaSymbolLike, XmapCoordInput, XmapElementInput,

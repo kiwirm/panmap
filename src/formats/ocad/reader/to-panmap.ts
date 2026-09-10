@@ -5,34 +5,34 @@ import Panmap, {
   type MapSymbol,
   type MapView,
   type RenderLayer,
-} from '../../map/model.js'
-import crsGrids from './read/crs-grids.js'
-import { deriveGeographic } from './read/geographic.js'
+} from '../../../map/model.js'
+import crsGrids from './decode/crs-grids.js'
+import { deriveGeographic } from './decode/geographic.js'
 import {
   shiftHoleFlagsFromOcad,
   canonicalTextAnchor,
   ocadAngleToRadians,
   unpackOcadTextAlign,
   ocadFontSizeToMm,
-} from './codecs/index.js'
-import type OcadFile from './read/ocad-file.js'
-import type BaseSymbol from './read/symbol.js'
-import type { PointSymbolDef } from './read/point-symbol.js'
-import type { LineSymbolDef } from './read/line-symbol.js'
-import type { AreaSymbolDef } from './read/area-symbol.js'
-import type { TextSymbolDef } from './read/text-symbol.js'
-import type { TObject } from './read/tobject.js'
+} from '../codecs/index.js'
+import type OcadFile from './decode/ocad-file.js'
+import type BaseSymbol from './decode/symbol.js'
+import type { PointSymbolDef } from './decode/point-symbol.js'
+import type { LineSymbolDef } from './decode/line-symbol.js'
+import type { AreaSymbolDef } from './decode/area-symbol.js'
+import type { TextSymbolDef } from './decode/text-symbol.js'
+import type { TObject } from './decode/tobject.js'
 import {
   PointSymbolType,
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './read/symbol-types.js'
-import { parseNotes } from '../extensions.js'
-import { OCAD_NOTES_RECTYPE } from './notes.js'
+} from './decode/symbol-types.js'
+import { parseNotes } from '../../extensions.js'
+import { OCAD_NOTES_RECTYPE } from '../notes.js'
 import { ocadSymbolTypeName, ocadObjectTypeName } from './symbol-codec.js'
 
-import { decodeLineStyle } from '../../util/line-style-codec.js'
+import { decodeLineStyle } from '../../../util/line-style-codec.js'
 
 /**
  * Convert the low-level OCAD file representation into the Panmap.

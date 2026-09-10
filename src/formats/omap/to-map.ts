@@ -11,7 +11,7 @@ import type {
   MapView,
   RenderLayer,
 } from '../../map/model.js'
-import TdPoly from '../ocad/read/td-poly.js'
+import TdPoly from '../ocad/reader/decode/td-poly.js'
 import { parseNotes } from '../extensions.js'
 import { boundsForCoords, type FlaggedCoord } from '../../map/coord.js'
 import { normaliseOmapFlags } from './codecs/index.js'

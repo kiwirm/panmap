@@ -1,11 +1,11 @@
 import path from 'node:path'
-import readOcad from './formats/ocad/read/index.js'
+import readOcad from './formats/ocad/reader/decode/index.js'
 import { parseOmap, readOmapFile } from './formats/omap/read.js'
-import ocadFileToMap from './formats/ocad/to-map.js'
+import ocadFileToMap from './formats/ocad/reader/to-panmap.js'
 import omapFileToMap from './formats/omap/to-map.js'
 import readGitmap from './formats/gitmap/read.js'
 import type Panmap from './map/model.js'
-import type { ReadOcadOptions } from './formats/ocad/read/index.js'
+import type { ReadOcadOptions } from './formats/ocad/reader/decode/index.js'
 
 export type ReadInput = string | Buffer
 

@@ -19,7 +19,7 @@ import {
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './read/symbol-types.js'
+} from './decode/symbol-types.js'
 import {
   PointObjectType,
   LineObjectType,
@@ -27,7 +27,7 @@ import {
   UnformattedTextObjectType,
   FormattedTextObjectType,
   LineTextObjectType,
-} from './read/object-types.js'
+} from './decode/object-types.js'
 
 /** Canonical name for a numeric OCAD symbol type. */
 export const OCAD_SYMBOL_TYPE_NAMES: Readonly<Record<number, string>> = {

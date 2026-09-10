@@ -2,7 +2,7 @@ import {
   unpackOcadValue,
   unpackOcadFlags,
   packOcadOrdinate,
-} from '../codecs/index.js'
+} from '../../codecs/index.js'
 
 /**
  * Represents a TDPoly, which is a coordinate pair with optional flags.

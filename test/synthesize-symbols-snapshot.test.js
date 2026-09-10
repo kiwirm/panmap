@@ -10,7 +10,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readOmap } from "./helpers/omap.js"
 import omapFileToMap from '../src/formats/omap/to-map.ts'
-import { synthesizeSymbols } from '../src/formats/ocad/synthesize/symbols.ts'
+import { synthesizeSymbols } from '../src/formats/ocad/writer/from-panmap/symbols.ts'
 
 import { fixtureFile } from './helpers/fixtures.js'
 const SNAPSHOTS_DIR = fileURLToPath(new URL('./snapshots/synthesize/', import.meta.url))
