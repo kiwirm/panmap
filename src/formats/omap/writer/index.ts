@@ -31,7 +31,7 @@ import type {
   OmapPointSymbol,
   OmapTextSymbol,
 } from '../native.js'
-import { formatNotes } from '../../extensions.js'
+import { formatNotes } from '../../codecs/index.js'
 import { coordinatesForOmap } from '../codecs/index.js'
 import { escapeXmlAttr as xmlAttr } from '../../../util/xml.js'
 import {

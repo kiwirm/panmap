@@ -12,7 +12,7 @@ import type {
   RenderLayer,
 } from '../../../panmap/model.js'
 import TdPoly from '../../ocad/reader/decode/td-poly.js'
-import { parseNotes } from '../../extensions.js'
+import { parseNotes } from '../../codecs/index.js'
 import { boundsForCoords, type FlaggedCoord } from '../../../panmap/coord.js'
 import { normaliseOmapFlags } from '../codecs/index.js'
 import type {

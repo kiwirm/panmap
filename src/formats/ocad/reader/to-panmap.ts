@@ -28,7 +28,7 @@ import {
   AreaSymbolType,
   TextSymbolType,
 } from '../native/symbol-types.js'
-import { parseNotes } from '../../extensions.js'
+import { parseNotes } from '../../codecs/index.js'
 import { OCAD_NOTES_RECTYPE } from '../notes.js'
 import { ocadSymbolTypeName, ocadObjectTypeName } from './symbol-codec.js'
 

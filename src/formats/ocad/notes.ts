@@ -1,6 +1,6 @@
 import type OcadFile from './native/ocad-file.js'
 import type { ParameterStringValues } from './reader/decode/parameter-string.js'
-import { formatNotes } from '../extensions.js'
+import { formatNotes } from '../codecs/index.js'
 
 /**
  * OCAD parameter string record type used to store the map notes / file

@@ -4,7 +4,7 @@ import {
   formatNotes,
   stripExtensionsBlock,
   ExtensionsError,
-} from '../src/formats/extensions.ts'
+} from '../src/formats/codecs/extensions.ts'
 
 test('empty notes → empty user text and extensions', t => {
   t.deepEqual(parseNotes(''), { userText: '', extensions: {} })

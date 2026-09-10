@@ -9,7 +9,7 @@
  * User-authored free text lives outside the fences and is preserved verbatim.
  */
 
-import { sortDeep } from '../util/json.js'
+import { sortDeep } from '../../util/json.js'
 
 const FENCE_VERSION = 1
 const OPEN_FENCE = `--- gitmap-extensions v${FENCE_VERSION} ---`
