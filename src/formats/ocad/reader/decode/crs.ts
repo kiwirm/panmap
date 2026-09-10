@@ -1,6 +1,6 @@
-import crsGrids from './crs-grids.js'
+import crsGrids from '../../native/crs-grids.js'
 import TdPoly from './td-poly.js'
-import type { GridDef } from './crs-grids.js'
+import type { GridDef } from '../../native/crs-grids.js'
 import type { ParameterStringValues } from './parameter-string.js'
 
 // OCAD uses 1/100 mm of "paper coordinates" as units, we

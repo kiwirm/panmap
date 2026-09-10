@@ -9,7 +9,7 @@ import {
   TextSymbolType,
   RectangleSymbolType,
   LineTextSymbolType,
-} from './symbol-types.js'
+} from '../../native/symbol-types.js'
 import type BufferReader from './buffer-reader.js'
 import type BaseSymbol from './symbol.js'
 import type { ReadOcadOptions } from './index.js'

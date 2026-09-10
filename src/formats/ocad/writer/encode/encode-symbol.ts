@@ -6,7 +6,7 @@ import {
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from '../../reader/decode/symbol-types.js'
+} from '../../native/symbol-types.js'
 
 interface Symbol11Like {
   // BaseSymbol header

@@ -21,7 +21,7 @@ import type {
   OmapFile,
   OmapObject,
   OmapSymbol,
-} from './decode.js'
+} from '../native.js'
 
 /**
  * Converts a parsed OpenOrienteering Mapper XMap/OMap document into the

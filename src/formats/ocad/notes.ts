@@ -1,4 +1,4 @@
-import type OcadFile from './reader/decode/ocad-file.js'
+import type OcadFile from './native/ocad-file.js'
 import type { ParameterStringValues } from './reader/decode/parameter-string.js'
 import { formatNotes } from '../extensions.js'
 

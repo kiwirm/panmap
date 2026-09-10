@@ -1,7 +1,7 @@
 import type { MapSymbol } from '../../../../../map/model.js'
 import { classifyAreaLayers } from '../../../../../map/render-layers.js'
 import type { HatchLayer, PointPatternLayer } from '../../../../../map/render-layers.js'
-import { DotElementType } from '../../../reader/decode/symbol-element-types.js'
+import { DotElementType } from '../../../native/symbol-element-types.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
 import { pointElementFromXmap } from './point.js'

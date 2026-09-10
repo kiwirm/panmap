@@ -9,7 +9,7 @@
  */
 import fs from 'node:fs/promises'
 import { XMLBuilder } from 'fast-xml-parser'
-import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../schema.js'
+import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../native.js'
 import type Panmap from '../../../map/model.js'
 import type {
   MapColor,
@@ -29,7 +29,7 @@ import type {
   OmapObject,
   OmapPointSymbol,
   OmapTextSymbol,
-} from '../reader/decode.js'
+} from '../native.js'
 import { formatNotes } from '../../extensions.js'
 import { coordinatesForOmap } from '../codecs/index.js'
 import { needsYFlip } from '../../codecs/index.js'

@@ -1,10 +1,10 @@
-import getRgb from '../../../../cmyk-to-rgb.js'
-import Crs from './crs.js'
+import getRgb from '../../../cmyk-to-rgb.js'
+import Crs from '../reader/decode/crs.js'
 import type FileHeader from './file-header.js'
-import type LRect from './lrect.js'
-import type TdPoly from './td-poly.js'
-import type BaseSymbol from './symbol.js'
-import type { ParameterStringValues } from './parameter-string.js'
+import type LRect from '../reader/decode/lrect.js'
+import type TdPoly from '../reader/decode/td-poly.js'
+import type BaseSymbol from '../reader/decode/symbol.js'
+import type { ParameterStringValues } from '../reader/decode/parameter-string.js'
 
 type ParameterStringMap = Record<number | string, ParameterStringValues[]>
 

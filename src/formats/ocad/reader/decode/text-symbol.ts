@@ -1,7 +1,7 @@
 import BaseSymbol from './symbol.js'
 import type { BaseSymbolProps } from './symbol.js'
 import type BufferReader from './buffer-reader.js'
-import { TextSymbolType } from './symbol-types.js'
+import { TextSymbolType } from '../../native/symbol-types.js'
 
 export const VerticalAlignBottom = 0
 export const VerticalAlignMiddle = 4

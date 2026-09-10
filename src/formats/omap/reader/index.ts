@@ -7,7 +7,7 @@
 import { parseOmap, readOmapFile } from './decode.js'
 import toPanmap from './to-panmap.js'
 import type Panmap from '../../../map/model.js'
-import type { OmapFile } from './decode.js'
+import type { OmapFile } from '../native.js'
 
 /** Accepts an OMap/XMap file path, an OMap XML string, or a Buffer. */
 export async function decode(input: string | Buffer): Promise<OmapFile> {

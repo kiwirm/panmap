@@ -1,7 +1,7 @@
 import TdPoly from './td-poly.js'
 import type BufferReader from './buffer-reader.js'
 import type { ObjectIndex } from './object-index.js'
-import { TOBJECT_V12_HEADER, type FieldType } from './tobject-schema.js'
+import { TOBJECT_V12_HEADER, type FieldType } from '../../native/tobject-schema.js'
 
 function readField(reader: BufferReader, type: FieldType): number {
   switch (type) {

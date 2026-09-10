@@ -2,7 +2,7 @@ import BaseSymbol from './symbol.js'
 import type { BaseSymbolProps } from './symbol.js'
 import type SymbolElement from './symbol-element.js'
 import type BufferReader from './buffer-reader.js'
-import { AreaSymbolType } from './symbol-types.js'
+import { AreaSymbolType } from '../../native/symbol-types.js'
 
 export interface AreaSymbolProps {
   type: typeof AreaSymbolType

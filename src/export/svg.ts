@@ -7,7 +7,7 @@ import {
   AreaElementType,
   CircleElementType,
   DotElementType,
-} from '../formats/ocad/reader/decode/symbol-element-types.js'
+} from '../formats/ocad/native/symbol-element-types.js'
 import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../map/coord.js'
 import { needsYFlip } from '../formats/codecs/index.js'
 import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../util/xml.js'

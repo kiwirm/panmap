@@ -2,7 +2,7 @@ import BaseSymbol from './symbol.js'
 import type { BaseSymbolProps } from './symbol.js'
 import type SymbolElement from './symbol-element.js'
 import type BufferReader from './buffer-reader.js'
-import { LineSymbolType } from './symbol-types.js'
+import { LineSymbolType } from '../../native/symbol-types.js'
 
 export interface DoubleLine {
   dblMode: number

@@ -23,7 +23,7 @@ import type {
   OmapPointSymbol,
   OmapSymbol,
   OmapTextSymbol,
-} from '../reader/decode.js'
+} from '../native.js'
 import { coordX, coordY, coordFlags } from '../../../map/coord.js'
 import type { Coord } from '../../../map/coord.js'
 import { buildColorIdMap, colorRefLookup } from '../../../util/color.js'

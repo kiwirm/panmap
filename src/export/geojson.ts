@@ -7,7 +7,7 @@ import {
   AreaElementType,
   CircleElementType,
   DotElementType,
-} from '../formats/ocad/reader/decode/symbol-element-types.js'
+} from '../formats/ocad/native/symbol-element-types.js'
 import TdPoly from '../formats/ocad/reader/decode/td-poly.js'
 import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../map/coord.js'
 

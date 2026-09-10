@@ -1,4 +1,4 @@
-import type BufferReader from './buffer-reader.js'
+import type BufferReader from '../reader/decode/buffer-reader.js'
 
 export type OcadVersion = 12 | 2018
 

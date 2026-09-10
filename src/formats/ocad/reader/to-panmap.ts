@@ -6,7 +6,7 @@ import Panmap, {
   type MapView,
   type RenderLayer,
 } from '../../../map/model.js'
-import crsGrids from './decode/crs-grids.js'
+import crsGrids from '../native/crs-grids.js'
 import { deriveGeographic } from './decode/geographic.js'
 import {
   shiftHoleFlagsFromOcad,
@@ -15,7 +15,7 @@ import {
   unpackOcadTextAlign,
   ocadFontSizeToMm,
 } from '../codecs/index.js'
-import type OcadFile from './decode/ocad-file.js'
+import type OcadFile from '../native/ocad-file.js'
 import type BaseSymbol from './decode/symbol.js'
 import type { PointSymbolDef } from './decode/point-symbol.js'
 import type { LineSymbolDef } from './decode/line-symbol.js'
@@ -27,7 +27,7 @@ import {
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './decode/symbol-types.js'
+} from '../native/symbol-types.js'
 import { parseNotes } from '../../extensions.js'
 import { OCAD_NOTES_RECTYPE } from '../notes.js'
 import { ocadSymbolTypeName, ocadObjectTypeName } from './symbol-codec.js'

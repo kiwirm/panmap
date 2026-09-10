@@ -1,7 +1,7 @@
 import TdPoly from './td-poly.js'
 import { InvalidSymbolElementError } from './errors.js'
 import type BufferReader from './buffer-reader.js'
-import type { SymbolElementType } from './symbol-element-types.js'
+import type { SymbolElementType } from '../../native/symbol-element-types.js'
 
 export default class SymbolElement {
   type: SymbolElementType

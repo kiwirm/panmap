@@ -9,7 +9,7 @@ import {
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from '../../reader/decode/symbol-types.js'
+} from '../../native/symbol-types.js'
 import { synthesizeIconBits } from './icon.js'
 import { pointBody } from './symbol-bodies/point.js'
 import { lineBody } from './symbol-bodies/line.js'
