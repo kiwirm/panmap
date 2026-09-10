@@ -1,5 +1,5 @@
 // Unit tests for the shared render-layer classifiers in
-// src/map/render-layers.ts. Snapshot tests indirectly cover them, but
+// src/panmap/render-layers.ts. Snapshot tests indirectly cover them, but
 // direct fixtures lock in the bucketing contract so a future refactor
 // that reshuffles the classifiers has explicit checks to break.
 
@@ -10,7 +10,7 @@ import {
   classifyPointLayers,
   classifyTextLayers,
   isPatternLayer,
-} from '../src/map/render-layers.ts'
+} from '../src/panmap/render-layers.ts'
 
 /** Build a minimal MapSymbol with just the fields the classifiers touch. */
 function symbol(renderLayers) {

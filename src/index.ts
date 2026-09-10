@@ -16,7 +16,7 @@
  * model.
  */
 
-import Panmap from './map/model.js'
+import Panmap from './panmap/model.js'
 
 import * as ocad from './formats/ocad/index.js'
 import * as omap from './formats/omap/index.js'
@@ -45,12 +45,12 @@ export {
   type DiffChangeFeature,
   type DiffChangesOptions,
   type DiffChangesResult,
-} from './map/diff-changes.js'
+} from './panmap/diff-changes.js'
 export {
   default as diff,
   diffMapsToSvg,
   type DiffMapsOptions,
-} from './map/diff.js'
+} from './panmap/diff.js'
 
 export { Panmap, Panmap as Map }
 export type {
@@ -60,5 +60,5 @@ export type {
   RenderLayer,
   TextTypography,
   MapOptions,
-} from './map/model.js'
+} from './panmap/model.js'
 export { ocad, omap, gitmap }

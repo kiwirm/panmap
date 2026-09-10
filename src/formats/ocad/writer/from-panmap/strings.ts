@@ -1,8 +1,8 @@
-import type Panmap from '../../../../map/model.js'
-import type { MapColor, MapObject } from '../../../../map/model.js'
+import type Panmap from '../../../../panmap/model.js'
+import type { MapColor, MapObject } from '../../../../panmap/model.js'
 import type { RawParameterStringRecord } from '../../native/ocad-file.js'
 import type { ParameterStringValues } from '../../reader/decode/parameter-string.js'
-import { coordX, coordY } from '../../../../map/coord.js'
+import { coordX, coordY } from '../../../../panmap/coord.js'
 import crsGrids from '../../native/crs-grids.js'
 
 /**

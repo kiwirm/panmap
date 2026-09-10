@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type Panmap from '../../../map/model.js'
+import type Panmap from '../../../panmap/model.js'
 import {
   toGitmapColor,
   toGitmapObject,

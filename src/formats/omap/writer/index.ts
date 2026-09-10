@@ -10,7 +10,7 @@
 import fs from 'node:fs/promises'
 import { XMLBuilder } from 'fast-xml-parser'
 import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../native.js'
-import type Panmap from '../../../map/model.js'
+import type Panmap from '../../../panmap/model.js'
 import type {
   MapColor,
   MapCrs,
@@ -19,7 +19,7 @@ import type {
   MapSymbol,
   MapTemplates,
   MapView,
-} from '../../../map/model.js'
+} from '../../../panmap/model.js'
 import type {
   OmapAreaPattern,
   OmapAreaSymbol,

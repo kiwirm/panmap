@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { readGitmap } from '../src/formats/gitmap/reader/index.ts'
 import { writeGitmap } from '../src/formats/gitmap/writer/index.ts'
-import Panmap from '../src/map/model.ts'
+import Panmap from '../src/panmap/model.ts'
 
 async function tempDir(prefix) {
   return fs.mkdtemp(path.join(os.tmpdir(), prefix))

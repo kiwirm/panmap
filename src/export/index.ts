@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
-import type Panmap from '../map/model.js'
+import type Panmap from '../panmap/model.js'
 import mapToGeoJson from './geojson/index.js'
 import mapToSvg from './svg/index.js'
 

@@ -14,7 +14,7 @@ import {
   shiftHoleFlagsToOcad,
   shiftHoleFlagsFromOcad,
 } from '../src/formats/ocad/codecs/index.ts'
-import { YFLAG_FIRST_HOLE_POINT } from '../src/map/coord.ts'
+import { YFLAG_FIRST_HOLE_POINT } from '../src/panmap/coord.ts'
 
 const HOLE = YFLAG_FIRST_HOLE_POINT // 0x02
 const CORNER = 0x01

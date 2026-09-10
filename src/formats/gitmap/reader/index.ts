@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import Panmap from '../../../map/model.js'
-import { boundsForCoords } from '../../../map/coord.js'
+import Panmap from '../../../panmap/model.js'
+import { boundsForCoords } from '../../../panmap/coord.js'
 import {
   parseJson, parseNdjson,
 } from '../../../util/ndjson.js'

@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type Panmap from './map/model.js'
+import type Panmap from './panmap/model.js'
 import writeGitmap from './formats/gitmap/writer/index.js'
 import writeOcad from './formats/ocad/writer/index.js'
 import writeOmap from './formats/omap/writer/index.js'

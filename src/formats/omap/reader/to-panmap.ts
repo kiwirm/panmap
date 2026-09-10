@@ -1,4 +1,4 @@
-import Panmap from '../../../map/model.js'
+import Panmap from '../../../panmap/model.js'
 import type {
   MapCrs,
   MapCrsGeographic,
@@ -10,10 +10,10 @@ import type {
   MapTemplates,
   MapView,
   RenderLayer,
-} from '../../../map/model.js'
+} from '../../../panmap/model.js'
 import TdPoly from '../../ocad/reader/decode/td-poly.js'
 import { parseNotes } from '../../extensions.js'
-import { boundsForCoords, type FlaggedCoord } from '../../../map/coord.js'
+import { boundsForCoords, type FlaggedCoord } from '../../../panmap/coord.js'
 import { normaliseOmapFlags } from '../codecs/index.js'
 import type {
   OmapColor,
@@ -373,7 +373,7 @@ function toMapSymbol(symbol: OmapSymbol, symbolsById: Record<number, OmapSymbol>
 
 /**
  * @param {OmapSymbol} symbol
- * @returns {import('../../../map/map').RenderLayer[]}
+ * @returns {import('../../../panmap/map').RenderLayer[]}
  */
 function symbolToRenderLayers(
   symbol: OmapSymbol,

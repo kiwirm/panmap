@@ -1,5 +1,5 @@
-import type { MapSymbol } from '../../../../../map/model.js'
-import { classifyTextLayers } from '../../../../../map/render-layers.js'
+import type { MapSymbol } from '../../../../../panmap/model.js'
+import { classifyTextLayers } from '../../../../../panmap/render-layers.js'
 import { mmToOcadFontSize, packOcadTextAlign } from '../../../codecs/index.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'

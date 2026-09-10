@@ -1,5 +1,5 @@
-import type { MapSymbol } from '../../../../map/model.js'
-import { parseSymbolCode } from '../../../../map/symbol-code.js'
+import type { MapSymbol } from '../../../../panmap/model.js'
+import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
 
 /**
  * Assign a unique OCAD `symNum` to every symbol in a map.

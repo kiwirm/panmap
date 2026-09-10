@@ -1,7 +1,7 @@
-import type { MapSymbol, RenderLayer } from '../../../../../map/model.js'
+import type { MapSymbol, RenderLayer } from '../../../../../panmap/model.js'
 import {
   XFLAG_FIRST_BEZIER, XFLAG_SECOND_BEZIER, YFLAG_DASH_POINT,
-} from '../../../../../map/coord.js'
+} from '../../../../../panmap/coord.js'
 import {
   LineElementType, AreaElementType,
   CircleElementType, DotElementType,

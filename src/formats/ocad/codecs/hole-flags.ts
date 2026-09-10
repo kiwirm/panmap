@@ -1,4 +1,4 @@
-import { YFLAG_FIRST_HOLE_POINT } from '../../../map/coord.js'
+import { YFLAG_FIRST_HOLE_POINT } from '../../../panmap/coord.js'
 
 /**
  * Hole-flag position codec — a co-located inverse pair.

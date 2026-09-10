@@ -1,10 +1,10 @@
-import type { MapSymbol } from '../../../../../map/model.js'
-import { classifyLineLayers } from '../../../../../map/render-layers.js'
-import type { StrokeLayer , DoubleLineLayer } from '../../../../../map/render-layers.js'
+import type { MapSymbol } from '../../../../../panmap/model.js'
+import { classifyLineLayers } from '../../../../../panmap/render-layers.js'
+import type { StrokeLayer , DoubleLineLayer } from '../../../../../panmap/render-layers.js'
 import { encodeLineStyle } from '../../../../codecs/line-style.js'
 import {
   strokeColorValid, pickMainStroke, mainStrokeVisible,
-} from '../../../../../map/stroke-classifier.js'
+} from '../../../../../panmap/stroke-classifier.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
 import { pointElementFromXmap } from './point.js'

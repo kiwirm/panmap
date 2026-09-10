@@ -7,7 +7,7 @@
 // the source flags of each coord individually.
 
 import test from 'ava'
-import Panmap from '../src/map/model.ts'
+import Panmap from '../src/panmap/model.ts'
 import { mapToOmapXml } from "./helpers/omap.js"
 
 function makeCoord(x, y, extras) {

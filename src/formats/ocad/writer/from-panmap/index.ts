@@ -1,4 +1,4 @@
-import type Panmap from '../../../../map/model.js'
+import type Panmap from '../../../../panmap/model.js'
 import OcadFile from '../../native/ocad-file.js'
 import FileHeader, { type OcadVersion } from '../../native/file-header.js'
 import { synthesizeSymbols } from './symbols.js'

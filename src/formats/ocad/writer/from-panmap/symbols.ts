@@ -1,8 +1,8 @@
-import type { MapColor, MapSymbol } from '../../../../map/model.js'
-import { classifyAreaLayers , isPatternLayer } from '../../../../map/render-layers.js'
-import { parseSymbolCode } from '../../../../map/symbol-code.js'
-import { colorNumberLookup } from '../../../../map/color.js'
-import { strokeColorValid } from '../../../../map/stroke-classifier.js'
+import type { MapColor, MapSymbol } from '../../../../panmap/model.js'
+import { classifyAreaLayers , isPatternLayer } from '../../../../panmap/render-layers.js'
+import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
+import { colorNumberLookup } from '../../../../panmap/color.js'
+import { strokeColorValid } from '../../../../panmap/stroke-classifier.js'
 import { collectSymbolColors } from './collect-symbol-colors.js'
 import {
   PointSymbolType,

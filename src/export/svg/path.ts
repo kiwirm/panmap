@@ -1,7 +1,7 @@
 // Path geometry for the SVG renderer. Pure — no DOM, no map model.
 // Consumers: svg.ts (and eventually the split render pipeline).
 
-import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../../map/coord.js'
+import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../../panmap/coord.js'
 
 type Coord = ArrayLike<number>
 type Transform = (coord: Coord) => Coord

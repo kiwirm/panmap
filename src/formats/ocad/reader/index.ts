@@ -6,7 +6,7 @@
  */
 import decode from './decode/index.js'
 import toPanmap from './to-panmap.js'
-import type Panmap from '../../../map/model.js'
+import type Panmap from '../../../panmap/model.js'
 import type { ReadOcadOptions } from './decode/index.js'
 
 export type OcadFile = Awaited<ReturnType<typeof decode>>

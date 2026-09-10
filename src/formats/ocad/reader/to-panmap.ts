@@ -5,7 +5,7 @@ import Panmap, {
   type MapSymbol,
   type MapView,
   type RenderLayer,
-} from '../../../map/model.js'
+} from '../../../panmap/model.js'
 import crsGrids from '../native/crs-grids.js'
 import { deriveGeographic } from './decode/geographic.js'
 import {
