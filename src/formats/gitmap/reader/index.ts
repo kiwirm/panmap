@@ -8,7 +8,7 @@ import {
 import {
   capStyleFromGitmap, joinStyleFromGitmap,
   hAlignFromGitmap, vAlignFromGitmap, rotationFromGitmap,
-} from '../enums.js'
+} from '../codecs/index.js'
 
 // A gitmap is a small set of named files (manifest.json + colors/symbols/
 // objects ndjson + optional private/view.json). A `GitmapSource` abstracts

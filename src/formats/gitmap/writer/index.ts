@@ -8,7 +8,7 @@ import {
   stableSymbolId,
   toGitmapSymbol,
 } from './from-panmap.js'
-import { stableJson, stableJsonPretty } from '../stable-json.js'
+import { stableJson, stableJsonPretty } from './stable-json.js'
 
 interface WriteGitmapOptions {
   overwrite?: boolean

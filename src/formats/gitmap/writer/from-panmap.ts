@@ -2,7 +2,7 @@ import type { MapColor, MapObject, MapSymbol, RenderLayer } from '../../../panma
 import {
   capStyleToGitmap, joinStyleToGitmap,
   hAlignToGitmap, vAlignToGitmap, rotationToGitmap,
-} from '../enums.js'
+} from '../codecs/index.js'
 import { canonicalSymbolCode } from '../../../panmap/symbol-code.js'
 
 function toGitmapColor(color: MapColor) {

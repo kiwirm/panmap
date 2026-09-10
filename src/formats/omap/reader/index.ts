@@ -10,7 +10,7 @@ import type Panmap from '../../../panmap/model.js'
 import type { OmapFile } from '../native.js'
 
 /** Accepts an OMap/XMap file path, an OMap XML string, or a Buffer. */
-export async function decode(input: string | Buffer): Promise<OmapFile> {
+async function decode(input: string | Buffer): Promise<OmapFile> {
   if (Buffer.isBuffer(input)) return parseOmap(input)
   if (input.trimStart().startsWith('<')) return parseOmap(input)
   return readOmapFile(input)
