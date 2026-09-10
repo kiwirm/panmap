@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer'
 import BufferWriter from './buffer-writer.js'
 import {
   HEADER_SIZE,
@@ -25,8 +24,7 @@ import type OcadFile from '../internal/ocad-file.js'
  * Currently targets OCAD versions 12 and 2018 (`header.version` of 12 or
  * 2018). The layout is reconstructed from scratch — header is rewritten
  * with fresh index-block offsets, and symbol/object/string records are
- * emitted from their captured raw byte ranges. Records added in memory
- * without a `_byteRange` are skipped pending field-level encoders.
+ * field-encoded from the PanMap-synthesized `OcadFile`.
  *
  * Layout:
  *
@@ -39,11 +37,6 @@ import type OcadFile from '../internal/ocad-file.js'
  *   [string index blocks ...]       ← header.stringIndexBlock points here
  */
 export function encodeOcadFile(ocadFile: OcadFile): Buffer {
-  // `buffer` is only used by the byte-passthrough fast path in each
-  // record writer; when it's missing (synthesized OcadFile), every
-  // record falls back to its field-level encoder and this stub is
-  // never actually read.
-  const source = ocadFile.buffer ?? Buffer.alloc(0)
   // Reader stores the version tag verbatim; both v12 and v2018 files
   // write `header.version === 12` bytes (see `FileHeader.createFor`),
   // and 2018 shows up in the model only when the reader observed a
@@ -55,29 +48,27 @@ export function encodeOcadFile(ocadFile: OcadFile): Buffer {
     )
   }
 
-  const writer = new BufferWriter(Math.max(source.length, 4096) + 4096)
+  const writer = new BufferWriter(8192)
 
   reserveHeader(writer)
 
-  const symbolOffsets = writeSymbolRecords(writer, ocadFile.symbols, source)
+  const symbolOffsets = writeSymbolRecords(writer, ocadFile.symbols)
   const symbolIndexBlock = writeSymbolIndexBlocks(writer, symbolOffsets)
 
   const objects = ocadFile.objects as unknown as Parameters<
     typeof writeObjectRecords
   >[1]
-  const objectResult = writeObjectRecords(writer, objects, source)
+  const objectResult = writeObjectRecords(writer, objects)
   const objectIndexBlock = writeObjectIndexBlocks(
     writer,
     objects,
     objectResult.offsets,
-    objectResult.lengths,
-    source
+    objectResult.lengths
   )
 
   const stringResult = writeParameterStringRecords(
     writer,
-    ocadFile.rawParameterStrings,
-    source
+    ocadFile.rawParameterStrings
   )
   const stringIndexBlock = writeStringIndexBlocks(
     writer,

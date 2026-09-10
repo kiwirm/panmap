@@ -13,11 +13,10 @@ export interface SynthesizeOptions {
 /**
  * Build a fresh `OcadFile` in memory from a `PanMap`.
  *
- * This is the from-scratch path used when writing OCAD from a source
- * that never had OCAD bytes to slice from (xmap, gitmap). Header +
- * symbols + objects + parameter strings are all synthesized here from
- * the PanMap fields; each record writer already falls back to its
- * field-level encoder when a record lacks `_byteRange`.
+ * OCAD is always written from scratch — header + symbols + objects +
+ * parameter strings are synthesized here from the PanMap fields,
+ * regardless of the map's source format. There is no byte-preservation
+ * path; whatever PanMap doesn't model isn't reproduced.
  */
 export function synthesizeOcadFile(
   map: PanMap,

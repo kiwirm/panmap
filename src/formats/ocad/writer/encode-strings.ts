@@ -1,5 +1,4 @@
 import type BufferWriter from './buffer-writer.js'
-import type { Buffer } from 'node:buffer'
 import { writeParameterString } from './encode-parameter-string.js'
 
 const BLOCK_ENTRIES = 256
@@ -12,36 +11,21 @@ export interface RawParameterString {
     _first: string
     _pairs: Array<{ code: string; value: string | string[] }>
   }
-  _byteRange?: { start: number; end: number }
   _indexRecord?: { pos: number; len: number; recType: number; objIndex: number }
 }
 
 /**
- * Writes parameter string records. Falls back to the field-level encoder
- * when a record has no captured byte range — useful when callers mutate
- * `_pairs` and clear `_byteRange` to force re-encoding.
+ * Writes parameter string records via the field-level encoder. A record
+ * with no `values` is emitted as an empty slot.
  */
 export function writeParameterStringRecords(
   writer: BufferWriter,
-  strings: RawParameterString[],
-  sourceBuffer: Buffer
+  strings: RawParameterString[]
 ): { offsets: number[]; lengths: number[] } {
   const offsets: number[] = []
   const lengths: number[] = []
   for (const ps of strings) {
-    if (!ps) {
-      offsets.push(0)
-      lengths.push(0)
-      continue
-    }
-    if (ps._byteRange) {
-      const { start, end } = ps._byteRange
-      offsets.push(writer.offset)
-      lengths.push(end - start)
-      writer.writeBytes(sourceBuffer.subarray(start, end))
-      continue
-    }
-    if (!ps.values) {
+    if (!ps || !ps.values) {
       offsets.push(0)
       lengths.push(0)
       continue

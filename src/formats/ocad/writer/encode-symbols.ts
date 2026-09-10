@@ -1,40 +1,28 @@
 import type BufferWriter from './buffer-writer.js'
-import type { Buffer } from 'node:buffer'
 import { writeSymbol } from './encode-symbol.js'
 
 const BLOCK_ENTRIES = 256
 
-export interface SymbolWithRange {
+export interface SymbolRecord {
   size: number
-  _byteRange?: { start: number; end: number }
 }
 
 /**
- * Writes symbol records back-to-back at the current offset. For each
- * symbol with a `_byteRange` pointing into `sourceBuffer`, the original
- * bytes are emitted verbatim (byte-exact). For symbols without a byte
- * range (newly constructed or where the caller cleared `_byteRange` to
- * force re-encoding), the field-level encoder is used.
+ * Writes symbol records back-to-back at the current offset, each via the
+ * field-level encoder (symbols are always synthesized from PanMap fields).
  *
  * Returns the file offset of each emitted symbol record, in input order.
  * Records that fail to encode get an offset of 0.
  */
 export function writeSymbolRecords(
   writer: BufferWriter,
-  symbols: SymbolWithRange[],
-  sourceBuffer: Buffer
+  symbols: SymbolRecord[]
 ): number[] {
   const offsets: number[] = new Array(symbols.length)
   for (let i = 0; i < symbols.length; i++) {
     const symbol = symbols[i]
     if (!symbol) {
       offsets[i] = 0
-      continue
-    }
-    if (symbol._byteRange) {
-      const { start, end } = symbol._byteRange
-      offsets[i] = writer.offset
-      writer.writeBytes(sourceBuffer.subarray(start, end))
       continue
     }
     offsets[i] = writer.offset
