@@ -1,4 +1,4 @@
-import type { MapColor, MapSymbol } from '../../map/model.js'
+import type { MapColor, MapSymbol } from '../../../map/model.js'
 
 /**
  * OCAD symbol-element shape carried by icon rendering. Compatible

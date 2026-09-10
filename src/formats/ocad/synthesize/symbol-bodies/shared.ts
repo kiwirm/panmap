@@ -1,4 +1,4 @@
-import type { OcadElement } from '../write/encode-symbol-element.js'
+import type { OcadElement } from '../../write/encode-symbol-element.js'
 
 export type OcadAnchor = { 0: number; 1: number; xFlags: number; yFlags: number }
 export type XmapCoordInput =

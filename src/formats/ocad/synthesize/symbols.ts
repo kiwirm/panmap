@@ -1,16 +1,16 @@
-import type { MapColor, MapSymbol } from '../../map/model.js'
-import { classifyAreaLayers , isPatternLayer } from '../../map/render-layers.js'
-import { parseSymbolCode } from '../../util/symbol-code.js'
-import { colorNumberLookup } from '../../util/color.js'
-import { strokeColorValid } from '../../util/stroke-classifier.js'
-import { collectSymbolColors } from '../../util/collect-symbol-colors.js'
+import type { MapColor, MapSymbol } from '../../../map/model.js'
+import { classifyAreaLayers , isPatternLayer } from '../../../map/render-layers.js'
+import { parseSymbolCode } from '../../../util/symbol-code.js'
+import { colorNumberLookup } from '../../../util/color.js'
+import { strokeColorValid } from '../../../util/stroke-classifier.js'
+import { collectSymbolColors } from '../../../util/collect-symbol-colors.js'
 import {
   PointSymbolType,
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './read/symbol-types.js'
-import { synthesizeIconBits } from './synthesize-icon.js'
+} from '../read/symbol-types.js'
+import { synthesizeIconBits } from './icon.js'
 import { pointBody } from './symbol-bodies/point.js'
 import { lineBody } from './symbol-bodies/line.js'
 import { areaBody } from './symbol-bodies/area.js'

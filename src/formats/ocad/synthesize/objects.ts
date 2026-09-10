@@ -1,11 +1,11 @@
-import type { MapObject, MapSymbol } from '../../map/model.js'
+import type { MapObject, MapSymbol } from '../../../map/model.js'
 import {
   shiftHoleFlagsToOcad,
   radiansToOcadAngle,
   needsYFlip,
   expandTextBoxCoords,
-} from '../codecs/index.js'
-import { parseSymbolCode } from '../../util/symbol-code.js'
+} from '../../codecs/index.js'
+import { parseSymbolCode } from '../../../util/symbol-code.js'
 
 /**
  * Translate MapObject[] into the record + index-entry shape

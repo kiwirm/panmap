@@ -2,7 +2,7 @@ import fs from 'node:fs/promises'
 import type PanMap from '../../map/model.js'
 import { encodeOcadFile } from './write/index.js'
 import { syncNotesIntoOcadFile } from './notes.js'
-import { synthesizeOcadFile } from './synthesize.js'
+import { synthesizeOcadFile } from './synthesize/index.js'
 
 /**
  * Writes a Map back to an OCAD binary file.
