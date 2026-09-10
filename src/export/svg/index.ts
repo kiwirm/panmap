@@ -1,25 +1,25 @@
 import { DOMParser, type Element as DOMElement } from '@xmldom/xmldom'
-import type Panmap from '../map/model.js'
+import type Panmap from '../../map/model.js'
 import lineOffset from '@turf/line-offset'
-import TdPoly from '../formats/ocad/reader/decode/td-poly.js'
+import TdPoly from '../../formats/ocad/reader/decode/td-poly.js'
 import {
   LineElementType,
   AreaElementType,
   CircleElementType,
   DotElementType,
-} from '../formats/ocad/native/symbol-element-types.js'
-import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../map/coord.js'
-import { needsYFlip } from '../formats/codecs/index.js'
-import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../util/xml.js'
+} from '../../formats/ocad/native/symbol-element-types.js'
+import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../../map/coord.js'
+import { needsYFlip } from '../../formats/codecs/index.js'
+import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../../util/xml.js'
 import {
   coordsToPath,
   buildPathSampler,
   pointAndAngleAtSampler,
   lineAngleStartSampler,
   lineAngleEndSampler,
-} from './svg/path.js'
-import { dashToSvg, lineJoinToSvg, lineCapToSvg } from './svg/style.js'
-import { cmykFractionToRgb } from '../util/cmyk-to-rgb.js'
+} from './path.js'
+import { dashToSvg, lineJoinToSvg, lineCapToSvg } from './style.js'
+import { cmykFractionToRgb } from '../../util/cmyk-to-rgb.js'
 
 const supportedLayerTypes = new Set([
   'stroke',

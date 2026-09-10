@@ -7,9 +7,9 @@ import {
   AreaElementType,
   CircleElementType,
   DotElementType,
-} from '../formats/ocad/native/symbol-element-types.js'
-import TdPoly from '../formats/ocad/reader/decode/td-poly.js'
-import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../map/coord.js'
+} from '../../formats/ocad/native/symbol-element-types.js'
+import TdPoly from '../../formats/ocad/reader/decode/td-poly.js'
+import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../../map/coord.js'
 
 const defaultOptions = {
   applyCrs: true,
@@ -216,7 +216,7 @@ const extractCoords = (coords: TdPoly[]): TdPoly[] => {
  * @param {import('./map').MapSymbol} symbol
  * @param {string} name
  * @param {number} index
- * @param {import('../formats/ocad/reader/decode/symbol-element')} element
+ * @param {import('../../formats/ocad/reader/decode/symbol-element')} element
  * @param {TdPoly} c
  * @param {number} angle
  * @param {TransformFeaturesOptions} options

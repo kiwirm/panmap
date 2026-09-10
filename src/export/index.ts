@@ -2,8 +2,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
 import type Panmap from '../map/model.js'
-import mapToGeoJson from './geojson.js'
-import mapToSvg from './svg.js'
+import mapToGeoJson from './geojson/index.js'
+import mapToSvg from './svg/index.js'
 
 export type ExportFormat = 'svg' | 'geojson' | 'json'
 
@@ -67,6 +67,6 @@ export function mapToSvgString(map: Panmap, options: ExportOptions = {}): string
   return new XMLSerializer().serializeToString(svg)
 }
 
-export { default as mapToGeoJson } from './geojson.js'
-export { default as mapToSvg, getMapSvgRenderSupport } from './svg.js'
+export { default as mapToGeoJson } from './geojson/index.js'
+export { default as mapToSvg, getMapSvgRenderSupport } from './svg/index.js'
 export default exportMap

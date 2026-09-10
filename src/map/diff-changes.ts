@@ -1,7 +1,7 @@
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
 import Panmap, { type MapColor, type MapObject, type MapSymbol } from './model.js'
 import diffMaps, { type DiffMapsOptions , DIFF_OUTLINE_WIDTH, recolorSymbol } from './diff.js'
-import mapToSvg from '../export/svg.js'
+import mapToSvg from '../export/svg/index.js'
 
 import { isFirstBezier, isSecondBezier, isFirstHolePoint } from './coord.js'
 import { parseSymbolCode } from './symbol-code.js'

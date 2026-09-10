@@ -12,7 +12,7 @@ import readOcad from '../src/formats/ocad/reader/decode/index.ts'
 import ocadFileToMap from '../src/formats/ocad/reader/to-panmap.ts'
 import { readOmap } from "./helpers/omap.js"
 import omapFileToMap from '../src/formats/omap/reader/to-panmap.ts'
-import mapToSvg from '../src/export/svg.ts'
+import mapToSvg from '../src/export/svg/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
 
 const serializer = new XMLSerializer()

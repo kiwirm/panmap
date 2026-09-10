@@ -4,7 +4,7 @@ import Panmap, {
   type MapSymbol,
   type RenderLayer,
 } from './model.js'
-import mapToSvg from '../export/svg.js'
+import mapToSvg from '../export/svg/index.js'
 import { boundsForCoords as sharedBoundsForCoords } from './coord.js'
 import { parseSymbolCode } from './symbol-code.js'
 
