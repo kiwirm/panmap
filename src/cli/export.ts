@@ -4,7 +4,7 @@ import path from 'node:path'
 import reproject from 'reproject'
 import geojsonvt from 'geojson-vt'
 import vtpbf from 'vt-pbf'
-import { read, ocad, exportMap, mapToGeoJson } from '../index.js'
+import { read, exportMap, mapToGeoJson } from '../index.js'
 import { parseSymNums } from './sym-nums.js'
 
 const { toWgs84 } = reproject
@@ -49,7 +49,7 @@ export async function runExport(
     case 'geojson':
       // CRS re-projection ("wgs84") and CRS metadata injection
       // ("projection") aren't part of the library-level exporter — they
-      // depend on epsg.io lookups and OCAD-only CRS info. Keep them CLI-only.
+      // depend on epsg.io lookups. Keep them CLI-only.
       await exportGeoJson(input, output, options.crs, exportOpts)
       return
     case 'mvt':
@@ -66,16 +66,15 @@ async function exportGeoJson(
   crsOption: string | undefined,
   exportOpts: ExportOpts
 ): Promise<void> {
-  const ocadFile = await ocad.readRaw(input)
-  const crs = ocadFile.getCrs()
   const map = await read(input)
+  const crs = map.getCrs()
   const geojson = mapToGeoJson(map, exportOpts)
   const payload =
     crsOption === 'wgs84'
-      ? toWgs84(geojson, await getProj4Def(crs.code))
+      ? toWgs84(geojson, await getProj4Def(crs?.code ?? 0))
       : geojson
   const crsDef =
-    crsOption === 'projection' && crs.catalog && crs.code
+    crsOption === 'projection' && crs?.catalog && crs.code
       ? {
           crs: {
             type: 'name',
@@ -95,12 +94,11 @@ async function toMvt(
   output: string,
   exportOpts: ExportOpts
 ): Promise<void> {
-  const ocadFile = await ocad.readRaw(input)
-  const crs = ocadFile.getCrs()
-  if (crs.catalog !== 'EPSG' || crs.code <= 0) {
-    throw new Error(`Unsupported CRS ${crs.catalog}:${crs.code} in OCAD file.`)
-  }
   const map = await read(input)
+  const crs = map.getCrs()
+  if (!crs || crs.catalog !== 'EPSG' || crs.code <= 0) {
+    throw new Error(`Unsupported CRS ${crs?.catalog ?? null}:${crs?.code ?? 0} in map.`)
+  }
   const geoJson = toWgs84(
     mapToGeoJson(map, exportOpts),
     await getProj4Def(crs.code)
