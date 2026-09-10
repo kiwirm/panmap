@@ -29,8 +29,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/main.js",
-    "test": "tsc --noEmit && npm run lint && ava --node-arguments='--import tsx'",
+    "test": "tsc --noEmit && npm run lint && ava",
     "test:full": "npm run fetch:test-data && npm test",
+    "parity": "ava test/mapper-parity.parity.js --timeout=10m",
     "fetch:test-data": "node scripts/fetch-test-data.mjs",
     "build:fixtures": "node scripts/build-fixtures-tarball.mjs",
     "lint": "eslint src/",
@@ -58,6 +59,10 @@
   "ava": {
     "files": [
       "test/**/*.test.js"
+    ],
+    "nodeArguments": [
+      "--import",
+      "tsx"
     ]
   },
   "devDependencies": {

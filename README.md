@@ -96,7 +96,12 @@ Open an issue if you hit a shape that doesn't round-trip cleanly.
 npm install
 npm test           # tsc + eslint + ava
 npm run build      # emit dist/ (JS + .d.ts)
+npm run parity     # OCD parity vs Mapper's own output (needs local fixtures)
 ```
+
+The parity suite compares panmap's OCD export against Mapper's binaries for
+real maps. Those fixtures are private and gitignored (`test/parity-fixtures/`),
+so it's a local-only tool, kept out of the default `npm test`.
 
 ## License
 
