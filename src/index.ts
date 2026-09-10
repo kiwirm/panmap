@@ -27,7 +27,7 @@ export {
   readGitmapBundle,
   bundleSource,
   type GitmapSource,
-} from './formats/gitmap/read.js'
+} from './formats/gitmap/reader/index.js'
 export { write, type WriteOptions, type NativeFormat } from './write.js'
 export { convert } from './convert.js'
 export {

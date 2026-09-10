@@ -2,8 +2,8 @@ import test from 'ava'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { readGitmap } from '../src/formats/gitmap/read.ts'
-import { writeGitmap } from '../src/formats/gitmap/write.ts'
+import { readGitmap } from '../src/formats/gitmap/reader/index.ts'
+import { writeGitmap } from '../src/formats/gitmap/writer/index.ts'
 import Panmap from '../src/map/model.ts'
 
 async function tempDir(prefix) {

@@ -3,7 +3,7 @@ import readOcad from './formats/ocad/reader/decode/index.js'
 import { parseOmap, readOmapFile } from './formats/omap/reader/decode.js'
 import ocadFileToMap from './formats/ocad/reader/to-panmap.js'
 import omapFileToMap from './formats/omap/reader/to-panmap.js'
-import readGitmap from './formats/gitmap/read.js'
+import readGitmap from './formats/gitmap/reader/index.js'
 import type Panmap from './map/model.js'
 import type { ReadOcadOptions } from './formats/ocad/reader/decode/index.js'
 

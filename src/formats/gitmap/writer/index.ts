@@ -1,15 +1,15 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type Panmap from '../../map/model.js'
+import type Panmap from '../../../map/model.js'
 import {
   toGitmapColor,
   toGitmapObject,
   stableColorId,
   stableSymbolId,
   toGitmapSymbol,
-} from './from-map.js'
-import { stableJson, stableJsonPretty } from './stable-json.js'
-import { needsYFlip } from '../codecs/index.js'
+} from './from-panmap.js'
+import { stableJson, stableJsonPretty } from '../stable-json.js'
+import { needsYFlip } from '../../codecs/index.js'
 
 interface WriteGitmapOptions {
   overwrite?: boolean

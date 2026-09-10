@@ -1,9 +1,9 @@
-import type { MapColor, MapObject, MapSymbol, RenderLayer } from '../../map/model.js'
+import type { MapColor, MapObject, MapSymbol, RenderLayer } from '../../../map/model.js'
 import {
   capStyleToGitmap, joinStyleToGitmap,
   hAlignToGitmap, vAlignToGitmap, rotationToGitmap,
-} from './enums.js'
-import { canonicalSymbolCode } from '../../util/symbol-code.js'
+} from '../enums.js'
+import { canonicalSymbolCode } from '../../../util/symbol-code.js'
 
 function toGitmapColor(color: MapColor) {
   return {

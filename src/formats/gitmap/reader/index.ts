@@ -1,14 +1,14 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import Panmap from '../../map/model.js'
-import { boundsForCoords } from '../../map/coord.js'
+import Panmap from '../../../map/model.js'
+import { boundsForCoords } from '../../../map/coord.js'
 import {
   parseJson, parseNdjson,
-} from '../../util/ndjson.js'
+} from '../../../util/ndjson.js'
 import {
   capStyleFromGitmap, joinStyleFromGitmap,
   hAlignFromGitmap, vAlignFromGitmap, rotationFromGitmap,
-} from './enums.js'
+} from '../enums.js'
 
 // A gitmap is a small set of named files (manifest.json + colors/symbols/
 // objects ndjson + optional private/view.json). A `GitmapSource` abstracts
