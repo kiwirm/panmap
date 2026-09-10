@@ -33,6 +33,7 @@
     "test:full": "npm run fetch:test-data && npm test",
     "parity": "ava test/mapper-parity.parity.js --timeout=10m",
     "fetch:test-data": "node scripts/fetch-test-data.mjs",
+    "gen:crs-grids": "node scripts/gen-crs-grids.mjs",
     "build:fixtures": "node scripts/build-fixtures-tarball.mjs",
     "lint": "eslint src/",
     "prepublishOnly": "npm run build"
