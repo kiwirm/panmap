@@ -6,9 +6,9 @@ import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { ocad, write as writeMap } from '../src/index.ts'
+import { write as writeMap } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
-const readOcad = ocad.readRaw
+import { readOcad, ocadFileToMap } from './helpers/raw.js'
 
 // Byte- and structural round-trip tests for OCD → PanMap → OCD were
 // removed together with the `sourceObject` / `sourceSymbol` sidecar.
@@ -37,7 +37,7 @@ for (const fixture of FIXTURES) {
       tt.pass('no objects to remove')
       return
     }
-    const map = ocad.toMap(original)
+    const map = ocadFileToMap(original)
     const half = Math.floor(map.objects.length / 2)
     map.objects = map.objects.slice(0, half)
     original.objects = original.objects.slice(0, half)

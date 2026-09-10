@@ -37,7 +37,8 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { read as readMap, write as writeMap, ocad } from '../src/index.ts'
+import { read as readMap, write as writeMap } from '../src/index.ts'
+import { readOcad } from './helpers/raw.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = process.env.MAPPER_PARITY_ROOT
@@ -125,7 +126,7 @@ async function withTmp(fn) {
 }
 
 async function ocdSymbolSet(ocdPath) {
-  return (await ocad.readRaw(ocdPath, { quietWarnings: true })).symbols
+  return (await readOcad(ocdPath, { quietWarnings: true })).symbols
 }
 
 /**

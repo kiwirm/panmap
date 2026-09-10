@@ -44,15 +44,15 @@ Top-level:
 - `getMapSvgRenderSupport(map)` — reports whether every object can be
   rendered directly from PanMap render layers.
 
-Per-format namespaces expose the raw readers/writers for callers that need
-to work below the `PanMap` model:
+Per-format namespaces expose a symmetric `read` / `write` pair:
 
-- `ocad.readRaw(input, options?)` → low-level `OcadFile`
-- `ocad.toMap(ocadFile)` → `PanMap`
-- `ocad.read(input, options?)` → shortcut for `toMap(readRaw(...))`
-- `ocad.write(map, path)` → write OCAD binary
-- `omap.readRaw(input)` / `omap.toMap(...)` / `omap.read(...)` / `omap.write(...)`
-- `gitmap.read(directory)` / `gitmap.write(map, directory)`
+- `ocad.read(input, options?)` → `PanMap` / `ocad.write(map, path)` → OCAD binary
+- `omap.read(input)` → `PanMap` / `omap.write(map, path)` → OMap/XMap XML
+- `gitmap.read(directory)` → `PanMap` / `gitmap.write(map, directory)` → package
+
+The low-level per-format stages (parse-to-native, native-to-`PanMap`) are
+internal; import them from `src/formats/<format>/` directly if you need to work
+below the `PanMap` model.
 
 ## GitMap
 
@@ -72,7 +72,6 @@ double lines, border symbols, combined symbols, text, and diff overlays.
 ## CLI
 
 ```sh
-panmap info map.ocd
 panmap export map.ocd map.svg
 panmap export map.ocd map.svg --white-background
 panmap export map.ocd map.geojson

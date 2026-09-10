@@ -15,9 +15,9 @@ import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { ocad, omap, read as readMap, write as writeMap } from '../src/index.ts'
+import { omap, read as readMap, write as writeMap } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
-const readOcad = ocad.readRaw
+import { readOcad, ocadFileToMap } from './helpers/raw.js'
 const writeOmap = omap.write
 
 // --------------------------------------------------------------------------
@@ -194,7 +194,7 @@ test('XMap text symbol populates full TextTypography', async (/** @type {Executi
 test('OCAD text symbol populates full TextTypography', async (/** @type {ExecutionContext} */ t) => {
   const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
   // legacy re-import moved to top of file
-  const map = ocad.toMap(ocadFile)
+  const map = ocadFileToMap(ocadFile)
   const textSymbols = map.symbols.filter(s => s.type === 'text')
   t.true(textSymbols.length > 0, 'has text symbols')
   for (const sym of textSymbols) {
@@ -223,7 +223,7 @@ test('TextTypography survives omap round-trip', async (/** @type {ExecutionConte
 test('OCAD text symbol fontSize is millimetres at symbol and layer level', async (/** @type {ExecutionContext} */ t) => {
   const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))
   // legacy re-import moved to top of file
-  const map = ocad.toMap(ocadFile)
+  const map = ocadFileToMap(ocadFile)
   const sym = map.symbols.find(s => s.type === 'text')
   const layer = sym.renderLayers.find(l => l.type === 'text')
   // The model contract is millimetres. The top-level `sym.fontSize` used to leak

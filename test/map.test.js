@@ -5,10 +5,9 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import test from 'ava'
-import { ocad, read as readMap, write as writeMap, Map } from '../src/index.ts'
+import { read as readMap, write as writeMap, Map } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
-const readOcad = ocad.readRaw
-const ocadFileToMap = ocad.toMap
+import { readOcad, ocadFileToMap } from './helpers/raw.js'
 
 test('can normalize OCAD file to canonical Map', async (/** @type {ExecutionContext} */ t) => {
   const ocadFile = await readOcad(fixtureFile('basic-1.ocd'))

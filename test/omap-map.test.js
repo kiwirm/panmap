@@ -7,17 +7,18 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  ocad,
   omap,
   read as readMap,
   write as writeMap,
   mapToGeoJson,
   Map,
 } from '../src/index.ts'
-const readOcad = ocad.readRaw
-const ocadFileToMap = ocad.toMap
-const readXmap = omap.readRaw
-const omapFileToMap = omap.toMap
+import {
+  readOcad,
+  ocadFileToMap,
+  omapFileToMap,
+  readXmap,
+} from './helpers/raw.js'
 const writeOmap = omap.write
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

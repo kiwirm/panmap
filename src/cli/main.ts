@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { program } from 'commander'
-import { runInfo } from './info.js'
 import { runConvert } from './convert.js'
 import { runExport } from './export.js'
 import { runDiff } from './diff.js'
@@ -21,27 +20,6 @@ function run<A extends unknown[]>(
     }
   }
 }
-
-program
-  .command('info <path>')
-  .description('display map file info')
-  .option(
-    '--symbols [identifiers]',
-    'dump symbol info (comma-separated codes); pass without value to dump all'
-  )
-  .option(
-    '--icons-bits',
-    "include symbols' iconBits property (OCAD only, hidden by default)"
-  )
-  .option(
-    '--parameter-strings [types]',
-    'dump OCAD parameter strings (comma-separated type ids); pass without value to dump all'
-  )
-  .option(
-    '--object-strings [symbols]',
-    'dump per-object strings (comma-separated symbol codes); pass without value to dump all'
-  )
-  .action(run(runInfo))
 
 program
   .command('convert <input> <output>')

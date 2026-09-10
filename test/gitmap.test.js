@@ -7,13 +7,11 @@ import path from 'node:path'
 import test from 'ava'
 import {
   read as readMap,
-  ocad,
   gitmap,
   mapToSvg,
 } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
-const readOcad = ocad.readRaw
-const ocadFileToMap = ocad.toMap
+import { readOcad, ocadFileToMap } from './helpers/raw.js'
 const readGitmap = gitmap.read
 const writeGitmap = gitmap.write
 

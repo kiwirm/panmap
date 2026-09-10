@@ -3,10 +3,8 @@
  */
 import { Buffer } from 'node:buffer'
 import test from 'ava'
-import { ocad } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
-
-const readOcad = ocad.readRaw
+import { readOcad } from './helpers/raw.js'
 
 test('too small files can not be opened', async (/** @type {ExecutionContext} */ t) => {
   await t.throwsAsync(() => readOcad(Buffer.alloc(10)))
