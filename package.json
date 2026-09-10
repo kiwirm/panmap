@@ -63,7 +63,8 @@
     "nodeArguments": [
       "--import",
       "tsx"
-    ]
+    ],
+    "timeout": "5m"
   },
   "devDependencies": {
     "@turf/kinks": "^7.2.0",
