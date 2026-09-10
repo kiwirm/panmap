@@ -12,7 +12,7 @@ import {
   shiftHoleFlagsFromOcad,
   canonicalTextAnchor,
   ocadAngleToRadians,
-} from '../codecs/index.js'
+} from './codecs/index.js'
 import type OcadFile from './read/ocad-file.js'
 import type BaseSymbol from './read/symbol.js'
 import type { PointSymbolDef } from './read/point-symbol.js'

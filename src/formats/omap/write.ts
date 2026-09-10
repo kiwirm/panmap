@@ -31,7 +31,8 @@ import type {
   OmapTextSymbol,
 } from './read.js'
 import { formatNotes } from '../extensions.js'
-import { coordinatesForOmap, needsYFlip } from '../codecs/index.js'
+import { coordinatesForOmap } from './codecs/index.js'
+import { needsYFlip } from '../codecs/index.js'
 import { escapeXmlAttr as xmlAttr } from '../../util/xml.js'
 import {
   toOmapSymbol,

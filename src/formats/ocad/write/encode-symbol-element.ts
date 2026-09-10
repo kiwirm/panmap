@@ -1,5 +1,5 @@
 import type BufferWriter from './buffer-writer.js'
-import { packOcadOrdinate } from '../../codecs/index.js'
+import { packOcadOrdinate } from '../codecs/index.js'
 
 /**
  * On-disk OCAD symbol-element record. Shared by the writer (this file

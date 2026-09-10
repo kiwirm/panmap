@@ -2,9 +2,9 @@ import type { MapObject, MapSymbol } from '../../../map/model.js'
 import {
   shiftHoleFlagsToOcad,
   radiansToOcadAngle,
-  needsYFlip,
   expandTextBoxCoords,
-} from '../../codecs/index.js'
+} from '../codecs/index.js'
+import { needsYFlip } from '../../codecs/index.js'
 import { parseSymbolCode } from '../../../util/symbol-code.js'
 
 /**

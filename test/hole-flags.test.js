@@ -13,7 +13,7 @@ import test from 'ava'
 import {
   shiftHoleFlagsToOcad,
   shiftHoleFlagsFromOcad,
-} from '../src/formats/codecs/index.ts'
+} from '../src/formats/ocad/codecs/index.ts'
 import { YFLAG_FIRST_HOLE_POINT } from '../src/map/coord.ts'
 
 const HOLE = YFLAG_FIRST_HOLE_POINT // 0x02

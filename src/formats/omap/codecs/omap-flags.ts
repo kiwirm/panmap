@@ -7,7 +7,7 @@ import {
   coordY,
   type Coord,
   type FlaggedCoord,
-} from '../../map/coord.js'
+} from '../../../map/coord.js'
 
 /**
  * OMap/xmap per-coord flag byte ↔ canonical `xFlags`/`yFlags` — inverse pair.
