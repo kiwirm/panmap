@@ -7,7 +7,7 @@ import { packOcadOrdinate } from '../../codecs/index.js'
  * and the reader (`to-map.ts` translates it into PanMap render
  * layers). Element `type` is one of `LineElementType` /
  * `AreaElementType` / `CircleElementType` / `DotElementType`
- * (see `../internal/symbol-element-types.ts`).
+ * (see `../read/symbol-element-types.ts`).
  */
 export interface OcadElement {
   type: number

@@ -5,7 +5,7 @@ import {
 import {
   LineElementType, AreaElementType,
   CircleElementType, DotElementType,
-} from '../internal/symbol-element-types.js'
+} from '../read/symbol-element-types.js'
 import type {
   ColorNumber, OcadAnchor, OcadElement,
   XmapAreaSymbolLike, XmapCoordInput, XmapElementInput,

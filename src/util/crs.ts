@@ -1,5 +1,5 @@
-import crsGrids from '../formats/ocad/internal/crs-grids.js'
-import type { GridDef } from '../formats/ocad/internal/crs-grids.js'
+import crsGrids from '../formats/ocad/read/crs-grids.js'
+import type { GridDef } from '../formats/ocad/read/crs-grids.js'
 
 // Map units are 0.01 mm; project into metres. The paper-to-metre
 // factor is (1 / 100 mm) × (1 metre / 1000 mm) = 1 / 100_000.

@@ -8,7 +8,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { XMLSerializer } from '@xmldom/xmldom'
-import readOcad from '../src/formats/ocad/read.ts'
+import readOcad from '../src/formats/ocad/read/index.ts'
 import ocadFileToMap from '../src/formats/ocad/to-map.ts'
 import { readOmap } from "./helpers/omap.js"
 import omapFileToMap from '../src/formats/omap/to-map.ts'

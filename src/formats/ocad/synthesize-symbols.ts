@@ -9,7 +9,7 @@ import {
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './internal/symbol-types.js'
+} from './read/symbol-types.js'
 import { synthesizeIconBits } from './synthesize-icon.js'
 import { pointBody } from './symbol-bodies/point.js'
 import { lineBody } from './symbol-bodies/line.js'
@@ -18,7 +18,7 @@ import { textBody } from './symbol-bodies/text.js'
 
 /**
  * Convert a `MapSymbol` into the OCAD Symbol11-family shape
- * that `writeSymbol` (writer/encode-symbol.ts) consumes.
+ * that `writeSymbol` (write/encode-symbol.ts) consumes.
  *
  * This is the from-scratch path used when the source map isn't OCAD.
  * The output isn't byte-identical to what OCAD would write for the

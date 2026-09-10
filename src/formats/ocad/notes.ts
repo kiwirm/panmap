@@ -1,5 +1,5 @@
-import type OcadFile from './internal/ocad-file.js'
-import type { ParameterStringValues } from './internal/parameter-string.js'
+import type OcadFile from './read/ocad-file.js'
+import type { ParameterStringValues } from './read/parameter-string.js'
 import { formatNotes } from '../extensions.js'
 
 /**

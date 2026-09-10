@@ -16,7 +16,7 @@ import {
   writeParameterStringRecords,
   writeStringIndexBlocks,
 } from './encode-strings.js'
-import type OcadFile from '../internal/ocad-file.js'
+import type OcadFile from '../read/ocad-file.js'
 
 /**
  * Encode an OcadFile back to bytes.

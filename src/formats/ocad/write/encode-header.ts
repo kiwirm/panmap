@@ -1,5 +1,5 @@
 import type BufferWriter from './buffer-writer.js'
-import type FileHeader from '../internal/file-header.js'
+import type FileHeader from '../read/file-header.js'
 
 export const HEADER_SIZE = 60
 

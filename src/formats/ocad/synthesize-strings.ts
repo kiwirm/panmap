@@ -1,9 +1,9 @@
 import type PanMap from '../../map/model.js'
 import type { MapColor, MapObject } from '../../map/model.js'
-import type { RawParameterStringRecord } from './internal/ocad-file.js'
-import type { ParameterStringValues } from './internal/parameter-string.js'
+import type { RawParameterStringRecord } from './read/ocad-file.js'
+import type { ParameterStringValues } from './read/parameter-string.js'
 import { coordX, coordY } from '../../map/coord.js'
-import crsGrids from './internal/crs-grids.js'
+import crsGrids from './read/crs-grids.js'
 
 /**
  * Synthesize the OCAD parameter-string block for a PanMap.

@@ -1,6 +1,6 @@
 /**
  * Field schemas shared by the TObject reader (`tobject.ts`) and writer
- * (`../writer/encode-tobject.ts`). Each entry is [fieldName, ioType].
+ * (`../write/encode-tobject.ts`). Each entry is [fieldName, ioType].
  * Order matters — it's the byte layout on disk.
  *
  * Reserved fields (name === '_res*') consume bytes but aren't stored on

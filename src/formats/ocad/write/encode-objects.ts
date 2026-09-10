@@ -1,5 +1,5 @@
 import type BufferWriter from './buffer-writer.js'
-import type { ObjectIndex } from '../internal/object-index.js'
+import type { ObjectIndex } from '../read/object-index.js'
 import { writeTObject12 } from './encode-tobject.js'
 import { packOcadOrdinate } from '../../codecs/index.js'
 

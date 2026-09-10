@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import type PanMap from '../../map/model.js'
-import { encodeOcadFile } from './writer/index.js'
+import { encodeOcadFile } from './write/index.js'
 import { syncNotesIntoOcadFile } from './notes.js'
 import { synthesizeOcadFile } from './synthesize.js'
 

@@ -1,13 +1,13 @@
 import { DOMParser, type Element as DOMElement } from '@xmldom/xmldom'
 import type PanMap from '../map/model.js'
 import lineOffset from '@turf/line-offset'
-import TdPoly from '../formats/ocad/internal/td-poly.js'
+import TdPoly from '../formats/ocad/read/td-poly.js'
 import {
   LineElementType,
   AreaElementType,
   CircleElementType,
   DotElementType,
-} from '../formats/ocad/internal/symbol-element-types.js'
+} from '../formats/ocad/read/symbol-element-types.js'
 import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../map/coord.js'
 import { needsYFlip } from '../formats/codecs/index.js'
 import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../util/xml.js'

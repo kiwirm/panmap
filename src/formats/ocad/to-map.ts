@@ -6,26 +6,26 @@ import PanMap, {
   type MapView,
   type RenderLayer,
 } from '../../map/model.js'
-import crsGrids from './internal/crs-grids.js'
-import { deriveGeographic } from './internal/geographic.js'
+import crsGrids from './read/crs-grids.js'
+import { deriveGeographic } from './read/geographic.js'
 import {
   shiftHoleFlagsFromOcad,
   canonicalTextAnchor,
   ocadAngleToRadians,
 } from '../codecs/index.js'
-import type OcadFile from './internal/ocad-file.js'
-import type BaseSymbol from './internal/symbol.js'
-import type { PointSymbolDef } from './internal/point-symbol.js'
-import type { LineSymbolDef } from './internal/line-symbol.js'
-import type { AreaSymbolDef } from './internal/area-symbol.js'
-import type { TextSymbolDef } from './internal/text-symbol.js'
-import type { TObject } from './internal/tobject.js'
+import type OcadFile from './read/ocad-file.js'
+import type BaseSymbol from './read/symbol.js'
+import type { PointSymbolDef } from './read/point-symbol.js'
+import type { LineSymbolDef } from './read/line-symbol.js'
+import type { AreaSymbolDef } from './read/area-symbol.js'
+import type { TextSymbolDef } from './read/text-symbol.js'
+import type { TObject } from './read/tobject.js'
 import {
   PointSymbolType,
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './internal/symbol-types.js'
+} from './read/symbol-types.js'
 import { parseNotes } from '../extensions.js'
 import { OCAD_NOTES_RECTYPE } from './notes.js'
 import { ocadSymbolTypeName, ocadObjectTypeName } from './symbol-codec.js'

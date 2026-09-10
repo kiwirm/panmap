@@ -1,6 +1,6 @@
 import type PanMap from '../../map/model.js'
-import OcadFile from './internal/ocad-file.js'
-import FileHeader, { type OcadVersion } from './internal/file-header.js'
+import OcadFile from './read/ocad-file.js'
+import FileHeader, { type OcadVersion } from './read/file-header.js'
 import { synthesizeSymbols } from './synthesize-symbols.js'
 import { synthesizeParameterStrings } from './synthesize-strings.js'
 import { synthesizeObjects } from './synthesize-objects.js'

@@ -3,7 +3,7 @@
  *
  * Intended as the seed of a per-type codec registry that unifies:
  *   - the reader's per-type constructor dispatch (currently one file per
- *     symbol type in `internal/`),
+ *     symbol type in `read/`),
  *   - the writer's switch on `symbol.type` (encode-symbol.ts),
  *   - the toMap render-layer dispatch (to-map.ts symbolToRenderLayers),
  *   - the xmap render-layer dispatch (xmap/to-map.ts).
@@ -19,7 +19,7 @@ import {
   LineSymbolType,
   AreaSymbolType,
   TextSymbolType,
-} from './internal/symbol-types.js'
+} from './read/symbol-types.js'
 import {
   PointObjectType,
   LineObjectType,
@@ -27,7 +27,7 @@ import {
   UnformattedTextObjectType,
   FormattedTextObjectType,
   LineTextObjectType,
-} from './internal/object-types.js'
+} from './read/object-types.js'
 
 /** Canonical name for a numeric OCAD symbol type. */
 export const OCAD_SYMBOL_TYPE_NAMES: Readonly<Record<number, string>> = {
