@@ -13,7 +13,7 @@ export interface ObjectRecord {
 
 /**
  * Writes TObject records back-to-back via the v12/v2018 TObject encoder
- * (objects are always synthesized from PanMap fields).
+ * (objects are always synthesized from Panmap fields).
  */
 export function writeObjectRecords(
   writer: BufferWriter,

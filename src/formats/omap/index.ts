@@ -1,13 +1,13 @@
 /**
  * OMap format namespace (also handles OCAD's legacy .xmap XML exports).
  *
- * `read` (input → PanMap) and `write` (PanMap → path), symmetric with ocad and
+ * `read` (input → Panmap) and `write` (Panmap → path), symmetric with ocad and
  * gitmap. The low-level OmapFile stages live in ./read and ./to-map.
  */
 
 import { parseOmap, readOmapFile } from './read.js'
 import toMap from './to-map.js'
-import type PanMap from '../../map/model.js'
+import type Panmap from '../../map/model.js'
 import type { OmapFile } from './read.js'
 
 export { default as write } from './write.js'
@@ -19,6 +19,6 @@ async function readRaw(input: string | Buffer): Promise<OmapFile> {
   return readOmapFile(input)
 }
 
-export async function read(input: string | Buffer): Promise<PanMap> {
+export async function read(input: string | Buffer): Promise<Panmap> {
   return toMap(await readRaw(input))
 }

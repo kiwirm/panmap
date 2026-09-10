@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { readGitmap } from '../src/formats/gitmap/read.ts'
 import { writeGitmap } from '../src/formats/gitmap/write.ts'
-import PanMap from '../src/map/model.ts'
+import Panmap from '../src/map/model.ts'
 
 async function tempDir(prefix) {
   return fs.mkdtemp(path.join(os.tmpdir(), prefix))
@@ -13,7 +13,7 @@ async function tempDir(prefix) {
 test('extensions round-trip through the gitmap package', async t => {
   const dir = await tempDir('gitmap-ext-')
   try {
-    const original = new PanMap({
+    const original = new Panmap({
       sourceFormat: 'test',
       colors: [],
       symbols: [],
@@ -45,7 +45,7 @@ test('extensions round-trip through the gitmap package', async t => {
 test('gitmap package omits extensions when empty', async t => {
   const dir = await tempDir('gitmap-noext-')
   try {
-    const original = new PanMap({
+    const original = new Panmap({
       sourceFormat: 'test',
       colors: [],
       symbols: [],

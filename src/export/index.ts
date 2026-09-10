@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
-import type PanMap from '../map/model.js'
+import type Panmap from '../map/model.js'
 import mapToGeoJson from './geojson.js'
 import mapToSvg from './svg.js'
 
@@ -24,7 +24,7 @@ export interface ExportOptions {
  * format-to-format conversion, see `convert`.
  */
 export async function exportMap(
-  map: PanMap,
+  map: Panmap,
   filename: string,
   options: ExportOptions = {}
 ): Promise<void> {
@@ -57,7 +57,7 @@ export async function exportMap(
  * writes to disk). For callers that render in-process and want the markup
  * directly — e.g. straight from a `git cat-file` bundle, no temp file.
  */
-export function mapToSvgString(map: PanMap, options: ExportOptions = {}): string {
+export function mapToSvgString(map: Panmap, options: ExportOptions = {}): string {
   const svg = mapToSvg(map, {
     document: new DOMImplementation().createDocument(null, 'xml', null),
     backgroundColor:

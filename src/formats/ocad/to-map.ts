@@ -1,4 +1,4 @@
-import PanMap, {
+import Panmap, {
   type MapColor,
   type MapCrs,
   type MapObject,
@@ -35,13 +35,13 @@ import { ocadSymbolTypeName, ocadObjectTypeName } from './symbol-codec.js'
 import { decodeLineStyle } from '../../util/line-style-codec.js'
 
 /**
- * Convert the low-level OCAD file representation into the PanMap.
+ * Convert the low-level OCAD file representation into the Panmap.
  *
- * PanMap is a lossy target — only cross-format fields are carried through.
+ * Panmap is a lossy target — only cross-format fields are carried through.
  * OCAD-only fields (icon rasters, tree groups, framing, tab stops,
- * structure-fill geometry) do not survive a trip through PanMap.
+ * structure-fill geometry) do not survive a trip through Panmap.
  */
-export default function ocadFileToMap(ocadFile: OcadFile): PanMap {
+export default function ocadFileToMap(ocadFile: OcadFile): Panmap {
   const notesEntry = ocadFile.parameterStrings[OCAD_NOTES_RECTYPE]?.[0]
   const notesText = typeof notesEntry?._first === 'string' ? notesEntry._first : ''
   const { userText, extensions } = parseNotes(notesText)
@@ -60,7 +60,7 @@ export default function ocadFileToMap(ocadFile: OcadFile): PanMap {
     textHAlign.set((symbol as { symNum: number }).symNum, h === 3 ? 1 : h)
   }
 
-  return new PanMap({
+  return new Panmap({
     sourceFormat: 'ocad',
     sourceFile: ocadFile,
     metadata: {
@@ -84,7 +84,7 @@ export default function ocadFileToMap(ocadFile: OcadFile): PanMap {
 }
 
 function toMapColors(ocadFile: OcadFile): MapColor[] {
-  // Pull PanMap color fields from parameter strings directly so we get
+  // Pull Panmap color fields from parameter strings directly so we get
   // opacity alongside CMYK — OcadFile.Color doesn't store opacity.
   const psByNumber: Record<number, Record<string, string>> = {}
   for (const ps of ocadFile.parameterStrings[9] || []) {
@@ -96,7 +96,7 @@ function toMapColors(ocadFile: OcadFile): MapColor[] {
   // ocadFile.colors is sparse — indexed by color.number — so forEach is required.
   ocadFile.colors.forEach(color => {
     const ps = psByNumber[color.number]
-    // OCAD stores CMYK as 0–100; PanMap model uses 0–1.
+    // OCAD stores CMYK as 0–100; Panmap model uses 0–1.
     const rawCmyk = color.cmyk
     const cmyk: [number, number, number, number] | undefined = rawCmyk
       ? [rawCmyk[0] / 100, rawCmyk[1] / 100, rawCmyk[2] / 100, rawCmyk[3] / 100]
@@ -132,7 +132,7 @@ function toMapSymbol(symbol: BaseSymbol): MapSymbol {
     type: ocadSymbolTypeName(symbol.type),
     hidden: symbol.isHidden(),
     // OCAD encodes rotatable as `flags & 1` on the raw symbol record;
-    // hoist it onto the PanMap model so consumers don't need the raw.
+    // hoist it onto the Panmap model so consumers don't need the raw.
     rotatable: (((symbol as { flags?: number }).flags ?? 0) & 1) !== 0,
     // OCAD stores font size in tenths of a point; the model contract (and the
     // OMap reader) is millimetres. Convert here so a text symbol's top-level
@@ -167,7 +167,7 @@ function lineRenderLayers(s: LineSymbolDef): RenderLayer[] {
   // invisible ones — because OCAD's `lineStyle` byte (cap+join packed)
   // sits at the symbol level, not the per-stroke level, and other
   // metadata (mainLength/endLength, mid-symbol placement, offsets)
-  // needs a carrier layer to survive the PanMap→xmap→PanMap trip.
+  // needs a carrier layer to survive the Panmap→xmap→Panmap trip.
   const layers: (RenderLayer | false | undefined)[] = [
     {
       type: 'stroke',
@@ -226,7 +226,7 @@ function lineRenderLayers(s: LineSymbolDef): RenderLayer[] {
     // decoration stroke drawn under a dashed main line — used by
     // railways with a two-tone appearance (ara 509.1 dashed + wider
     // framing). XMap represents the same thing as a two-part combined
-    // line symbol; surface as a PanMap stroke so the adapter emits
+    // line symbol; surface as a Panmap stroke so the adapter emits
     // it and Mapper's OCD re-import re-attaches it as fr*.
     ((s as { frColor?: number; frWidth?: number }).frColor !== undefined
       && (s as { frWidth?: number }).frWidth !== undefined
@@ -299,7 +299,7 @@ function areaRenderLayers(s: AreaSymbolDef): RenderLayer[] {
       // OCAD structDraw byte packs clipping mode + rotate flag. The
       // low bits map to xmap `no_clipping` (0=clip, 1=don't clip if
       // fully inside, 2=don't clip if center inside). Preserve it so
-      // the PanMap→xmap converter can round-trip clipping.
+      // the Panmap→xmap converter can round-trip clipping.
       noClipping: (s.structDraw ?? 0) & 0x03,
       structDraw: s.structDraw,
       rotatable: areaRotatable,
@@ -310,7 +310,7 @@ function areaRenderLayers(s: AreaSymbolDef): RenderLayer[] {
 }
 
 function textRenderLayers(s: TextSymbolDef): RenderLayer[] {
-  // PanMap fontSize is stored in millimetres, matching the xmap reader
+  // Panmap fontSize is stored in millimetres, matching the xmap reader
   // (which multiplies xmap's centi-mm on-disk values by MAP_UNIT_SCALE = 0.1).
   // OCAD stores font size as tenths of a point:
   //   1 pt = 25.4 / 72 mm  →  mm = ocadRaw × 25.4 / 720
@@ -400,7 +400,7 @@ function toMapObject(
     //   3 = DeletedForUndo
     // Only status === 2 marks a hidden object; the old `!!status` mapping
     // treated every normal object as hidden and blew away the OCAD→XMap
-    // (and PanMap→anything) object list.
+    // (and Panmap→anything) object list.
     hidden: object.objIndex?.status === 2,
     bounds: object.objIndex?.rc,
     objectString: object.objectString || undefined,
@@ -410,7 +410,7 @@ function toMapObject(
 }
 
 /**
- * Extract the PanMap view state from OCAD's 1030 parameter string.
+ * Extract the Panmap view state from OCAD's 1030 parameter string.
  *
  * OCAD stores viewport centre in mm (paper units, y-up) as `x`/`y`, and
  * zoom as `z` (multiplier where ~1.0 ≈ 100%). Rotation isn't part of
@@ -437,7 +437,7 @@ function numberValue(v: unknown): number | undefined {
 /**
  * Read OCAD's 1039 map-setup record into a `MapCrs`.
  *
- * Field mapping (OCAD → PanMap):
+ * Field mapping (OCAD → Panmap):
  *   m → scale (denominator)
  *   x, y → projected.refPoint (in projected CRS units — metres for EPSG codes)
  *   a → grivation (grid-to-magnetic-north offset, degrees)

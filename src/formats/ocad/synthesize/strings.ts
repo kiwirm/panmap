@@ -1,4 +1,4 @@
-import type PanMap from '../../../map/model.js'
+import type Panmap from '../../../map/model.js'
 import type { MapColor, MapObject } from '../../../map/model.js'
 import type { RawParameterStringRecord } from '../read/ocad-file.js'
 import type { ParameterStringValues } from '../read/parameter-string.js'
@@ -6,7 +6,7 @@ import { coordX, coordY } from '../../../map/coord.js'
 import crsGrids from '../read/crs-grids.js'
 
 /**
- * Synthesize the OCAD parameter-string block for a PanMap.
+ * Synthesize the OCAD parameter-string block for a Panmap.
  *
  * OCAD uses these strings to carry everything the binary record layout
  * can't: the color palette, map scale, projection / CRS, view settings,
@@ -20,19 +20,19 @@ import crsGrids from '../read/crs-grids.js'
  * chain from that array.
  */
 /**
- * recTypes synth emits from PanMap fields. Everything else falls
+ * recTypes synth emits from Panmap fields. Everything else falls
  * through to a passthrough branch that re-uses whatever the source
  * file had on `map.metadata.parameterStrings`.
  *
  * Passthrough matters most for OCAD-sourced maps: they carry spot
  * colours (10), font/tab tables (12/15), symbol-tree groupings (1061),
  * and a handful of layout records (1024/1026/1028/1035) that neither
- * xmap nor gitmap describe. Emitting them keeps OCAD → PanMap → OCAD
+ * xmap nor gitmap describe. Emitting them keeps OCAD → Panmap → OCAD
  * structurally equivalent to what Mapper writes for the same map.
  */
 const SYNTHESIZED_REC_TYPES: ReadonlySet<number> = new Set([9, 1030, 1039])
 
-export function synthesizeParameterStrings(map: PanMap): {
+export function synthesizeParameterStrings(map: Panmap): {
   ordered: RawParameterStringRecord[]
   grouped: Record<number | string, ParameterStringValues[]>
 } {
@@ -134,9 +134,9 @@ function colorParamString(color: MapColor): ParameterStringValues {
  *   i = grid IJK / declination, integer
  *   b, c = declination / auxiliary calibration
  */
-function setupParamString(map: PanMap): ParameterStringValues {
+function setupParamString(map: Panmap): ParameterStringValues {
   // If the source file had a 1039 record, re-emit it verbatim. Synth
-  // can't reconstruct grid rotation / CRS ID / offsets from PanMap
+  // can't reconstruct grid rotation / CRS ID / offsets from Panmap
   // fields alone at Mapper's precision, and dropping them would break
   // the georeferencing.
   const sourceSetup = (map.metadata?.parameterStrings as
@@ -144,7 +144,7 @@ function setupParamString(map: PanMap): ParameterStringValues {
     | undefined)?.['1039']?.[0]
   if (sourceSetup) return sourceSetup
 
-  // Xmap/gitmap-sourced map with a `georeferencing` shape (PanMap):
+  // Xmap/gitmap-sourced map with a `georeferencing` shape (Panmap):
   // build a 1039 from `MapCrs`. Grid ID (`i`) reverse-looks-up the
   // xmap projected_crs EPSG code via `crs-grids.ts`; without a match
   // we fall through to paper coords.
@@ -189,7 +189,7 @@ function setupParamString(map: PanMap): ParameterStringValues {
  * EPSG code. Returns `undefined` when the CRS isn't georeferenced or
  * the EPSG code isn't in the `crs-grids` table.
  */
-function gridIdForCrs(crs: PanMap['georeferencing']): number | undefined {
+function gridIdForCrs(crs: Panmap['georeferencing']): number | undefined {
   const epsgStr = crs?.projected?.parameter
   if (!epsgStr) return undefined
   const epsg = Number(epsgStr)
@@ -203,12 +203,12 @@ function gridIdForCrs(crs: PanMap['georeferencing']): number | undefined {
  * (paper units, OCAD's y-up frame); `z` is a zoom multiplier where
  * 1.0 is roughly "100%" in Mapper/OCAD.
  *
- * Prefer the PanMap `map.view` when set (round-tripping a saved
+ * Prefer the Panmap `map.view` when set (round-tripping a saved
  * viewport from OCAD or xmap). Otherwise fall back to the object
  * bounding-box centre so a fresh file opens looking at content rather
  * than paper origin.
  */
-function viewParamString(map: PanMap): ParameterStringValues {
+function viewParamString(map: Panmap): ParameterStringValues {
   // OCAD-sourced maps keep their 1030 record verbatim so v/m/t/b/c/h/d
   // and the exact centre/zoom Mapper wrote survive the round-trip.
   const sourceView = (map.metadata?.parameterStrings as
@@ -244,7 +244,7 @@ function viewParamString(map: PanMap): ParameterStringValues {
  * OCAD's Y-up frame in `synthesize-objects`, so we mirror that flip
  * here for the view to line up with what's written to disk.
  */
-function objectCentreMm(map: PanMap): { x: number; y: number } {
+function objectCentreMm(map: Panmap): { x: number; y: number } {
   const objects: MapObject[] = map.objects ?? []
   const flipY = map.sourceFormat !== 'ocad'
   let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity

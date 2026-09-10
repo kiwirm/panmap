@@ -10,12 +10,12 @@ import { write as writeMap } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
 import { readOcad, ocadFileToMap } from './helpers/raw.js'
 
-// Byte- and structural round-trip tests for OCD → PanMap → OCD were
+// Byte- and structural round-trip tests for OCD → Panmap → OCD were
 // removed together with the `sourceObject` / `sourceSymbol` sidecar.
-// PanMap is now the only representation; OCAD-specific detail
+// Panmap is now the only representation; OCAD-specific detail
 // (icon rasters, tree groups, structure fills, framing, tab stops, …)
-// does not survive a trip through PanMap and back. What remains is a
-// PanMap-level mutation test: modify the PanMap, write, re-read,
+// does not survive a trip through Panmap and back. What remains is a
+// Panmap-level mutation test: modify the Panmap, write, re-read,
 // verify the mutation stuck.
 
 // One small always-present fixture and one large holed map (corpus-only,

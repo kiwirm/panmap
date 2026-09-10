@@ -1,5 +1,5 @@
 import { DOMParser, type Element as DOMElement } from '@xmldom/xmldom'
-import type PanMap from '../map/model.js'
+import type Panmap from '../map/model.js'
 import lineOffset from '@turf/line-offset'
 import TdPoly from '../formats/ocad/read/td-poly.js'
 import {
@@ -66,13 +66,13 @@ export interface MapSvgRenderSupport {
 }
 
 /**
- * Render a `PanMap` object to SVG.
+ * Render a `Panmap` object to SVG.
  *
  * Simple symbols are rendered directly from source-independent `renderLayers`.
  * More complex normalized maps are handled by shared SVG renderers that can use
  * retained source metadata while the render-layer model grows.
  */
-function mapToSvg(map: PanMap, options: MapToSvgOptions = {}): DOMElement {
+function mapToSvg(map: Panmap, options: MapToSvgOptions = {}): DOMElement {
   // `renderDirectly` already tolerates individual unsupported objects
   // (missing symbols, layers whose type doesn't fit the object, etc. —
   // it just skips them). Gating the whole render on
@@ -107,9 +107,9 @@ function getVisualCoordinateTransform(map) {
 }
 
 /**
- * Reports whether a map can be rendered directly from PanMap render layers.
+ * Reports whether a map can be rendered directly from Panmap render layers.
  */
-function getMapSvgRenderSupport(map: PanMap): MapSvgRenderSupport {
+function getMapSvgRenderSupport(map: Panmap): MapSvgRenderSupport {
   const symbols = getSymbolsById(map)
   const unsupportedByKey: Record<string, UnsupportedRenderReason> = {}
   let supportedObjectCount = 0
@@ -200,7 +200,7 @@ function canRenderObjectLayer(object, layer) {
   }
 }
 
-function renderDirectly(map: PanMap, options: MapToSvgOptions = {}): DOMElement {
+function renderDirectly(map: Panmap, options: MapToSvgOptions = {}): DOMElement {
   const transformCoord = options.coordinateTransform || (coord => coord)
   const bounds = options.bounds || map.getBounds(transformCoord)
   const width = bounds[2] - bounds[0] || 100
@@ -1131,7 +1131,7 @@ function getColor(layer, colors) {
 
 /**
  * A color id can be either a numeric OCAD-style id (>= 0 means "set")
- * or a PanMap string id from a gitmap-remapped Map. Rejects
+ * or a Panmap string id from a gitmap-remapped Map. Rejects
  * null / undefined / negative numbers ("no color"); accepts any
  * non-empty string.
  */

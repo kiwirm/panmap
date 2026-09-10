@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type PanMap from './map/model.js'
+import type Panmap from './map/model.js'
 import writeGitmap from './formats/gitmap/write.js'
 import writeOcad from './formats/ocad/from-map.js'
 import writeOmap from './formats/omap/write.js'
@@ -19,7 +19,7 @@ export interface WriteOptions {
  * see `exportMap`.
  */
 export async function write(
-  map: PanMap,
+  map: Panmap,
   filename: string,
   options: WriteOptions = {}
 ): Promise<void> {

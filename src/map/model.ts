@@ -3,7 +3,7 @@
  *
  * Designed as a superset of the three native formats (ocad, xmap, gitmap)
  * so converting between them is lossless. All content-carrying state has
- * PanMap fields (`view`, `print`, `templates`, `georeferencing`,
+ * Panmap fields (`view`, `print`, `templates`, `georeferencing`,
  * `extensions`, `notes`) and both OCAD and xmap readers/writers use
  * those fields directly. There is no format-specific escape hatch: if a
  * new xmap/ocad element matters, model it here.
@@ -20,7 +20,7 @@ import { crsFromCanonical, type CrsView } from '../util/crs.js'
  *
  * Fields mirror the xmap `<template>` element. OCAD stores templates
  * in parameter string 8 (not currently modelled end-to-end); the
- * PanMap shape is broad enough to hold both.
+ * Panmap shape is broad enough to hold both.
  */
 export interface MapTemplate {
   type?: string
@@ -139,7 +139,7 @@ export interface TextTypography {
  * layer types (defined in `./render-layers.ts`) extend this with
  * their own required / typed fields; the `[key: string]: unknown`
  * index signature lets format-specific extras stash themselves per
- * layer without changing the PanMap schema.
+ * layer without changing the Panmap schema.
  */
 export interface BaseRenderLayer {
   type: string
@@ -288,11 +288,11 @@ const identity: Projection = v => v
  * Canonical, source-independent map representation used by converters.
  *
  * Source-specific parsers normalize into this class. All content is
- * modelled with PanMap fields (`view`, `print`, `templates`,
+ * modelled with Panmap fields (`view`, `print`, `templates`,
  * `georeferencing`, `extensions`, `notes`) — there is no format-specific
  * escape hatch. A new xmap/ocad element that matters gets modelled here.
  */
-export default class PanMap {
+export default class Panmap {
   sourceFormat: string
   sourceFile?: unknown
   metadata: Record<string, unknown>

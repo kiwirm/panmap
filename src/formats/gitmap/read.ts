@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import PanMap from '../../map/model.js'
+import Panmap from '../../map/model.js'
 import { boundsForCoords } from '../../map/coord.js'
 import {
   parseJson, parseNdjson,
@@ -47,7 +47,7 @@ export function bundleSource(
 }
 
 /** Read a gitmap from a directory on disk (the original entry point). */
-async function readGitmap(directory: string): Promise<PanMap> {
+async function readGitmap(directory: string): Promise<Panmap> {
   return readGitmapFrom(directorySource(directory), directory)
 }
 
@@ -58,12 +58,12 @@ async function readGitmap(directory: string): Promise<PanMap> {
  */
 export async function readGitmapBundle(
   files: Record<string, string | Buffer | Uint8Array>,
-): Promise<PanMap> {
+): Promise<Panmap> {
   return readGitmapFrom(bundleSource(files), 'bundle')
 }
 
 /** Core reader, agnostic to where the bytes come from. */
-async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanMap> {
+async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panmap> {
   const manifestText = await source.read('manifest.json')
   if (manifestText == null) {
     throw new Error(`Not a GitMap package: ${label} (missing manifest.json)`)
@@ -92,7 +92,7 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanM
     symbols.map(symbol => [symbol.id, symbol.id]),
   )
 
-  return new PanMap({
+  return new Panmap({
     sourceFormat: 'gitmap',
     sourceFile: { directory: label, manifest },
     metadata: { gitmap: manifest },
@@ -110,13 +110,13 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<PanM
       ? manifest.extensions
       : {},
     notes: typeof manifest.notes === 'string' ? manifest.notes : '',
-    view: view as PanMap['view'] | undefined,
-    print: print as PanMap['print'] | undefined,
+    view: view as Panmap['view'] | undefined,
+    print: print as Panmap['print'] | undefined,
     templates: manifest.templates && typeof manifest.templates === 'object'
-      ? manifest.templates as PanMap['templates']
+      ? manifest.templates as Panmap['templates']
       : undefined,
     georeferencing: manifest.georeferencing && typeof manifest.georeferencing === 'object'
-      ? manifest.georeferencing as PanMap['georeferencing']
+      ? manifest.georeferencing as Panmap['georeferencing']
       : undefined,
   })
 }

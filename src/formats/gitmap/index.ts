@@ -1,6 +1,6 @@
 /**
- * Gitmap format namespace: `read` (directory → PanMap) and `write`
- * (PanMap → directory), symmetric with ocad and omap.
+ * Gitmap format namespace: `read` (directory → Panmap) and `write`
+ * (Panmap → directory), symmetric with ocad and omap.
  */
 
 export { default as read } from './read.js'

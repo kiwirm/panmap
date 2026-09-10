@@ -4,7 +4,7 @@ import { write, type WriteOptions } from './write.js'
 /**
  * Lossless conversion between native formats (ocad, xmap/omap, gitmap).
  *
- * Reads the input into the PanMap model and writes it back out in
+ * Reads the input into the Panmap model and writes it back out in
  * the requested native format. Canonical fields (`view`, `print`,
  * `templates`, `georeferencing`, `extensions`, `notes`) round-trip
  * across every format.

@@ -5,7 +5,7 @@ import type { MapColor } from '../map/model.js'
  * slot is what OCAD / xmap store on disk: prefer `sourceId` (round-trip
  * from the original file), fall back to a numeric `id`, and finally to
  * render order so downstream numeric channels stay stable when the
- * PanMap came from a source without numeric ids (e.g. gitmap).
+ * Panmap came from a source without numeric ids (e.g. gitmap).
  *
  * Each format wraps this with its own "missing color" sentinel via
  * `colorNumberLookup` (0 for OCAD) or `colorRefLookup` (-1 for xmap).

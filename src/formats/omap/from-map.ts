@@ -1,5 +1,5 @@
 /**
- * XMap converter — `PanMap` symbols/objects → intermediate
+ * XMap converter — `Panmap` symbols/objects → intermediate
  * XMap record shapes (`OmapSymbol`, `OmapAreaPattern`, …).
  *
  * The XML emission itself lives in `write.ts`. This file only builds
@@ -31,7 +31,7 @@ import { pickMainStroke, strokeVisible } from '../../util/stroke-classifier.js'
 import { decodeLineStyle as decodeLineStyleForXmap } from '../../util/line-style-codec.js'
 
 /** XMap symbol shape accepted by `xmapSymbolToXml`. Wider than
- *  `OmapSymbol` because the PanMap → xmap adapter may produce
+ *  `OmapSymbol` because the Panmap → xmap adapter may produce
  *  records with a few optional fields the strict interface omits. */
 export type RawOmapSymbol = OmapSymbol | (Partial<OmapSymbol> & {
   id?: number
@@ -104,7 +104,7 @@ function toOmapSymbol(
   //   part 2: the fill/frame line (colored, wider) with optional
   //           `<borders>` for the left/right border colors and widths.
   // Trigger the split whenever either the double-line has a real fill
-  // color or the PanMap carries a `frame: true` stroke (surfaced
+  // color or the Panmap carries a `frame: true` stroke (surfaced
   // by the OCD reader from OCAD's fr* fields). A doubleLine with no
   // fill AND no frame collapses to a plain `<line_symbol>` — otherwise
   // an all-zero fill stroke adds a phantom color slot.
@@ -452,7 +452,7 @@ function buildXmapLineSymbol(
 
 /**
  * Reconstruct xmap `<borders>` from either the stroke's `borders` field
- * (xmap-native PanMap) or an OCD-sourced `double-line` layer. The two
+ * (xmap-native Panmap) or an OCD-sourced `double-line` layer. The two
  * shapes carry the same information; the emitter needs xmap's shape:
  *   borders[0] = left, borders[1] = right, each { color, width, shift }
  */
@@ -645,7 +645,7 @@ function buildXmapAreaSymbol(
 }
 
 /**
- * Read the PanMap rotatable flag. Both readers (`ocad/to-map.ts` and
+ * Read the Panmap rotatable flag. Both readers (`ocad/to-map.ts` and
  * `xmap/to-map.ts`) surface the bit here, so consumers no longer need
  * to walk `native.*.raw` records — that's what let the writer's raw
  * passthrough retire.

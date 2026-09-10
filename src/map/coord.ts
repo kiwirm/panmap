@@ -1,5 +1,5 @@
 /**
- * Shared helpers for coordinate arrays. Coordinates in the PanMap model
+ * Shared helpers for coordinate arrays. Coordinates in the Panmap model
  * are `[x, y]` tuples that may carry any of these optional flags:
  *
  *   - `xFlags` / `yFlags` — raw OCAD bit fields (see td-poly.ts).

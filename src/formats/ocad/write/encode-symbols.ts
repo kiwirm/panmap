@@ -9,7 +9,7 @@ export interface SymbolRecord {
 
 /**
  * Writes symbol records back-to-back at the current offset, each via the
- * field-level encoder (symbols are always synthesized from PanMap fields).
+ * field-level encoder (symbols are always synthesized from Panmap fields).
  *
  * Returns the file offset of each emitted symbol record, in input order.
  * Records that fail to encode get an offset of 0.

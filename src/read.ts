@@ -4,13 +4,13 @@ import { parseOmap, readOmapFile } from './formats/omap/read.js'
 import ocadFileToMap from './formats/ocad/to-map.js'
 import omapFileToMap from './formats/omap/to-map.js'
 import readGitmap from './formats/gitmap/read.js'
-import type PanMap from './map/model.js'
+import type Panmap from './map/model.js'
 import type { ReadOcadOptions } from './formats/ocad/read/index.js'
 
 export type ReadInput = string | Buffer
 
 /**
- * Reads any supported map file into the PanMap model.
+ * Reads any supported map file into the Panmap model.
  *
  * Format is detected by buffer/string sniff (XML prelude → omap), then file
  * extension (.gitmap → gitmap, .xmap/.omap → omap, else → OCAD).
@@ -18,7 +18,7 @@ export type ReadInput = string | Buffer
 export async function read(
   input: ReadInput,
   options?: ReadOcadOptions
-): Promise<PanMap> {
+): Promise<Panmap> {
   if (looksLikeXml(input)) return omapFileToMap(parseOmap(input))
 
   if (typeof input === 'string') {

@@ -1428,7 +1428,7 @@ function elementToGitmap(colorIds: Map<string | number, string>, element) {
     // XMap-style element.symbol carries a full nested symbol tree
     // (areaSymbol / lineSymbol / pointSymbol) with its own color
     // references — recurse via remapColors, not toJsonSafe, so those
-    // integer ids get lifted to the PanMap string ids.
+    // integer ids get lifted to the Panmap string ids.
     output[key] = remapColors(toJsonSafe(value), colorIds)
   })
   return output

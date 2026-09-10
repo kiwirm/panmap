@@ -1,4 +1,4 @@
-import type PanMap from '../../../map/model.js'
+import type Panmap from '../../../map/model.js'
 import OcadFile from '../read/ocad-file.js'
 import FileHeader, { type OcadVersion } from '../read/file-header.js'
 import { synthesizeSymbols } from './symbols.js'
@@ -11,15 +11,15 @@ export interface SynthesizeOptions {
 }
 
 /**
- * Build a fresh `OcadFile` in memory from a `PanMap`.
+ * Build a fresh `OcadFile` in memory from a `Panmap`.
  *
  * OCAD is always written from scratch — header + symbols + objects +
- * parameter strings are synthesized here from the PanMap fields,
+ * parameter strings are synthesized here from the Panmap fields,
  * regardless of the map's source format. There is no byte-preservation
- * path; whatever PanMap doesn't model isn't reproduced.
+ * path; whatever Panmap doesn't model isn't reproduced.
  */
 export function synthesizeOcadFile(
-  map: PanMap,
+  map: Panmap,
   options: SynthesizeOptions = {},
 ): OcadFile {
   // Preserve the source header when the map came from OCAD — Mapper
@@ -67,8 +67,8 @@ export function synthesizeOcadFile(
 }
 
 function hoistTextAlignmentIntoSymbols(
-  symbols: PanMap['symbols'],
-  objects: PanMap['objects'],
+  symbols: Panmap['symbols'],
+  objects: Panmap['objects'],
 ) {
   const byId = new Map<string | number, {h?: number; v?: number}>()
   for (const o of objects) {

@@ -4,7 +4,7 @@
  *
  * OCAD's coordinate origin is bottom-left (Y increases upward). OMap/xmap,
  * gitmap and the SVG/GeoJSON exporters use screen space (top-left origin, Y
- * increases downward). The in-memory PanMap keeps whichever orientation its
+ * increases downward). The in-memory Panmap keeps whichever orientation its
  * SOURCE format used; any conversion to a target format negates Y iff the two
  * disagree.
  *

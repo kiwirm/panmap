@@ -5,7 +5,7 @@ const defaultOptions = {
 export default transformFeatures
 
 /**
- * Translate a PanMap into feature objects using the caller's
+ * Translate a Panmap into feature objects using the caller's
  * `createObjects` visitor.
  *
  * Historically this file also emitted per-symbol decoration features

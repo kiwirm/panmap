@@ -1,4 +1,4 @@
-import PanMap, {
+import Panmap, {
   type MapColor,
   type MapObject,
   type MapSymbol,
@@ -22,7 +22,7 @@ export interface DiffMapsOptions {
 }
 
 type DiffKind = 'removed' | 'added' | 'unchanged'
-type CoordinateTransform = (coord: number[], object: MapObject, map: PanMap) => number[]
+type CoordinateTransform = (coord: number[], object: MapObject, map: Panmap) => number[]
 type ResolvedDiffMapsOptions = Required<
   Omit<
     DiffMapsOptions,
@@ -57,7 +57,7 @@ const defaultOptions = {
 }
 
 /**
- * Compare two PanMaps and return a PanMap diff.
+ * Compare two Panmaps and return a Panmap diff.
  *
  * Removed geometry is red and added geometry is green by default. Changed
  * objects are represented as removed old geometry plus added new geometry.
@@ -65,10 +65,10 @@ const defaultOptions = {
  * shared sections are omitted.
  */
 function diffMaps(
-  before: PanMap,
-  after: PanMap,
+  before: Panmap,
+  after: Panmap,
   options: DiffMapsOptions = {}
-): PanMap {
+): Panmap {
   const opts = { ...defaultOptions, ...options }
   const beforeSymbols = symbolsById(before)
   const afterSymbols = symbolsById(after)
@@ -181,7 +181,7 @@ function diffMaps(
     }
   }
 
-  return new PanMap({
+  return new Panmap({
     sourceFormat: 'diff',
     sourceFile: { before, after },
     metadata: {
@@ -198,8 +198,8 @@ function diffMaps(
 }
 
 function diffMapsToSvg(
-  before: PanMap,
-  after: PanMap,
+  before: Panmap,
+  after: Panmap,
   options?: DiffMapsOptions
 ): unknown {
   return mapToSvg(diffMaps(before, after, options))
@@ -240,7 +240,7 @@ function cancelIdenticalLines(
 
 function transformObjects(
   objects: MapObject[],
-  map: PanMap,
+  map: Panmap,
   transform?: CoordinateTransform
 ): MapObject[] {
   if (!transform) return objects
@@ -395,7 +395,7 @@ function diffSymbol(
   }
 }
 
-function symbolsById(map: PanMap): Record<number | string, MapSymbol> {
+function symbolsById(map: Panmap): Record<number | string, MapSymbol> {
   return map.symbols.reduce<Record<number | string, MapSymbol>>(
     (symbols, symbol) => {
       symbols[symbol.id] = symbol

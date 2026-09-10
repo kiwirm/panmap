@@ -1,7 +1,7 @@
 # panmap
 
 Read OCAD/OCD and OpenOrienteering Mapper OMap/XMap map files into a shared
-PanMap model, then export that model to GeoJSON, SVG, GitMap, or visual map
+Panmap model, then export that model to GeoJSON, SVG, GitMap, or visual map
 diffs.
 
 Supported inputs: OCAD 10, 11, 12, 2018 and OMap/XMap XML v9.
@@ -30,8 +30,8 @@ import {
 Top-level:
 
 - `read(input, options?)` — parse an OCAD, OMap/XMap, or GitMap package into
-  a `PanMap`. `input` is a file path, `Buffer`, or XML string.
-- `write(map, path, options?)` — write a `PanMap` to a native format
+  a `Panmap`. `input` is a file path, `Buffer`, or XML string.
+- `write(map, path, options?)` — write a `Panmap` to a native format
   (`ocd` / `omap` / `xmap` / `gitmap` — chosen by extension or `options.format`).
 - `convert(input, path, options?)` — read + write in one call (lossless
   conversion between native formats).
@@ -42,17 +42,17 @@ Top-level:
 - `diffMapsToSvg(before, after, options?)` — compare two maps and render the
   diff as SVG.
 - `getMapSvgRenderSupport(map)` — reports whether every object can be
-  rendered directly from PanMap render layers.
+  rendered directly from Panmap render layers.
 
 Per-format namespaces expose a symmetric `read` / `write` pair:
 
-- `ocad.read(input, options?)` → `PanMap` / `ocad.write(map, path)` → OCAD binary
-- `omap.read(input)` → `PanMap` / `omap.write(map, path)` → OMap/XMap XML
-- `gitmap.read(directory)` → `PanMap` / `gitmap.write(map, directory)` → package
+- `ocad.read(input, options?)` → `Panmap` / `ocad.write(map, path)` → OCAD binary
+- `omap.read(input)` → `Panmap` / `omap.write(map, path)` → OMap/XMap XML
+- `gitmap.read(directory)` → `Panmap` / `gitmap.write(map, directory)` → package
 
-The low-level per-format stages (parse-to-native, native-to-`PanMap`) are
+The low-level per-format stages (parse-to-native, native-to-`Panmap`) are
 internal; import them from `src/formats/<format>/` directly if you need to work
-below the `PanMap` model.
+below the `Panmap` model.
 
 ## GitMap
 

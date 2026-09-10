@@ -85,7 +85,7 @@ export default mapToGeoJson
  */
 
 /**
- * Given a `PanMap` object, returns a GeoJSON `FeatureCollection`.
+ * Given a `Panmap` object, returns a GeoJSON `FeatureCollection`.
  *
  * @param {import("./map")} map
  * @param {MapToGeoJsonOptions=} options
@@ -310,7 +310,7 @@ const coordinatesToRings = coordinates => {
 
 
 /**
- * GeoJSON properties for a map object. PanMap fields only —
+ * GeoJSON properties for a map object. Panmap fields only —
  * OCAD-specific aliases (`sym`/`otp`/`col`/…) are no longer emitted
  * now that the source-format sidecar is gone.
  *

@@ -22,7 +22,7 @@ export async function readOmap(input) {
   throw new Error('Unsupported xmap input type')
 }
 
-/** Serialise a canonical PanMap to an XMap XML string via a tmp file. */
+/** Serialise a canonical Panmap to an XMap XML string via a tmp file. */
 export async function mapToOmapXml(map) {
   const tmp = path.join(
     os.tmpdir(),

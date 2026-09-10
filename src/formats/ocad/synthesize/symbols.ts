@@ -72,7 +72,7 @@ export function synthesizeSymbols(
   // for the border, emit a matching line symbol, and hand the id
   // back to `synthesizeSymbol` so the area body can reference it.
   // Reserve a synthetic symNum range for border helpers, but skip
-  // any values that collide with a PanMap symbol's synNum (e.g.
+  // any values that collide with a Panmap symbol's synNum (e.g.
   // hillmorton's "Text 36 pt" symbol has code "900" → 900000, which
   // would clash with our old default border base of 900000).
   const usedSymNums = new Set(symbols.map(symNumFor))
@@ -187,7 +187,7 @@ function synthesizeSymbol(
 ): SynthesizedOcadSymbol | null {
   const symNum = forcedSymNum
     ?? parseSymbolCode(symbol.code || String(symbol.sourceId ?? symbol.id))
-  // xmap's PanMap converter flattens `combined` symbols' component
+  // xmap's Panmap converter flattens `combined` symbols' component
   // renderLayers into a single symbol; the composite type in OCAD is
   // whichever primitive geometry the layers describe. Infer that from
   // the flattened layer types.
@@ -301,7 +301,7 @@ function computeExtent(
 }
 
 /**
- * Pick the OCAD symbol type for a PanMap symbol whose declared
+ * Pick the OCAD symbol type for a Panmap symbol whose declared
  * type is `combined`. Preference order matches how Mapper's UI treats
  * these: fill / hatch means area (line is auxiliary border), then
  * stroke means line, then point primitives, then text.
@@ -368,7 +368,7 @@ function commonHeader(
 }
 
 /**
- * Detect whether a PanMap symbol is rotatable. xmap stores this
+ * Detect whether a Panmap symbol is rotatable. xmap stores this
  * flag on point/text sub-symbols; here we look for it on any layer
  * that carries a `pointSymbol` or `textSymbol` payload. Text-symbol
  * rotatable state comes from `symbol.textSymbol.rotatable`.

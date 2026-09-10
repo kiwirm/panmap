@@ -9,7 +9,7 @@ export function textBody(symbol: MapSymbol, colorNumber: ColorNumber) {
   const text = (textLayer?.text as Record<string, unknown> | undefined) ?? {}
   // OCAD-only text extras — framing (`fr*`), line-below (`lb*`), tab
   // stops, paragraph indentation, embedded point symbols — are not
-  // represented in PanMap and therefore not recoverable here. Emit
+  // represented in Panmap and therefore not recoverable here. Emit
   // zero/empty defaults; visually the text still renders but framing
   // and tab-stop layout are lost.
   //

@@ -11,7 +11,7 @@ const MAP_UNITS_TO_M = 1 / 100_000
  * fields that the OCAD-shape `Crs` class exposed, plus the two
  * transformation methods used by consumers (geojson export, cli info).
  *
- * Constructed via `crsFromCanonical` from any georeferenced `PanMap`,
+ * Constructed via `crsFromCanonical` from any georeferenced `Panmap`,
  * regardless of source format.
  */
 export class CrsView {

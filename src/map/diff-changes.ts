@@ -1,5 +1,5 @@
 import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
-import PanMap, { type MapColor, type MapObject, type MapSymbol } from './model.js'
+import Panmap, { type MapColor, type MapObject, type MapSymbol } from './model.js'
 import diffMaps, { type DiffMapsOptions , DIFF_OUTLINE_WIDTH, recolorSymbol } from './diff.js'
 import mapToSvg from '../export/svg.js'
 
@@ -98,8 +98,8 @@ interface Feature {
  * a change's bounds directly onto the rendered image.
  */
 export function diffChanges(
-  before: PanMap,
-  after: PanMap,
+  before: Panmap,
+  after: Panmap,
   options: DiffMapsOptions = {},
   changeOptions: DiffChangesOptions = {},
 ): DiffChangesResult {
@@ -307,16 +307,16 @@ export function diffChanges(
       // Added/removed → full symbology recoloured green/red. Modified →
       // the unchanged part of the feature in yellow with the changed part
       // in red (removed) / green (added), so you can see WHAT changed.
-      let mini: PanMap
+      let mini: Panmap
       if (change.kind === 'modified') {
         const { objects, symbols } = modifiedRenderObjects(feats, true)
-        mini = new PanMap({
+        mini = new Panmap({
           sourceFormat: 'diff', georeferencing,
           colors: modColors, symbols: [...modSymbols, ...symbols],
           objects, warnings: [],
         })
       } else {
-        mini = new PanMap({
+        mini = new Panmap({
           sourceFormat: 'diff', georeferencing,
           colors: diffMap.colors, symbols: diffMap.symbols,
           objects: feats.flatMap(f => f.objects), warnings: [],
@@ -344,7 +344,7 @@ export function diffChanges(
           overallObjects.push(...feats.flatMap(f => f.objects))
         }
       }
-      const overallMap = new PanMap({
+      const overallMap = new Panmap({
         sourceFormat: 'diff', georeferencing,
         colors: modColors, symbols: [...modSymbols, ...overallExtraSymbols],
         objects: overallObjects, warnings: [],
@@ -757,7 +757,7 @@ function pointToSegmentDist(
   return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy))
 }
 
-function symbolsById(map: PanMap): Record<string | number, MapSymbol> {
+function symbolsById(map: Panmap): Record<string | number, MapSymbol> {
   const out: Record<string | number, MapSymbol> = {}
   for (const s of map.symbols) out[s.id] = s
   return out

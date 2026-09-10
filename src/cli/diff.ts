@@ -10,7 +10,7 @@ interface DiffCmdOptions {
 /**
  * Render a visual SVG diff between two map files.
  *
- * Uses panmap's `diff()` to produce a PanMap diff (removed
+ * Uses panmap's `diff()` to produce a Panmap diff (removed
  * geometry in red, added in green) then feeds that through the same
  * SVG exporter as normal maps.
  *

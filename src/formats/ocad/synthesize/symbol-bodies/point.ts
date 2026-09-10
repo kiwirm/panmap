@@ -22,12 +22,12 @@ export function pointBody(
 }
 
 /**
- * Translate PanMap point render-layers into OCAD point-symbol
+ * Translate Panmap point render-layers into OCAD point-symbol
  * elements. Element types come from `symbol-element-types.ts`:
  *   1 Line, 2 Area, 3 Circle, 4 Dot.
  *
  * `diameter` and `lineWidth` are in OCAD's 0.01 mm units (same as
- * PanMap). Point elements always position themselves relative to
+ * Panmap). Point elements always position themselves relative to
  * the symbol origin (0, 0), so we don't emit real coords for
  * fill/stroke primitives — just a single `(0, 0)` anchor.
  */

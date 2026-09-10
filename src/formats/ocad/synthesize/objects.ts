@@ -152,7 +152,7 @@ interface FlatCoord {
   yFlags: number
 }
 
-/** Convert PanMap coord tuples into the {x,y,xFlags,yFlags} shape the
+/** Convert Panmap coord tuples into the {x,y,xFlags,yFlags} shape the
  *  writer's `writeCoord` uses. `flipY` negates y for non-OCAD sources
  *  (paper Y-down → OCAD Y-up).
  *
@@ -166,7 +166,7 @@ interface FlatCoord {
  *  Mapper's own ocd_file_import.cpp says exactly this: "hole points
  *  need to be set as the last point of a part of an area object
  *  instead of the first point of the next part". Since we're going the
- *  other way (PanMap → OCAD), we shift the flag forward by one:
+ *  other way (Panmap → OCAD), we shift the flag forward by one:
  *  coord[i] carrying the flag emits coord[i]-without-flag, and the
  *  flag is applied to coord[i+1] instead. Without this shift Mapper
  *  triangulates holes against the outer ring's edges and paints thin

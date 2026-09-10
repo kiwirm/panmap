@@ -1,5 +1,5 @@
 /**
- * XMap XML emitter — `PanMap` → XML string.
+ * XMap XML emitter — `Panmap` → XML string.
  *
  * The write path splits into two files: `from-map.ts` converts a
  * `MapSymbol` / `MapObject` into an intermediate XMap
@@ -10,7 +10,7 @@
 import fs from 'node:fs/promises'
 import { XMLBuilder } from 'fast-xml-parser'
 import { ATTR_PREFIX, MAP_UNIT_SCALE } from './schema.js'
-import type PanMap from '../../map/model.js'
+import type Panmap from '../../map/model.js'
 import type {
   MapColor,
   MapCrs,
@@ -58,11 +58,11 @@ const extrasBuilder = new XMLBuilder({
   suppressBooleanAttributes: false,
 })
 
-async function writeOmap(map: PanMap, filename: string): Promise<void> {
+async function writeOmap(map: Panmap, filename: string): Promise<void> {
   await fs.writeFile(filename, mapToOmapXml(map), 'utf-8')
 }
 
-function mapToOmapXml(map: PanMap): string {
+function mapToOmapXml(map: Panmap): string {
   const colorIds = colorIdMap(map.colors.filter(Boolean))
   const symbolIds = symbolIdMap(map.symbols)
   // Objects reference symbols by string id, but OMAP requires unique
@@ -309,7 +309,7 @@ function colorsToXml(colors: MapColor[], colorIds: Map<string | number, number>)
       .sort((a, b) => (a.renderOrder ?? 0) - (b.renderOrder ?? 0))
       .map(color => {
         const rgb = parseRgb(color.rgb)
-        // Use PanMap cmyk when present (both OCAD and XMap sources carry
+        // Use Panmap cmyk when present (both OCAD and XMap sources carry
         // it); fall back to recomputing from RGB only when absent.
         const cmyk = color.cmyk
           ? { c: color.cmyk[0], m: color.cmyk[1], y: color.cmyk[2], k: color.cmyk[3] }

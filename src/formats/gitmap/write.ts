@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type PanMap from '../../map/model.js'
+import type Panmap from '../../map/model.js'
 import {
   toGitmapColor,
   toGitmapObject,
@@ -16,7 +16,7 @@ interface WriteGitmapOptions {
 }
 
 async function writeGitmap(
-  map: PanMap,
+  map: Panmap,
   directory: string,
   options: WriteGitmapOptions = {}
 ): Promise<void> {

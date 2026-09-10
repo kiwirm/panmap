@@ -1,4 +1,4 @@
-import PanMap from '../../map/model.js'
+import Panmap from '../../map/model.js'
 import type {
   MapCrs,
   MapCrsGeographic,
@@ -25,9 +25,9 @@ import type {
 
 /**
  * Converts a parsed OpenOrienteering Mapper XMap/OMap document into the
- * PanMap model.
+ * Panmap model.
  */
-function omapFileToMap(xmapFile: OmapFile): PanMap {
+function omapFileToMap(xmapFile: OmapFile): Panmap {
   const symbolsById = xmapFile.symbols.reduce((symbols, symbol) => {
     symbols[symbol.id] = symbol
     return symbols
@@ -40,7 +40,7 @@ function omapFileToMap(xmapFile: OmapFile): PanMap {
   const templates = extractTemplates(xmapFile.extras?.templates)
   const georeferencing = extractGeoreferencing(xmapFile.extras?.georeferencing)
 
-  return new PanMap({
+  return new Panmap({
     sourceFormat: 'xmap',
     sourceFile: xmapFile,
     metadata: {},
@@ -66,7 +66,7 @@ function omapFileToMap(xmapFile: OmapFile): PanMap {
  * flags stay lossy until we model them.
  *
  * Xmap stores `position_x`/`position_y` in µm (1/1000 mm) and its Y
- * axis is paper-down; the PanMap `MapView.center` is in mm using
+ * axis is paper-down; the Panmap `MapView.center` is in mm using
  * OCAD's y-up frame, so flip Y here.
  */
 function extractView(raw: unknown): MapView | undefined {
@@ -347,7 +347,7 @@ function toMapSymbol(symbol: OmapSymbol, symbolsById: Record<number, OmapSymbol>
   // Rotatable is an outer-element attribute in xmap (`<point_symbol
   // rotatable="true">` / `<text_symbol rotatable="true">`) but doesn't
   // survive the render-layer flatten cleanly — expose it as a top-level
-  // PanMap field so `isRotatable` in synth doesn't need to walk
+  // Panmap field so `isRotatable` in synth doesn't need to walk
   // `native.xmap.raw`.
   const rotatable = !!(
     symbol.pointSymbol?.rotatable
@@ -508,7 +508,7 @@ function symbolToRenderLayers(
             colorId: pattern.color,
             spacing: pattern.lineSpacing,
             lineWidth: pattern.lineWidth,
-            // XMap stores pattern angles in radians; the PanMap
+            // XMap stores pattern angles in radians; the Panmap
             // model uses degrees (matches OCAD's `hatchAngle / 10`)
             // so the SVG exporter can pass the value straight to
             // SVG `rotate()`.

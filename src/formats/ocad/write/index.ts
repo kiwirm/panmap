@@ -24,7 +24,7 @@ import type OcadFile from '../read/ocad-file.js'
  * Currently targets OCAD versions 12 and 2018 (`header.version` of 12 or
  * 2018). The layout is reconstructed from scratch — header is rewritten
  * with fresh index-block offsets, and symbol/object/string records are
- * field-encoded from the PanMap-synthesized `OcadFile`.
+ * field-encoded from the Panmap-synthesized `OcadFile`.
  *
  * Layout:
  *

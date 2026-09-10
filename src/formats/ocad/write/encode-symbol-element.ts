@@ -4,7 +4,7 @@ import { packOcadOrdinate } from '../codecs/index.js'
 /**
  * On-disk OCAD symbol-element record. Shared by the writer (this file
  * consumes it), the synth path (`synthesize-symbols.ts` builds it),
- * and the reader (`to-map.ts` translates it into PanMap render
+ * and the reader (`to-map.ts` translates it into Panmap render
  * layers). Element `type` is one of `LineElementType` /
  * `AreaElementType` / `CircleElementType` / `DotElementType`
  * (see `../read/symbol-element-types.ts`).

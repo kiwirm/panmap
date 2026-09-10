@@ -12,11 +12,11 @@
  *   - diff(a, b, options?)            → DiffMaps
  *
  * Per-format namespaces (`ocad`, `omap`, `gitmap`) expose the raw native
- * readers and writers for callers that need to work below the PanMap
+ * readers and writers for callers that need to work below the Panmap
  * model.
  */
 
-import PanMap from './map/model.js'
+import Panmap from './map/model.js'
 
 import * as ocad from './formats/ocad/index.js'
 import * as omap from './formats/omap/index.js'
@@ -52,7 +52,7 @@ export {
   type DiffMapsOptions,
 } from './map/diff.js'
 
-export { PanMap, PanMap as Map }
+export { Panmap, Panmap as Map }
 export type {
   MapColor,
   MapObject,

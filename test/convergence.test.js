@@ -102,7 +102,7 @@ function discover() {
   return out
 }
 
-// Convert a PanMap → { colors, objects, symbols } as three ndjson strings.
+// Convert a Panmap → { colors, objects, symbols } as three ndjson strings.
 // Uses the real gitmap writer so what we compare is exactly what would
 // hit disk. Temp dir is cleaned in a finally block.
 async function toCanonicalGitmap(map) {

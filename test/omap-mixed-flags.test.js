@@ -7,7 +7,7 @@
 // the source flags of each coord individually.
 
 import test from 'ava'
-import PanMap from '../src/map/model.ts'
+import Panmap from '../src/map/model.ts'
 import { mapToOmapXml } from "./helpers/omap.js"
 
 function makeCoord(x, y, extras) {
@@ -34,7 +34,7 @@ function extractCoordFlags(xml) {
 }
 
 function synthMap(coordinates) {
-  return new PanMap({
+  return new Panmap({
     sourceFormat: 'test',
     colors: [{ id: 0, sourceId: 0, name: 'black', rgb: 'rgb(0,0,0)', renderOrder: 0 }],
     symbols: [
