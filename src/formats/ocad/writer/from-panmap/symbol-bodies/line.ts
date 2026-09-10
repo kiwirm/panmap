@@ -1,7 +1,7 @@
 import type { MapSymbol } from '../../../../../map/model.js'
 import { classifyLineLayers } from '../../../../../map/render-layers.js'
 import type { StrokeLayer , DoubleLineLayer } from '../../../../../map/render-layers.js'
-import { encodeLineStyle } from '../../../../../map/line-style-codec.js'
+import { encodeLineStyle } from '../../../../codecs/line-style.js'
 import {
   strokeColorValid, pickMainStroke, mainStrokeVisible,
 } from '../../../../../map/stroke-classifier.js'

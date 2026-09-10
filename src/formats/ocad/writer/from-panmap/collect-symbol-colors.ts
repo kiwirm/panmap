@@ -1,4 +1,4 @@
-import type { MapSymbol } from './model.js'
+import type { MapSymbol } from '../../../../map/model.js'
 
 /**
  * Every OCAD symbol carries a fixed-length color set (14 slots) plus a

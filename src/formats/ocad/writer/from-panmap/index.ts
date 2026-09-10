@@ -4,7 +4,7 @@ import FileHeader, { type OcadVersion } from '../../native/file-header.js'
 import { synthesizeSymbols } from './symbols.js'
 import { synthesizeParameterStrings } from './strings.js'
 import { synthesizeObjects } from './objects.js'
-import { assignSymNums } from '../../../../map/assign-sym-nums.js'
+import { assignSymNums } from './assign-sym-nums.js'
 
 export interface SynthesizeOptions {
   version?: OcadVersion

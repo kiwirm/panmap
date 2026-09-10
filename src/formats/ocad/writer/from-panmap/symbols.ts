@@ -3,7 +3,7 @@ import { classifyAreaLayers , isPatternLayer } from '../../../../map/render-laye
 import { parseSymbolCode } from '../../../../map/symbol-code.js'
 import { colorNumberLookup } from '../../../../map/color.js'
 import { strokeColorValid } from '../../../../map/stroke-classifier.js'
-import { collectSymbolColors } from '../../../../map/collect-symbol-colors.js'
+import { collectSymbolColors } from './collect-symbol-colors.js'
 import {
   PointSymbolType,
   LineSymbolType,

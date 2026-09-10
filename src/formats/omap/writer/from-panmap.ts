@@ -28,7 +28,7 @@ import { coordX, coordY, coordFlags } from '../../../map/coord.js'
 import type { Coord } from '../../../map/coord.js'
 import { buildColorIdMap, colorRefLookup } from '../../../map/color.js'
 import { pickMainStroke, strokeVisible } from '../../../map/stroke-classifier.js'
-import { decodeLineStyle as decodeLineStyleForXmap } from '../../../map/line-style-codec.js'
+import { decodeLineStyle as decodeLineStyleForXmap } from '../../codecs/line-style.js'
 
 /** XMap symbol shape accepted by `xmapSymbolToXml`. Wider than
  *  `OmapSymbol` because the Panmap → xmap adapter may produce
