@@ -8,8 +8,14 @@ import {
   CircleElementType,
   DotElementType,
 } from '../../formats/ocad/native/symbol-element-types.js'
-import { isFirstHolePoint, LINE_ELEMENT_LAYER_KEYS } from '../../panmap/coord.js'
-import { escapeXmlAttr as attrEscape, escapeXmlText as textEscape } from '../../util/xml.js'
+import {
+  isFirstHolePoint,
+  LINE_ELEMENT_LAYER_KEYS,
+} from '../../panmap/coord.js'
+import {
+  escapeXmlAttr as attrEscape,
+  escapeXmlText as textEscape,
+} from '../../util/xml.js'
 import {
   coordsToPath,
   buildPathSampler,
@@ -41,7 +47,6 @@ export interface MapToSvgOptions {
   backgroundColor?: string
   fromColor?: number
   toColor?: number
-  document?: unknown
   // Override the SVG viewBox / width / height. Useful when rendering
   // a diff and overlaying it on the full "after" render — without
   // this override the diff's viewBox shrinks to just the changed
@@ -143,7 +148,9 @@ function getUnsupportedReasons(object, symbol) {
       reasons.push(`unsupported layer ${layer.type}`)
     }
     if (!canRenderObjectLayer(object, layer)) {
-      reasons.push(`layer ${layer.type} does not render object type ${object.type}`)
+      reasons.push(
+        `layer ${layer.type} does not render object type ${object.type}`,
+      )
     }
   })
 
@@ -182,7 +189,10 @@ function canRenderObjectLayer(object, layer) {
   }
 }
 
-function renderDirectly(map: Panmap, options: MapToSvgOptions = {}): DOMElement {
+function renderDirectly(
+  map: Panmap,
+  options: MapToSvgOptions = {},
+): DOMElement {
   const transformCoord = options.coordinateTransform || (coord => coord)
   const bounds = options.bounds || map.getBounds(transformCoord)
   const width = bounds[2] - bounds[0] || 100
@@ -206,7 +216,7 @@ function renderDirectly(map: Panmap, options: MapToSvgOptions = {}): DOMElement 
         defs,
         patternId++,
         transformCoord,
-        symbols
+        symbols,
       )
       renderedLayerEntries(rendered, layer, colors).forEach(entry => {
         nodes.push({
@@ -221,12 +231,12 @@ function renderDirectly(map: Panmap, options: MapToSvgOptions = {}): DOMElement 
     .filter(
       node =>
         (options.fromColor == null || node.order >= options.fromColor) &&
-        (options.toColor == null || node.order <= options.toColor)
+        (options.toColor == null || node.order <= options.toColor),
     )
     .sort((a, b) => b.order - a.order || a.sequence - b.sequence)
   const background = options.backgroundColor
     ? `<rect x="${bounds[0]}" y="${bounds[1]}" width="${width}" height="${height}" fill="${escapeAttr(
-        options.backgroundColor
+        options.backgroundColor,
       )}" />`
     : ''
 
@@ -244,7 +254,10 @@ function renderDirectly(map: Panmap, options: MapToSvgOptions = {}): DOMElement 
   const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" fill="transparent" viewBox="${bounds[0]} ${bounds[1]} ${width} ${height}" width="${displayWidth}" height="${displayHeight}"><defs>${defs.join('')}</defs><g>${background}${renderedNodes
     .map(({ node }) => node)
     .join('')}</g></svg>`
-  const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement
+  const parsed = new DOMParser().parseFromString(
+    svg,
+    'image/svg+xml',
+  ).documentElement
   if (!parsed) throw new Error('SVG parse produced no document element')
   return parsed
 }
@@ -256,7 +269,7 @@ function objectLayerToSvg(
   defs,
   patternIndex,
   transform,
-  symbols = {}
+  symbols = {},
 ) {
   switch (object.type) {
     case 'line': {
@@ -277,13 +290,15 @@ function objectLayerToSvg(
       const hasMainColor = isValidColorId(layer.colorId)
       const dashArray = dashToSvg(layer.dash)
       const d = coordsToPath(object.coordinates, transform)
-      const mainNode = hasMainColor ? `<path d="${d}" stroke="${escapeAttr(
-        getColor(layer, colors)
-      )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
-        layer
-      )}" stroke-linecap="${lineCapToSvg(layer)}"${opacityAttr(layer)}${
-        dashArray ? ` stroke-dasharray="${dashArray}"` : ''
-      } />` : null
+      const mainNode = hasMainColor
+        ? `<path d="${d}" stroke="${escapeAttr(
+            getColor(layer, colors),
+          )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
+            layer,
+          )}" stroke-linecap="${lineCapToSvg(layer)}"${opacityAttr(layer)}${
+            dashArray ? ` stroke-dasharray="${dashArray}"` : ''
+          } />`
+        : null
 
       // Borders: parallel offsets on each side of the main stroke.
       // Mapper stores each border's `width` (its own thickness) and
@@ -299,33 +314,39 @@ function objectLayerToSvg(
       // — but the offset helper doesn't understand bezier control
       // coords yet, so it scribbles on curves. Skip borders for
       // composite lines until that helper grows bezier support.
-      const borders = Array.isArray(layer.borders) && hasMainColor
-        ? layer.borders
-        : []
+      const borders =
+        Array.isArray(layer.borders) && hasMainColor ? layer.borders : []
       if (!borders.length) return mainNode
-      const bordersOut: Array<{order: number; node: string}> = (borders as unknown[])
+      const bordersOut: Array<{ order: number; node: string }> = (
+        borders as unknown[]
+      )
         .map((b: any) => {
           if (!b || !isValidColorId(b.color) || !(b.width > 0)) return null
           const mainW = Number(layer.width) || 0
           const shift = Number(b.shift) || 0
           const bw = Number(b.width) || 0
           const outerWidth = mainW + 2 * shift + 2 * bw
-          const bDash = b.dashed && b.dashLength > 0
-            ? `${b.dashLength} ${b.breakLength || b.dashLength}` : null
+          const bDash =
+            b.dashed && b.dashLength > 0
+              ? `${b.dashLength} ${b.breakLength || b.dashLength}`
+              : null
           return {
             order: orderFor(b.color, layer, colors),
             node: `<path d="${d}" stroke="${escapeAttr(
-              getColor({ colorId: b.color }, colors)
+              getColor({ colorId: b.color }, colors),
             )}" stroke-width="${outerWidth}" fill="none" stroke-linejoin="${lineJoinToSvg(
-              layer
+              layer,
             )}" stroke-linecap="${lineCapToSvg(layer)}"${
               bDash ? ` stroke-dasharray="${bDash}"` : ''
             } />`,
           }
         })
-        .filter(Boolean) as Array<{order: number; node: string}>
+        .filter(Boolean) as Array<{ order: number; node: string }>
       return mainNode
-        ? [...bordersOut, { order: getColorOrder(layer, colors), node: mainNode }]
+        ? [
+            ...bordersOut,
+            { order: getColorOrder(layer, colors), node: mainNode },
+          ]
         : bordersOut
     }
     case 'area':
@@ -333,9 +354,9 @@ function objectLayerToSvg(
         if (!isValidColorId(layer.colorId)) return null
         const dashArray = dashToSvg(layer.dash)
         return `<path d="${coordsToPath(object.coordinates, transform)} Z" stroke="${escapeAttr(
-          getColor(layer, colors)
+          getColor(layer, colors),
         )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
-          layer
+          layer,
         )}" stroke-linecap="${lineCapToSvg(layer)}"${
           dashArray ? ` stroke-dasharray="${dashArray}"` : ''
         }${opacityAttr(layer)} />`
@@ -368,15 +389,15 @@ function objectLayerToSvg(
               defs,
               patternIndex,
               transform,
-              symbols
-            )
+              symbols,
+            ),
           )
           .filter(Boolean)
           .join('')
       }
       if (layer.type !== 'fill') return null
       return `<path d="${coordsToPath(object.coordinates, transform)} Z" fill="${escapeAttr(
-        getColor(layer, colors)
+        getColor(layer, colors),
       )}" fill-rule="evenodd"${opacityAttr(layer)} />`
     case 'point':
       return pointLayerToSvg(object, layer, colors, transform)
@@ -396,7 +417,9 @@ function renderedLayerEntries(rendered, layer, colors) {
       .filter(entry => entry && entry.node)
       .map(entry => ({
         order:
-          entry.order !== undefined ? entry.order : getColorOrder(layer, colors),
+          entry.order !== undefined
+            ? entry.order
+            : getColorOrder(layer, colors),
         node: entry.node,
       }))
   }
@@ -414,7 +437,7 @@ function hatchPatternToSvg(id, layer, colors) {
   return `<pattern id="${id}" patternUnits="userSpaceOnUse" patternTransform="rotate(${
     layer.angle || 0
   })" width="10" height="${spacing}"><rect x="0" y="0" width="10" height="${lineWidth}" fill="${escapeAttr(
-    getColor(layer, colors)
+    getColor(layer, colors),
   )}" /></pattern>`
 }
 
@@ -433,8 +456,8 @@ function structurePatternToSvg(id, layer, colors) {
   const content = anchors
     .flatMap(anchor =>
       (layer.elements || []).map(element =>
-        ocadPointElementToSvg(element, anchor, colors, coord => coord)
-      )
+        ocadPointElementToSvg(element, anchor, colors, coord => coord),
+      ),
     )
     .filter(Boolean)
     .join('\n')
@@ -480,7 +503,7 @@ function pointLayerToSvg(object, layer, colors, transform) {
     return `<circle cx="${coord[0]}" cy="${coord[1]}" r="${
       layer.radius || 0
     }" fill="none" stroke="${escapeAttr(
-      getColor(layer, colors)
+      getColor(layer, colors),
     )}" stroke-width="${layer.width || 0}"${opacityAttr(layer)} />`
   }
 
@@ -492,11 +515,16 @@ function pointLayerToSvg(object, layer, colors, transform) {
     // Object rotation is radians in the source-format's y-up frame;
     // negate for the y-down coord space we render into (see textLayerToSvg).
     return (layer.elements || []).flatMap(element =>
-      pointElementToSvg(element, rawCoord, colors, transform, -(object.rotation || 0))
-        .map(({ colorId, node }) => ({
-          order: orderFor(colorId, layer, colors),
-          node,
-        }))
+      pointElementToSvg(
+        element,
+        rawCoord,
+        colors,
+        transform,
+        -(object.rotation || 0),
+      ).map(({ colorId, node }) => ({
+        order: orderFor(colorId, layer, colors),
+        node,
+      })),
     )
   }
 
@@ -521,7 +549,10 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   const rendered: Array<{ order: number; node: string }> = []
   const addSymbol = (symbol, distance, rotatable = true) => {
     if (!symbol) return
-    const point = pointAndAngleAtSampler(sampler, Math.max(0, Math.min(total, distance)))
+    const point = pointAndAngleAtSampler(
+      sampler,
+      Math.max(0, Math.min(total, distance)),
+    )
     const primitives = xmapPointSymbolToSvg(
       symbol,
       point[0],
@@ -633,6 +664,45 @@ function lineSymbolsLayerToSvg(object, layer, colors, transform) {
   return rendered
 }
 
+// Render an xmap point-symbol's inner disc + outer ring as {colorId, node}
+// primitives centred at (cx, cy). Shared by the top-level point renderer and
+// nested point elements so the outer-ring geometry stays consistent.
+//
+// Mapper draws the outer ring OUTWARD from `innerRadius`: inner edge at
+// `innerRadius`, outer edge at `innerRadius + outerWidth`. An SVG stroke is
+// centred on its path, so centre it at `innerRadius + outerWidth / 2` —
+// centring on `innerRadius` lets a fat ring reach inward and overpaint the
+// inner fill (e.g. 418 with r=10, w=30 hid the r=10 white centre).
+function pointSymbolCircles(
+  pointSymbol,
+  cx: number,
+  cy: number,
+  colors,
+): Array<{ colorId: any; node: string }> {
+  const out: Array<{ colorId: any; node: string }> = []
+  if (isValidColorId(pointSymbol.innerColor) && pointSymbol.innerRadius > 0) {
+    out.push({
+      colorId: pointSymbol.innerColor,
+      node: `<circle cx="${cx}" cy="${cy}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
+        getColor({ colorId: pointSymbol.innerColor }, colors),
+      )}" />`,
+    })
+  }
+  if (
+    isValidColorId(pointSymbol.outerColor) &&
+    pointSymbol.outerWidth > 0 &&
+    pointSymbol.innerRadius > 0
+  ) {
+    out.push({
+      colorId: pointSymbol.outerColor,
+      node: `<circle cx="${cx}" cy="${cy}" r="${pointSymbol.innerRadius + pointSymbol.outerWidth / 2}" fill="none" stroke="${escapeAttr(
+        getColor({ colorId: pointSymbol.outerColor }, colors),
+      )}" stroke-width="${pointSymbol.outerWidth}" />`,
+    })
+  }
+  return out
+}
+
 // Emit one xmap point symbol placement (used by line-symbol mid/dash/
 // start/end placements) as a list of {colorId, node} primitives — same
 // shape as pointElementToSvg — so callers can hand them to the top-level
@@ -652,33 +722,7 @@ function xmapPointSymbolToSvg(
   const pointSymbol = symbol.pointSymbol
   if (!pointSymbol) return out
 
-  if (isValidColorId(pointSymbol.innerColor) && pointSymbol.innerRadius > 0) {
-    out.push({
-      colorId: pointSymbol.innerColor,
-      node: `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
-        getColor({ colorId: pointSymbol.innerColor }, colors),
-      )}" />`,
-    })
-  }
-  if (
-    isValidColorId(pointSymbol.outerColor) &&
-    pointSymbol.outerWidth > 0 &&
-    pointSymbol.innerRadius > 0
-  ) {
-    // Mapper draws the outer ring OUTWARD from `innerRadius`: its inner
-    // edge sits at `innerRadius` and its outer edge at
-    // `innerRadius + outerWidth`. An SVG stroke is centred on its path
-    // radius, so centre the stroke at `innerRadius + outerWidth/2` to
-    // match. Centring on `innerRadius` (previous) let a fat ring reach
-    // inward and overpaint the inner fill (e.g. 418 with r=10, w=30
-    // hid the r=10 white centre).
-    out.push({
-      colorId: pointSymbol.outerColor,
-      node: `<circle cx="${anchor[0]}" cy="${anchor[1]}" r="${pointSymbol.innerRadius + pointSymbol.outerWidth / 2}" fill="none" stroke="${escapeAttr(
-        getColor({ colorId: pointSymbol.outerColor }, colors),
-      )}" stroke-width="${pointSymbol.outerWidth}" />`,
-    })
-  }
+  out.push(...pointSymbolCircles(pointSymbol, anchor[0], anchor[1], colors))
   for (const element of pointSymbol.elements || []) {
     out.push(...pointElementToSvg(element, [x, y], colors, transform, rotation))
   }
@@ -693,7 +737,13 @@ function lineElementsLayerToSvg(object, layer, colors, transform) {
   const addElements = (elements, anchor, angle) => {
     if (!Array.isArray(elements)) return
     elements.forEach(element => {
-      const svg = ocadPointElementToSvg(element, anchor, colors, transform, angle)
+      const svg = ocadPointElementToSvg(
+        element,
+        anchor,
+        colors,
+        transform,
+        angle,
+      )
       if (svg) {
         rendered.push({
           order: getElementColorOrder(element, colors),
@@ -715,14 +765,17 @@ function lineElementsLayerToSvg(object, layer, colors, transform) {
     })
   }
 
-  if (Array.isArray(layer.cornerSymElements) && layer.cornerSymElements.length) {
+  if (
+    Array.isArray(layer.cornerSymElements) &&
+    layer.cornerSymElements.length
+  ) {
     for (let i = 1; i < coords.length - 1; i++) {
       const c0 = coords[i - 1]
       const c1 = coords[i]
       addElements(
         layer.cornerSymElements,
         c1,
-        Math.atan2(c1[1] - c0[1], c1[0] - c0[0])
+        Math.atan2(c1[1] - c0[1], c1[0] - c0[0]),
       )
     }
   }
@@ -733,7 +786,7 @@ function lineElementsLayerToSvg(object, layer, colors, transform) {
     addElements(
       layer.startSymElements,
       c0,
-      Math.atan2(c1[1] - c0[1], c1[0] - c0[0])
+      Math.atan2(c1[1] - c0[1], c1[0] - c0[0]),
     )
   }
 
@@ -743,7 +796,7 @@ function lineElementsLayerToSvg(object, layer, colors, transform) {
     addElements(
       layer.endSymElements,
       c1,
-      Math.atan2(c1[1] - c0[1], c1[0] - c0[0])
+      Math.atan2(c1[1] - c0[1], c1[0] - c0[0]),
     )
   }
 
@@ -789,10 +842,12 @@ function doubleLineLayerToSvg(object, layer, colors, transform) {
 
   if (layer.mode === 2) {
     const width =
-      (layer.leftWidth || 0) + (layer.centerWidth || 0) + (layer.rightWidth || 0)
+      (layer.leftWidth || 0) +
+      (layer.centerWidth || 0) +
+      (layer.rightWidth || 0)
     if (width <= 0) return null
     return `<path d="${coordsToPath(coords, transform)}" stroke="${escapeAttr(
-      getColor({ colorId: layer.fillColorId }, colors)
+      getColor({ colorId: layer.fillColorId }, colors),
     )}" stroke-width="${width}" fill="none" />`
   }
 
@@ -800,15 +855,17 @@ function doubleLineLayerToSvg(object, layer, colors, transform) {
 
   if (layer.flags & 1) {
     const outerWidth =
-      (layer.leftWidth || 0) + (layer.centerWidth || 0) + (layer.rightWidth || 0)
+      (layer.leftWidth || 0) +
+      (layer.centerWidth || 0) +
+      (layer.rightWidth || 0)
     return [
       outerWidth > 0 &&
         `<path d="${coordsToPath(coords, transform)}" stroke="${escapeAttr(
-          getColor({ colorId: layer.leftColorId }, colors)
+          getColor({ colorId: layer.leftColorId }, colors),
         )}" stroke-width="${outerWidth}" fill="none" />`,
       layer.centerWidth > 0 &&
         `<path d="${coordsToPath(coords, transform)}" stroke="${escapeAttr(
-          getColor({ colorId: layer.fillColorId }, colors)
+          getColor({ colorId: layer.fillColorId }, colors),
         )}" stroke-width="${layer.centerWidth}" fill="none" />`,
     ]
       .filter(Boolean)
@@ -818,15 +875,27 @@ function doubleLineLayerToSvg(object, layer, colors, transform) {
   return [
     ...offsetLineCoordinates(
       coords,
-      -(layer.centerWidth || 0) / 2 - (layer.leftWidth || 0) / 2
+      -(layer.centerWidth || 0) / 2 - (layer.leftWidth || 0) / 2,
     ).map(lineCoords =>
-      linePathToSvg(lineCoords, layer.leftWidth, layer.leftColorId, colors, transform)
+      linePathToSvg(
+        lineCoords,
+        layer.leftWidth,
+        layer.leftColorId,
+        colors,
+        transform,
+      ),
     ),
     ...offsetLineCoordinates(
       coords,
-      (layer.centerWidth || 0) / 2 + (layer.rightWidth || 0) / 2
+      (layer.centerWidth || 0) / 2 + (layer.rightWidth || 0) / 2,
     ).map(lineCoords =>
-      linePathToSvg(lineCoords, layer.rightWidth, layer.rightColorId, colors, transform)
+      linePathToSvg(
+        lineCoords,
+        layer.rightWidth,
+        layer.rightColorId,
+        colors,
+        transform,
+      ),
     ),
   ]
     .filter(Boolean)
@@ -836,7 +905,7 @@ function doubleLineLayerToSvg(object, layer, colors, transform) {
 function linePathToSvg(coords, width, colorId, colors, transform) {
   if (!width || width <= 0) return null
   return `<path d="${coordsToPath(coords, transform)}" stroke="${escapeAttr(
-    getColor({ colorId }, colors)
+    getColor({ colorId }, colors),
   )}" stroke-width="${width}" fill="none" stroke-linejoin="bevel" stroke-linecap="butt" />`
 }
 
@@ -865,15 +934,15 @@ function offsetLineString(coordinates, offset) {
       coordinates,
     },
     offset,
-    { units: 'degrees' }
+    { units: 'degrees' },
   ).geometry.coordinates.map(
     (coord, index) =>
       new TdPoly(
         coord[0],
         coord[1],
         coordinates[index].xFlags,
-        coordinates[index].yFlags
-      )
+        coordinates[index].yFlags,
+      ),
   )
 }
 
@@ -890,11 +959,17 @@ function pointElementToSvg(
   anchor,
   colors,
   transform = coord => coord,
-  angle = 0
+  angle = 0,
 ): Array<{ colorId: any; node: string }> {
   if (element.coords) {
     // OCAD-style element (already flat, single colour).
-    const node = ocadPointElementToSvg(element, anchor, colors, transform, angle)
+    const node = ocadPointElementToSvg(
+      element,
+      anchor,
+      colors,
+      transform,
+      angle,
+    )
     return node ? [{ colorId: element.color, node }] : []
   }
   if (!element.object || !element.symbol) return []
@@ -939,39 +1014,24 @@ function pointElementToSvg(
     const strokeColorId = element.symbol.lineSymbol.color
     const strokeWidth = element.symbol.lineSymbol.lineWidth
     if (!isValidColorId(strokeColorId) || strokeWidth <= 0) return []
-    return [{
-      colorId: strokeColorId,
-      node: `<path d="${coordsToPath(coords)}" stroke="${escapeAttr(
-        getColor({ colorId: strokeColorId }, colors),
-      )}" stroke-width="${strokeWidth}" fill="none" />`,
-    }]
+    return [
+      {
+        colorId: strokeColorId,
+        node: `<path d="${coordsToPath(coords)}" stroke="${escapeAttr(
+          getColor({ colorId: strokeColorId }, colors),
+        )}" stroke-width="${strokeWidth}" fill="none" />`,
+      },
+    ]
   }
 
   if (element.symbol.pointSymbol) {
     const nestedCoord = coords[0]
-    const pointSymbol = element.symbol.pointSymbol
-    const out: Array<{ colorId: any; node: string }> = []
-    if (isValidColorId(pointSymbol.innerColor) && pointSymbol.innerRadius > 0) {
-      out.push({
-        colorId: pointSymbol.innerColor,
-        node: `<circle cx="${nestedCoord[0]}" cy="${nestedCoord[1]}" r="${pointSymbol.innerRadius}" fill="${escapeAttr(
-          getColor({ colorId: pointSymbol.innerColor }, colors),
-        )}" />`,
-      })
-    }
-    if (
-      isValidColorId(pointSymbol.outerColor) &&
-      pointSymbol.outerWidth > 0 &&
-      pointSymbol.innerRadius > 0
-    ) {
-      out.push({
-        colorId: pointSymbol.outerColor,
-        node: `<circle cx="${nestedCoord[0]}" cy="${nestedCoord[1]}" r="${pointSymbol.innerRadius}" fill="none" stroke="${escapeAttr(
-          getColor({ colorId: pointSymbol.outerColor }, colors),
-        )}" stroke-width="${pointSymbol.outerWidth}" />`,
-      })
-    }
-    return out
+    return pointSymbolCircles(
+      element.symbol.pointSymbol,
+      nestedCoord[0],
+      nestedCoord[1],
+      colors,
+    )
   }
 
   return []
@@ -979,20 +1039,20 @@ function pointElementToSvg(
 
 function ocadPointElementToSvg(element, anchor, colors, transform, angle = 0) {
   const coords = (element.coords || []).map(coord =>
-    transform(addRotatedCoord(anchor, coord, angle))
+    transform(addRotatedCoord(anchor, coord, angle)),
   )
 
   switch (element.type) {
     case LineElementType:
       if (!element.lineWidth) return null
       return `<path d="${coordsToPath(coords)}" stroke="${escapeAttr(
-        getColor({ colorId: element.color }, colors)
-      )}" stroke-width="${element.lineWidth}" fill="none" stroke-linejoin="bevel" stroke-linecap="butt"${dashToSvg(
-        element
-      ) ? ` stroke-dasharray="${dashToSvg(element)}"` : ''} />`
+        getColor({ colorId: element.color }, colors),
+      )}" stroke-width="${element.lineWidth}" fill="none" stroke-linejoin="bevel" stroke-linecap="butt"${
+        dashToSvg(element) ? ` stroke-dasharray="${dashToSvg(element)}"` : ''
+      } />`
     case AreaElementType:
       return `<path d="${coordsToPath(coords)} Z" fill="${escapeAttr(
-        getColor({ colorId: element.color }, colors)
+        getColor({ colorId: element.color }, colors),
       )}" fill-rule="evenodd" />`
     case CircleElementType:
     case DotElementType: {
@@ -1000,7 +1060,7 @@ function ocadPointElementToSvg(element, anchor, colors, transform, angle = 0) {
       const stroke =
         element.type === CircleElementType
           ? ` fill="none" stroke="${escapeAttr(
-              getColor({ colorId: element.color }, colors)
+              getColor({ colorId: element.color }, colors),
             )}" stroke-width="${element.lineWidth || 0}"`
           : ` fill="${escapeAttr(getColor({ colorId: element.color }, colors))}"`
       return `<circle cx="${coord[0]}" cy="${coord[1]}" r="${
@@ -1048,12 +1108,16 @@ function textLayerToSvg(object, layer, colors, transform) {
   const vAlign = (object as any).vAlign
   const anchor = hAlign === 1 ? 'middle' : hAlign === 2 ? 'end' : 'start'
   const baseline =
-    vAlign === 1 ? 'hanging' :
-    vAlign === 2 ? 'central' :
-    vAlign === 3 ? 'text-after-edge' :
-    'alphabetic'
+    vAlign === 1
+      ? 'hanging'
+      : vAlign === 2
+        ? 'central'
+        : vAlign === 3
+          ? 'text-after-edge'
+          : 'alphabetic'
   const anchorAttr = anchor !== 'start' ? ` text-anchor="${anchor}"` : ''
-  const baselineAttr = baseline !== 'alphabetic' ? ` dominant-baseline="${baseline}"` : ''
+  const baselineAttr =
+    baseline !== 'alphabetic' ? ` dominant-baseline="${baseline}"` : ''
 
   // Newlines produce real line breaks. SVG's <text> collapses white-
   // space, so multi-line labels have to be split into one <tspan> per
@@ -1061,14 +1125,18 @@ function textLayerToSvg(object, layer, colors, transform) {
   // by 1em (well — dy is relative to the previous line, so first line
   // uses 0 and subsequent lines use 1em).
   const lines = String(object.text).split(/\r\n?|\n/)
-  const inner = lines.length === 1
-    ? escapeText(lines[0])
-    : lines.map((line, i) =>
-        `<tspan x="${coord[0]}"${i === 0 ? '' : ' dy="1em"'}>${escapeText(line)}</tspan>`,
-      ).join('')
+  const inner =
+    lines.length === 1
+      ? escapeText(lines[0])
+      : lines
+          .map(
+            (line, i) =>
+              `<tspan x="${coord[0]}"${i === 0 ? '' : ' dy="1em"'}>${escapeText(line)}</tspan>`,
+          )
+          .join('')
 
   return `<text x="${coord[0]}" y="${coord[1]}"${transformAttr} fill="${escapeAttr(
-    getColor(layer, colors)
+    getColor(layer, colors),
   )}" font-family="${escapeAttr(layer.fontFamily || 'Arial')}" font-size="${fontSize}"${anchorAttr}${baselineAttr}${opacityAttr(layer)}>${inner}</text>`
 }
 

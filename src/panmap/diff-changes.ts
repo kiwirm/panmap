@@ -1,6 +1,14 @@
-import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
-import Panmap, { type MapColor, type MapObject, type MapSymbol } from './model.js'
-import diffMaps, { type DiffMapsOptions , DIFF_OUTLINE_WIDTH, recolorSymbol } from './diff.js'
+import { XMLSerializer } from '@xmldom/xmldom'
+import Panmap, {
+  type MapColor,
+  type MapObject,
+  type MapSymbol,
+} from './model.js'
+import diffMaps, {
+  type DiffMapsOptions,
+  DIFF_OUTLINE_WIDTH,
+  recolorSymbol,
+} from './diff.js'
 import mapToSvg from '../export/svg/index.js'
 
 import { isFirstBezier, isSecondBezier, isFirstHolePoint } from './coord.js'
@@ -158,10 +166,19 @@ export function diffChanges(
       a => !usedAdded.has(a) && canonCode(a.symbol) !== canonCode(r.symbol),
     )
     if (!match) continue
-    usedAdded.add(match); usedRemoved.add(r)
+    usedAdded.add(match)
+    usedRemoved.add(r)
     const nc = changedNodeCounts(r, match)
-    changes.push(makeChange('modified', unionRect(r.bounds, match.bounds),
-      nc.added, nc.removed, [r, match], 'symbol'))
+    changes.push(
+      makeChange(
+        'modified',
+        unionRect(r.bounds, match.bounds),
+        nc.added,
+        nc.removed,
+        [r, match],
+        'symbol',
+      ),
+    )
   }
 
   // Phase 2 — geometry changes: a removed and added feature of the SAME
@@ -171,7 +188,8 @@ export function diffChanges(
   //   - points: within ~10 m on the ground
   // Otherwise they're treated as separate add + remove. Match on the
   // canonical code so OMap "406" pairs with OCAD "406.0".
-  const scale = after.georeferencing?.scale ?? before.georeferencing?.scale ?? 15000
+  const scale =
+    after.georeferencing?.scale ?? before.georeferencing?.scale ?? 15000
   // 1 coord unit = 0.01 mm on paper → scale * 1e-5 m on the ground.
   const pointMoveUnits = POINT_MOVE_METERS / (scale * 1e-5)
 
@@ -199,12 +217,17 @@ export function diffChanges(
   const sprawling: Feature[] = [] // added whose bbox spans too many cells
   for (const a of added) {
     const c = cellRange(a.bounds)
-    if (spanCells(c) > MAX_CELLS_PER_FEATURE) { sprawling.push(a); continue }
-    for (let cx = c.x0; cx <= c.x1; cx++) for (let cy = c.y0; cy <= c.y1; cy++) {
-      const k = `${cx}:${cy}`
-      const arr = grid.get(k)
-      if (arr) arr.push(a); else grid.set(k, [a])
+    if (spanCells(c) > MAX_CELLS_PER_FEATURE) {
+      sprawling.push(a)
+      continue
     }
+    for (let cx = c.x0; cx <= c.x1; cx++)
+      for (let cy = c.y0; cy <= c.y1; cy++) {
+        const k = `${cx}:${cy}`
+        const arr = grid.get(k)
+        if (arr) arr.push(a)
+        else grid.set(k, [a])
+      }
   }
   const candidatesFor = (r: Feature): Iterable<Feature> => {
     const c = cellRange(r.bounds)
@@ -212,10 +235,11 @@ export function diffChanges(
     // full set (rare — a handful of map-wide features at most).
     if (spanCells(c) > MAX_CELLS_PER_FEATURE) return added
     const seen = new Set<Feature>(sprawling)
-    for (let cx = c.x0; cx <= c.x1; cx++) for (let cy = c.y0; cy <= c.y1; cy++) {
-      const arr = grid.get(`${cx}:${cy}`)
-      if (arr) for (const a of arr) seen.add(a)
-    }
+    for (let cx = c.x0; cx <= c.x1; cx++)
+      for (let cy = c.y0; cy <= c.y1; cy++) {
+        const arr = grid.get(`${cx}:${cy}`)
+        if (arr) for (const a of arr) seen.add(a)
+      }
     return seen
   }
 
@@ -233,7 +257,10 @@ export function diffChanges(
       const same = canonCode(a.symbol) === canonCode(r.symbol)
       if (sameSymbol ? !same : same) continue
       const score = matchScore(r, a, pointMoveUnits, budget)
-      if (score > bestScore) { best = a; bestScore = score }
+      if (score > bestScore) {
+        best = a
+        bestScore = score
+      }
     }
     return best
   }
@@ -243,10 +270,19 @@ export function diffChanges(
     if (usedRemoved.has(r)) continue
     const best = bestMatch(r, true)
     if (best) {
-      usedAdded.add(best); usedRemoved.add(r)
+      usedAdded.add(best)
+      usedRemoved.add(r)
       const nc = changedNodeCounts(r, best)
-      changes.push(makeChange('modified', unionRect(r.bounds, best.bounds),
-        nc.added, nc.removed, [r, best], 'geometry'))
+      changes.push(
+        makeChange(
+          'modified',
+          unionRect(r.bounds, best.bounds),
+          nc.added,
+          nc.removed,
+          [r, best],
+          'geometry',
+        ),
+      )
     }
   }
 
@@ -260,19 +296,30 @@ export function diffChanges(
     if (usedRemoved.has(r) || r.type === 'point' || r.type === 'text') continue
     const best = bestMatch(r, false)
     if (best) {
-      usedAdded.add(best); usedRemoved.add(r)
+      usedAdded.add(best)
+      usedRemoved.add(r)
       const nc = changedNodeCounts(r, best)
-      changes.push(makeChange('modified', unionRect(r.bounds, best.bounds),
-        nc.added, nc.removed, [r, best], 'both'))
+      changes.push(
+        makeChange(
+          'modified',
+          unionRect(r.bounds, best.bounds),
+          nc.added,
+          nc.removed,
+          [r, best],
+          'both',
+        ),
+      )
     }
   }
 
   // Whatever is still unpaired is a genuine add or remove.
   for (const r of removed) {
-    if (!usedRemoved.has(r)) changes.push(makeChange('removed', r.bounds, 0, r.count, [r]))
+    if (!usedRemoved.has(r))
+      changes.push(makeChange('removed', r.bounds, 0, r.count, [r]))
   }
   for (const a of added) {
-    if (!usedAdded.has(a)) changes.push(makeChange('added', a.bounds, a.count, 0, [a]))
+    if (!usedAdded.has(a))
+      changes.push(makeChange('added', a.bounds, a.count, 0, [a]))
   }
 
   // Reading order: top-to-bottom, then left-to-right.
@@ -282,7 +329,12 @@ export function diffChanges(
   // Full-map extent. Prefer the caller-supplied bounds (needed when `after`
   // is only the changed subset); fall back to computing from the map.
   const b = changeOptions.bounds ?? after.getBounds()
-  const viewBox: [number, number, number, number] = [b[0], b[1], b[2] - b[0], b[3] - b[1]]
+  const viewBox: [number, number, number, number] = [
+    b[0],
+    b[1],
+    b[2] - b[0],
+    b[3] - b[1],
+  ]
   let overallSvg: string | undefined
 
   // Optionally render SVGs — the whole-diff overlay and/or a standalone SVG
@@ -311,19 +363,24 @@ export function diffChanges(
       if (change.kind === 'modified') {
         const { objects, symbols } = modifiedRenderObjects(feats, true)
         mini = new Panmap({
-          sourceFormat: 'diff', georeferencing,
-          colors: modColors, symbols: [...modSymbols, ...symbols],
-          objects, warnings: [],
+          sourceFormat: 'diff',
+          georeferencing,
+          colors: modColors,
+          symbols: [...modSymbols, ...symbols],
+          objects,
+          warnings: [],
         })
       } else {
         mini = new Panmap({
-          sourceFormat: 'diff', georeferencing,
-          colors: diffMap.colors, symbols: diffMap.symbols,
-          objects: feats.flatMap(f => f.objects), warnings: [],
+          sourceFormat: 'diff',
+          georeferencing,
+          colors: diffMap.colors,
+          symbols: diffMap.symbols,
+          objects: feats.flatMap(f => f.objects),
+          warnings: [],
         })
       }
       const svg = mapToSvg(mini, {
-        document: new DOMImplementation().createDocument(null, 'xml', null),
         bounds: b,
       })
       change.svg = serializer.serializeToString(svg)
@@ -345,14 +402,18 @@ export function diffChanges(
         }
       }
       const overallMap = new Panmap({
-        sourceFormat: 'diff', georeferencing,
-        colors: modColors, symbols: [...modSymbols, ...overallExtraSymbols],
-        objects: overallObjects, warnings: [],
+        sourceFormat: 'diff',
+        georeferencing,
+        colors: modColors,
+        symbols: [...modSymbols, ...overallExtraSymbols],
+        objects: overallObjects,
+        warnings: [],
       })
-      overallSvg = serializer.serializeToString(mapToSvg(overallMap, {
-        document: new DOMImplementation().createDocument(null, 'xml', null),
-        bounds: b,
-      }))
+      overallSvg = serializer.serializeToString(
+        mapToSvg(overallMap, {
+          bounds: b,
+        }),
+      )
     }
   }
 
@@ -374,34 +435,84 @@ const OUTLINE_KIND_RGB: Record<string, string> = {
 // stack green over red over yellow, give green the lowest order and yellow
 // the highest.
 const OUTLINE_COLORS: MapColor[] = [
-  { id: 'added', sourceId: 'added', name: 'added', rgb: OUTLINE_KIND_RGB.added, renderOrder: 1 },
-  { id: 'removed', sourceId: 'removed', name: 'removed', rgb: OUTLINE_KIND_RGB.removed, renderOrder: 2 },
-  { id: 'modified', sourceId: 'modified', name: 'modified', rgb: OUTLINE_KIND_RGB.modified, renderOrder: 3 },
+  {
+    id: 'added',
+    sourceId: 'added',
+    name: 'added',
+    rgb: OUTLINE_KIND_RGB.added,
+    renderOrder: 1,
+  },
+  {
+    id: 'removed',
+    sourceId: 'removed',
+    name: 'removed',
+    rgb: OUTLINE_KIND_RGB.removed,
+    renderOrder: 2,
+  },
+  {
+    id: 'modified',
+    sourceId: 'modified',
+    name: 'modified',
+    rgb: OUTLINE_KIND_RGB.modified,
+    renderOrder: 3,
+  },
 ]
 const OUTLINE_SYMBOLS = [
   ...['added', 'removed', 'modified'].flatMap(k => [
     {
-      id: `outline-line-${k}`, sourceId: `outline-line-${k}`, code: `outline-line-${k}`,
-      name: k, type: 'line', hidden: false,
+      id: `outline-line-${k}`,
+      sourceId: `outline-line-${k}`,
+      code: `outline-line-${k}`,
+      name: k,
+      type: 'line',
+      hidden: false,
       layers: [{ type: 'stroke', colorId: k, width: DIFF_OUTLINE_WIDTH }],
     },
     {
-      id: `outline-point-${k}`, sourceId: `outline-point-${k}`, code: `outline-point-${k}`,
-      name: k, type: 'point', hidden: false,
+      id: `outline-point-${k}`,
+      sourceId: `outline-point-${k}`,
+      code: `outline-point-${k}`,
+      name: k,
+      type: 'point',
+      hidden: false,
       layers: [{ type: 'point-fill', colorId: k, radius: 40 }],
     },
   ]),
   // Hatched area fills: yellow when the area shares geometry (edited in
   // place), green when it shares none (effectively a new area).
   {
-    id: 'diff-hatch-modified', sourceId: 'diff-hatch-modified', code: 'diff-hatch-modified',
-    name: 'Modified', type: 'area', hidden: false,
-    layers: [{ type: 'hatch-fill', colorId: 'modified', spacing: 120, lineWidth: 14, angle: 45 }],
+    id: 'diff-hatch-modified',
+    sourceId: 'diff-hatch-modified',
+    code: 'diff-hatch-modified',
+    name: 'Modified',
+    type: 'area',
+    hidden: false,
+    layers: [
+      {
+        type: 'hatch-fill',
+        colorId: 'modified',
+        spacing: 120,
+        lineWidth: 14,
+        angle: 45,
+      },
+    ],
   },
   {
-    id: 'diff-hatch-added', sourceId: 'diff-hatch-added', code: 'diff-hatch-added',
-    name: 'Added', type: 'area', hidden: false,
-    layers: [{ type: 'hatch-fill', colorId: 'added', spacing: 120, lineWidth: 14, angle: 45 }],
+    id: 'diff-hatch-added',
+    sourceId: 'diff-hatch-added',
+    code: 'diff-hatch-added',
+    name: 'Added',
+    type: 'area',
+    hidden: false,
+    layers: [
+      {
+        type: 'hatch-fill',
+        colorId: 'added',
+        spacing: 120,
+        lineWidth: 14,
+        angle: 45,
+      },
+    ],
   },
 ] as unknown as MapSymbol[]
 
@@ -414,7 +525,8 @@ const OUTLINE_SYMBOLS = [
 // fat outline + hatched fill; lines use the recoloured real symbol.
 // `context=false` (overall diff) drops the yellow unchanged parts + fill.
 function modifiedRenderObjects(
-  feats: Feature[], context = true,
+  feats: Feature[],
+  context = true,
 ): { objects: MapObject[]; symbols: MapSymbol[] } {
   const addedFeat = feats.find(f => f.kind === 'added')
   const removedFeat = feats.find(f => f.kind === 'removed')
@@ -423,10 +535,20 @@ function modifiedRenderObjects(
   const symbols: MapSymbol[] = []
   let nid = 1
   const mk = (coords: unknown[], symbolId: string, otype: string) =>
-    objs.push({ id: `m${nid++}`, symbolId, type: otype, coordinates: coords, hidden: false, bounds: boundsOfCoords(coords) })
+    objs.push({
+      id: `m${nid++}`,
+      symbolId,
+      type: otype,
+      coordinates: coords,
+      hidden: false,
+      bounds: boundsOfCoords(coords),
+    })
 
   if (type === 'point' || type === 'text') {
-    return { objects: feats.flatMap(f => f.objects) as MapObject[], symbols: [] }
+    return {
+      objects: feats.flatMap(f => f.objects) as MapObject[],
+      symbols: [],
+    }
   }
 
   const main = addedFeat ?? removedFeat
@@ -439,11 +561,14 @@ function modifiedRenderObjects(
     // Areas: hatched fill + fat coloured boundary outline.
     if (context && main) {
       objs.push({
-        ...main.src, id: `m${nid++}`, type: 'area',
+        ...main.src,
+        id: `m${nid++}`,
+        type: 'area',
         symbolId: hasShared ? 'diff-hatch-modified' : 'diff-hatch-added',
       })
     }
-    if (context) for (const run of unchanged) mk(run, 'outline-line-modified', 'line')
+    if (context)
+      for (const run of unchanged) mk(run, 'outline-line-modified', 'line')
     for (const run of removed) mk(run, 'outline-line-removed', 'line')
     for (const run of added) mk(run, 'outline-line-added', 'line')
     return { objects: objs as MapObject[], symbols }
@@ -452,7 +577,10 @@ function modifiedRenderObjects(
   // Lines: render runs with the feature's REAL symbol recoloured, so an
   // edited contour keeps contour thickness (not the fat area outline).
   const baseSym = addedFeat?.symbol ?? removedFeat?.symbol
-  const symFor = (feat: Feature | undefined, colorId: string): string | null => {
+  const symFor = (
+    feat: Feature | undefined,
+    colorId: string,
+  ): string | null => {
     if (!feat?.symbol) return null
     const clone = recolorSymbol(feat.symbol, colorId)
     symbols.push(clone)
@@ -461,7 +589,8 @@ function modifiedRenderObjects(
   const yellowId = baseSym ? symFor(main, 'modified') : null
   const removedId = symFor(removedFeat, 'removed')
   const addedId = symFor(addedFeat, 'added')
-  if (context && yellowId) for (const run of unchanged) mk(run, yellowId, 'line')
+  if (context && yellowId)
+    for (const run of unchanged) mk(run, yellowId, 'line')
   if (removedId) for (const run of removed) mk(run, removedId, 'line')
   if (addedId) for (const run of added) mk(run, addedId, 'line')
   return { objects: objs as MapObject[], symbols }
@@ -472,14 +601,22 @@ function coordArr(object: { coordinates?: unknown }): unknown[] {
 }
 
 function boundsOfCoords(coords: unknown[]): { min: number[]; max: number[] } {
-  let a = Infinity; let b = Infinity; let c = -Infinity; let d = -Infinity
+  let a = Infinity
+  let b = Infinity
+  let c = -Infinity
+  let d = -Infinity
   for (const p of coords) {
     const x = Array.isArray(p) ? p[0] : (p as { x?: number }).x
     const y = Array.isArray(p) ? p[1] : (p as { y?: number }).y
     if (typeof x !== 'number' || typeof y !== 'number') continue
-    if (x < a) a = x; if (y < b) b = y; if (x > c) c = x; if (y > d) d = y
+    if (x < a) a = x
+    if (y < b) b = y
+    if (x > c) c = x
+    if (y > d) d = y
   }
-  return isFinite(a) ? { min: [a, b], max: [c, d] } : { min: [0, 0], max: [0, 0] }
+  return isFinite(a)
+    ? { min: [a, b], max: [c, d] }
+    : { min: [0, 0], max: [0, 0] }
 }
 
 // Classify a feature's before→after geometry into contiguous runs:
@@ -487,8 +624,13 @@ function boundsOfCoords(coords: unknown[]): { min: number[]; max: number[] } {
 // Matching is done on whole anchor-to-anchor SPANS (a bezier curve is one
 // atomic span) so a run boundary never lands mid-curve — which would
 // orphan control points and drop a segment when rendered.
-function classifyRuns(before: unknown[], after: unknown[]): {
-  unchanged: unknown[][]; removed: unknown[][]; added: unknown[][]
+function classifyRuns(
+  before: unknown[],
+  after: unknown[],
+): {
+  unchanged: unknown[][]
+  removed: unknown[][]
+  added: unknown[][]
 } {
   const unchanged: unknown[][] = []
   const removed: unknown[][] = []
@@ -497,8 +639,16 @@ function classifyRuns(before: unknown[], after: unknown[]): {
   const afterSpans = toSpans(after)
   const beforeLeft = spanMultiset(beforeSpans)
   const afterLeft = spanMultiset(afterSpans)
-  emitSpanRuns(afterSpans, s => (consumeKey(beforeLeft, spanKey(s)) ? 'u' : 'a'), { u: unchanged, a: added, r: removed })
-  emitSpanRuns(beforeSpans, s => (consumeKey(afterLeft, spanKey(s)) ? 'skip' : 'r'), { u: unchanged, a: added, r: removed })
+  emitSpanRuns(
+    afterSpans,
+    s => (consumeKey(beforeLeft, spanKey(s)) ? 'u' : 'a'),
+    { u: unchanged, a: added, r: removed },
+  )
+  emitSpanRuns(
+    beforeSpans,
+    s => (consumeKey(afterLeft, spanKey(s)) ? 'skip' : 'r'),
+    { u: unchanged, a: added, r: removed },
+  )
   return { unchanged, removed, added }
 }
 
@@ -512,7 +662,8 @@ function toRings(coords: unknown[]): unknown[][] {
   for (let i = 0; i < coords.length; i++) {
     cur.push(coords[i])
     if (isFirstHolePoint(coords[i] as never) && i < coords.length - 1) {
-      rings.push(cur); cur = []
+      rings.push(cur)
+      cur = []
     }
   }
   if (cur.length) rings.push(cur)
@@ -530,7 +681,10 @@ function toSpans(coords: unknown[]): unknown[][] {
     for (let i = 1; i < ring.length; i++) {
       const c = ring[i]
       const isControl = isFirstBezier(c as never) || isSecondBezier(c as never)
-      if (!isControl) { spans.push(ring.slice(start, i + 1)); start = i }
+      if (!isControl) {
+        spans.push(ring.slice(start, i + 1))
+        start = i
+      }
     }
   }
   return spans
@@ -545,17 +699,25 @@ function emitSpanRuns(
   let run: unknown[] = []
   const flush = () => {
     if (cls && run.length >= 2) buckets[cls].push(run)
-    cls = null; run = []
+    cls = null
+    run = []
   }
   for (const span of spans) {
     const c = classify(span)
-    if (c === 'skip') { flush(); continue }
+    if (c === 'skip') {
+      flush()
+      continue
+    }
     // A span continues the current run only if same class AND its start
     // anchor is the run's current end (contiguous). Ring boundaries break
     // contiguity, so hole rings become their own runs.
-    const contiguous = run.length > 0 && ptKey(run[run.length - 1]) === ptKey(span[0])
-    if (c !== cls || !contiguous) { flush(); cls = c; run = [...span] }
-    else run.push(...span.slice(1))
+    const contiguous =
+      run.length > 0 && ptKey(run[run.length - 1]) === ptKey(span[0])
+    if (c !== cls || !contiguous) {
+      flush()
+      cls = c
+      run = [...span]
+    } else run.push(...span.slice(1))
   }
   flush()
 }
@@ -565,10 +727,14 @@ function emitSpanRuns(
 // points aren't user-visible nodes) in the added vs removed runs. A pure
 // re-symbolisation (identical geometry) yields 0/0.
 function changedNodeCounts(
-  before: Feature, after: Feature,
+  before: Feature,
+  after: Feature,
 ): { added: number; removed: number } {
   const runs = classifyRuns(coordArr(before.src), coordArr(after.src))
-  return { added: countAnchors(runs.added), removed: countAnchors(runs.removed) }
+  return {
+    added: countAnchors(runs.added),
+    removed: countAnchors(runs.removed),
+  }
 }
 function countAnchors(runs: unknown[][]): number {
   let n = 0
@@ -579,8 +745,8 @@ function countAnchors(runs: unknown[][]): number {
 }
 
 function ptKey(p: unknown): string {
-  const x = Array.isArray(p) ? p[0] : (p as { x?: number }).x ?? 0
-  const y = Array.isArray(p) ? p[1] : (p as { y?: number }).y ?? 0
+  const x = Array.isArray(p) ? p[0] : ((p as { x?: number }).x ?? 0)
+  const y = Array.isArray(p) ? p[1] : ((p as { y?: number }).y ?? 0)
   return `${Math.round(x as number)},${Math.round(y as number)}`
 }
 // Span key is direction-independent so a reversed span still matches.
@@ -646,7 +812,10 @@ function makeChange(
   }
   if (modification) change.modification = modification
   // For symbol / both changes, feats are [removed, added] — expose old → new.
-  if ((modification === 'symbol' || modification === 'both') && feats.length === 2) {
+  if (
+    (modification === 'symbol' || modification === 'both') &&
+    feats.length === 2
+  ) {
     change.fromSymbol = featureOf(feats[0])
     change.toSymbol = featureOf(feats[1])
   }
@@ -660,10 +829,12 @@ function srcCoords(object: { coordinates?: unknown }): Array<[number, number]> {
   if (!Array.isArray(raw)) return []
   const out: Array<[number, number]> = []
   for (const c of raw) {
-    if (Array.isArray(c) && typeof c[0] === 'number') out.push([Math.round(c[0]), Math.round(c[1])])
+    if (Array.isArray(c) && typeof c[0] === 'number')
+      out.push([Math.round(c[0]), Math.round(c[1])])
     else if (c && typeof c === 'object') {
       const o = c as { x?: number; y?: number }
-      if (typeof o.x === 'number') out.push([Math.round(o.x), Math.round(o.y ?? 0)])
+      if (typeof o.x === 'number')
+        out.push([Math.round(o.x), Math.round(o.y ?? 0)])
     }
   }
   return out
@@ -672,7 +843,9 @@ function srcCoords(object: { coordinates?: unknown }): Array<[number, number]> {
 // A precision-rounded key of a feature's coordinate sequence, for
 // matching a removed feature to an added one with identical geometry.
 function geomKey(object: { coordinates?: unknown }): string {
-  return srcCoords(object).map(c => `${c[0]},${c[1]}`).join('|')
+  return srcCoords(object)
+    .map(c => `${c[0]},${c[1]}`)
+    .join('|')
 }
 
 // Similarity score between a removed and added feature of the same
@@ -680,7 +853,10 @@ function geomKey(object: { coordinates?: unknown }): string {
 // fraction of shared vertices (must exceed 50%); points/text by
 // closeness (must be within `pointMoveUnits`). Higher = better match.
 function matchScore(
-  r: Feature, a: Feature, pointMoveUnits: number, budget?: MatchBudget,
+  r: Feature,
+  a: Feature,
+  pointMoveUnits: number,
+  budget?: MatchBudget,
 ): number {
   if (r.type !== a.type) return 0
   if (budget && budget.ops <= 0) return 0
@@ -688,7 +864,11 @@ function matchScore(
   const ac = srcCoords(a.src)
   if (!rc.length || !ac.length) return 0
 
-  if (r.type === 'point' || r.type === 'text' || (rc.length === 1 && ac.length === 1)) {
+  if (
+    r.type === 'point' ||
+    r.type === 'text' ||
+    (rc.length === 1 && ac.length === 1)
+  ) {
     const d = Math.hypot(rc[0][0] - ac[0][0], rc[0][1] - ac[0][1])
     return d <= pointMoveUnits ? 1 - d / (pointMoveUnits + 1) : 0
   }
@@ -709,7 +889,8 @@ function matchScore(
 // evenly subsampled to bound the O(from × to) cost of a single comparison.
 const MAX_COVERAGE_POINTS = 400
 function subsampleCoords(
-  pts: Array<[number, number]>, max = MAX_COVERAGE_POINTS,
+  pts: Array<[number, number]>,
+  max = MAX_COVERAGE_POINTS,
 ): Array<[number, number]> {
   if (pts.length <= max) return pts
   const out: Array<[number, number]> = []
@@ -723,7 +904,9 @@ function subsampleCoords(
 // pathological (whole-map-churn) diff terminates instead of hanging; once
 // exhausted the comparison bails out reporting no coverage.
 function coverage(
-  from: Array<[number, number]>, to: Array<[number, number]>, d: number,
+  from: Array<[number, number]>,
+  to: Array<[number, number]>,
+  d: number,
   budget?: MatchBudget,
 ): number {
   if (!from.length || !to.length) return 0
@@ -738,7 +921,10 @@ function coverage(
       for (let i = 1; i < toS.length; i++) {
         if (budget && --budget.ops <= 0) return 0
         const dist = pointToSegmentDist(p, toS[i - 1], toS[i])
-        if (dist < best) { best = dist; if (best <= d) break }
+        if (dist < best) {
+          best = dist
+          if (best <= d) break
+        }
       }
     }
     if (best <= d) within++
@@ -747,9 +933,12 @@ function coverage(
 }
 
 function pointToSegmentDist(
-  p: [number, number], a: [number, number], b: [number, number],
+  p: [number, number],
+  a: [number, number],
+  b: [number, number],
 ): number {
-  const dx = b[0] - a[0]; const dy = b[1] - a[1]
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
   const len2 = dx * dx + dy * dy
   if (len2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1])
   let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2
@@ -776,7 +965,8 @@ function canonCode(symbol?: MapSymbol): string {
 }
 
 function rectOf(object: { bounds?: unknown }): Rect | null {
-  const b = object.bounds as { min?: number[]; max?: number[] } | null | undefined
+  const b = object.bounds as
+    { min?: number[]; max?: number[] } | null | undefined
   if (!b || !Array.isArray(b.min) || !Array.isArray(b.max)) return null
   return [b.min[0], b.min[1], b.max[0], b.max[1]]
 }
@@ -797,6 +987,5 @@ function unionRect(a: Rect, b: Rect): Rect {
     Math.max(a[3], b[3]),
   ]
 }
-
 
 export default diffChanges

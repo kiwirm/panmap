@@ -1,15 +1,24 @@
 import type { MapSymbol, RenderLayer } from '../../../../../panmap/model.js'
 import {
-  XFLAG_FIRST_BEZIER, XFLAG_SECOND_BEZIER, YFLAG_DASH_POINT,
+  XFLAG_FIRST_BEZIER,
+  XFLAG_SECOND_BEZIER,
+  YFLAG_DASH_POINT,
 } from '../../../../../panmap/coord.js'
 import {
-  LineElementType, AreaElementType,
-  CircleElementType, DotElementType,
+  LineElementType,
+  AreaElementType,
+  CircleElementType,
+  DotElementType,
 } from '../../../native/symbol-element-types.js'
 import type {
-  ColorNumber, OcadAnchor, OcadElement,
-  XmapAreaSymbolLike, XmapCoordInput, XmapElementInput,
-  XmapLineSymbolLike, XmapPointSymbolLike,
+  ColorNumber,
+  OcadAnchor,
+  OcadElement,
+  XmapAreaSymbolLike,
+  XmapCoordInput,
+  XmapElementInput,
+  XmapLineSymbolLike,
+  XmapPointSymbolLike,
 } from './shared.js'
 import { normUnits } from './shared.js'
 
@@ -86,7 +95,11 @@ export function dotElement(color: number, diameter: number): OcadElement {
   }
 }
 
-export function circleElement(color: number, diameter: number, lineWidth: number): OcadElement {
+export function circleElement(
+  color: number,
+  diameter: number,
+  lineWidth: number,
+): OcadElement {
   return {
     type: CircleElementType,
     flags: 0,
@@ -106,8 +119,10 @@ export function circleElement(color: number, diameter: number, lineWidth: number
 function isOcadShapedElement(el: unknown): boolean {
   if (!el || typeof el !== 'object') return false
   const r = el as Record<string, unknown>
-  return typeof r.type === 'number'
-    && (r.numberCoords !== undefined || 'lineWidth' in r || 'diameter' in r)
+  return (
+    typeof r.type === 'number' &&
+    (r.numberCoords !== undefined || 'lineWidth' in r || 'diameter' in r)
+  )
 }
 
 export function pointElementFromXmap(
@@ -137,7 +152,7 @@ export function pointElementFromXmap(
 /**
  * Translate xmap-shape coords (`{x, y, flags}` objects or `[x, y]`
  * tuples) into the OCAD anchor shape used by icon elements.
- * See `map/coord.ts:normaliseOmapFlags` — this mirrors that mapping
+ * See `formats/omap/codecs/omap-flags.ts:normaliseOmapFlags` — this mirrors that mapping
  * for main-body coords.
  */
 export function translateXmapCoords(
@@ -171,18 +186,26 @@ export function pointSymbolToElements(
   const innerSlot = colorNumber(ps.innerColor)
   if (inner > 0 && innerSlot > 0) {
     out.push({
-      type: DotElementType, flags: 0, color: innerSlot,
-      lineWidth: 0, diameter: normUnits(innerRaw * 2),
-      numberCoords: 1, coords: [anchor],
+      type: DotElementType,
+      flags: 0,
+      color: innerSlot,
+      lineWidth: 0,
+      diameter: normUnits(innerRaw * 2),
+      numberCoords: 1,
+      coords: [anchor],
     })
   }
   const outer = normUnits(ps.outerWidth)
   const outerSlot = colorNumber(ps.outerColor)
   if (outer > 0 && outerSlot > 0) {
     out.push({
-      type: CircleElementType, flags: 0, color: outerSlot,
-      lineWidth: outer, diameter: normUnits(innerRaw * 2 + outer),
-      numberCoords: 1, coords: [anchor],
+      type: CircleElementType,
+      flags: 0,
+      color: outerSlot,
+      lineWidth: outer,
+      diameter: normUnits(innerRaw * 2 + outer),
+      numberCoords: 1,
+      coords: [anchor],
     })
   }
   for (const sub of ps.elements ?? []) {

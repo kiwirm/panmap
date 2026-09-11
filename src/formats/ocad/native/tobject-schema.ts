@@ -1,6 +1,6 @@
 /**
  * Field schemas shared by the TObject reader (`tobject.ts`) and writer
- * (`../write/encode-tobject.ts`). Each entry is [fieldName, ioType].
+ * (`../writer/encode/encode-tobject.ts`). Each entry is [fieldName, ioType].
  * Order matters — it's the byte layout on disk.
  *
  * Reserved fields (name === '_res*') consume bytes but aren't stored on
@@ -12,7 +12,7 @@ export type FieldType =
   | 'u32' // Cardinal (readCardinal / writeCardinal)
   | 'i16' // SmallInt (readSmallInt / writeSmallInt)
   | 'u16' // Word     (readWord / writeWord)
-  | 'i8'  // Byte     (readByte / writeByte)
+  | 'i8' // Byte     (readByte / writeByte)
   | 'f64' // Double   (readDouble / writeDouble)
 
 export type FieldSpec = readonly [name: string, type: FieldType]
@@ -21,7 +21,7 @@ export type FieldSpec = readonly [name: string, type: FieldType]
 export const TOBJECT_V12_HEADER: readonly FieldSpec[] = [
   ['sym', 'i32'],
   ['otp', 'i8'],
-  ['unicode', 'i8'],       // stored as boolean on the object but 1 byte on disk
+  ['unicode', 'i8'], // stored as boolean on the object but 1 byte on disk
   ['ang', 'i16'],
   ['col', 'i32'],
   ['lineWidth', 'i16'],

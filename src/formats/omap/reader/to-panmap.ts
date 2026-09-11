@@ -44,15 +44,22 @@ function omapFileToMap(xmapFile: OmapFile): Panmap {
   // pre-parts behaviour (no `parts`, no per-object `partId`) so output is
   // byte-identical. First part is `part_main` (matches gitmap's default).
   const multiPart = xmapFile.parts.length > 1
-  const partIds = xmapFile.parts.map((_, i) => (i === 0 ? 'part_main' : `part_${i}`))
+  const partIds = xmapFile.parts.map((_, i) =>
+    i === 0 ? 'part_main' : `part_${i}`,
+  )
   const parts = multiPart
     ? xmapFile.parts.map((part, i) => ({ id: partIds[i], name: part.name }))
     : undefined
   let objIndex = 0
   const objects = xmapFile.parts.flatMap((part, i) =>
     part.objects.map(object =>
-      toMapObject(object, objIndex++, symbolsById, multiPart ? partIds[i] : undefined)
-    )
+      toMapObject(
+        object,
+        objIndex++,
+        symbolsById,
+        multiPart ? partIds[i] : undefined,
+      ),
+    ),
   )
 
   return new Panmap({
@@ -128,13 +135,15 @@ function extractPrint(raw: unknown): MapPrint | undefined {
     const pageRect = pfr.page_rect as Record<string, unknown> | undefined
     const fmt: NonNullable<MapPrint['pageFormat']> = {}
     if (typeof paperSize === 'string') fmt.paperSize = paperSize
-    if (orientation === 'portrait' || orientation === 'landscape') fmt.orientation = orientation
+    if (orientation === 'portrait' || orientation === 'landscape')
+      fmt.orientation = orientation
     if (hOverlap !== undefined) fmt.hOverlap = hOverlap
     if (vOverlap !== undefined) fmt.vOverlap = vOverlap
     if (dims) {
       const w = numberAttr(dims['@_width'])
       const h = numberAttr(dims['@_height'])
-      if (w !== undefined && h !== undefined) fmt.dimensions = { width: w, height: h }
+      if (w !== undefined && h !== undefined)
+        fmt.dimensions = { width: w, height: h }
     }
     if (pageRect) {
       const rect = rectFromAttrs(pageRect)
@@ -153,7 +162,9 @@ function extractPrint(raw: unknown): MapPrint | undefined {
 function extractTemplates(raw: unknown): MapTemplates | undefined {
   if (!raw || typeof raw !== 'object') return undefined
   const r = raw as Record<string, unknown>
-  const items = ensureArray(r.template).map(extractTemplate).filter((t): t is MapTemplate => !!t)
+  const items = ensureArray(r.template)
+    .map(extractTemplate)
+    .filter((t): t is MapTemplate => !!t)
   const firstFront = numberAttr(r['@_first_front_template'])
   const defaultsRaw = r.defaults as Record<string, unknown> | undefined
   const templates: MapTemplates = { items }
@@ -161,7 +172,8 @@ function extractTemplates(raw: unknown): MapTemplates | undefined {
   if (defaultsRaw) {
     const defaults: NonNullable<MapTemplates['defaults']> = {}
     const use = defaultsRaw['@_use_meters_per_pixel']
-    if (use === 'true' || use === 'false') defaults.useMetersPerPixel = use === 'true'
+    if (use === 'true' || use === 'false')
+      defaults.useMetersPerPixel = use === 'true'
     const mpp = numberAttr(defaultsRaw['@_meters_per_pixel'])
     const dpi = numberAttr(defaultsRaw['@_dpi'])
     const sc = numberAttr(defaultsRaw['@_scale'])
@@ -194,12 +206,15 @@ function extractTemplate(raw: unknown): MapTemplate | undefined {
   return template
 }
 
-function extractTransformations(raw: unknown): MapTemplateTransformations | undefined {
+function extractTransformations(
+  raw: unknown,
+): MapTemplateTransformations | undefined {
   if (!raw || typeof raw !== 'object') return undefined
   const r = raw as Record<string, unknown>
   const out: MapTemplateTransformations = {}
   const dirty = r['@_adjustment_dirty']
-  if (dirty === 'true' || dirty === 'false') out.adjustmentDirty = dirty === 'true'
+  if (dirty === 'true' || dirty === 'false')
+    out.adjustmentDirty = dirty === 'true'
   const pp = numberAttr(r['@_passpoints'])
   if (pp !== undefined) out.passpoints = pp
   for (const t of ensureArray(r.transformation)) {
@@ -278,7 +293,8 @@ function extractProjectedCrs(raw: unknown): MapCrsProjected | undefined {
   const spec = extractCrsSpec(r.spec)
   if (spec) out.spec = spec
   const param = r.parameter
-  if (typeof param === 'string' || typeof param === 'number') out.parameter = String(param)
+  if (typeof param === 'string' || typeof param === 'number')
+    out.parameter = String(param)
   const rp = r.ref_point as Record<string, unknown> | undefined
   if (rp) {
     const point = pointFromAttrs(rp)
@@ -304,29 +320,40 @@ function extractGeographicCrs(raw: unknown): MapCrsGeographic | undefined {
   return out
 }
 
-function extractCrsSpec(raw: unknown): { language: string; value: string } | undefined {
+function extractCrsSpec(
+  raw: unknown,
+): { language: string; value: string } | undefined {
   if (!raw || typeof raw !== 'object') return undefined
   const r = raw as Record<string, unknown>
   const language = r['@_language']
   const value = r['#text']
-  if (typeof language !== 'string' || typeof value !== 'string') return undefined
+  if (typeof language !== 'string' || typeof value !== 'string')
+    return undefined
   return { language, value }
 }
 
-function pointFromAttrs(r: Record<string, unknown>): { x: number; y: number } | undefined {
+function pointFromAttrs(
+  r: Record<string, unknown>,
+): { x: number; y: number } | undefined {
   const x = numberAttr(r['@_x'])
   const y = numberAttr(r['@_y'])
   if (x === undefined || y === undefined) return undefined
   return { x, y }
 }
 
-function rectFromAttrs(r: Record<string, unknown>):
-  { left: number; top: number; width: number; height: number } | undefined {
+function rectFromAttrs(
+  r: Record<string, unknown>,
+): { left: number; top: number; width: number; height: number } | undefined {
   const left = numberAttr(r['@_left'])
   const top = numberAttr(r['@_top'])
   const width = numberAttr(r['@_width'])
   const height = numberAttr(r['@_height'])
-  if (left === undefined || top === undefined || width === undefined || height === undefined)
+  if (
+    left === undefined ||
+    top === undefined ||
+    width === undefined ||
+    height === undefined
+  )
     return undefined
   return { left, top, width, height }
 }
@@ -342,7 +369,7 @@ function extractNotesText(notes: unknown): string {
 }
 
 function toMapColor(color: OmapColor) {
-  // xmap/read.ts already normalises RGB into 0–255 bytes via
+  // reader/decode.ts already normalises RGB into 0–255 bytes via
   // rgbValuesToBytes / cmykFractionToRgb — no further scaling needed.
   const rgb = color.rgb || { r: 0, g: 0, b: 0 }
   return {
@@ -357,20 +384,23 @@ function toMapColor(color: OmapColor) {
   }
 }
 
-function toMapSymbol(symbol: OmapSymbol, symbolsById: Record<number, OmapSymbol>) {
+function toMapSymbol(
+  symbol: OmapSymbol,
+  symbolsById: Record<number, OmapSymbol>,
+) {
   // Rotatable is an outer-element attribute in xmap (`<point_symbol
   // rotatable="true">` / `<text_symbol rotatable="true">`) but doesn't
   // survive the render-layer flatten cleanly — expose it as a top-level
   // Panmap field so `isRotatable` in synth doesn't need to walk
   // `native.xmap.raw`.
   const rotatable = !!(
-    symbol.pointSymbol?.rotatable
-    || symbol.textSymbol?.rotatable
+    symbol.pointSymbol?.rotatable ||
+    symbol.textSymbol?.rotatable ||
     // Area symbols can be rotatable when any of their patterns are —
     // the OCAD flags-bit is set if *any* pattern rotates. Layers still
     // carry per-pattern `rotatable` for finer-grained rendering; the
     // top-level flag is purely for the OCAD flag byte.
-    || symbol.areaSymbol?.patterns?.some(p => !!p.rotatable)
+    symbol.areaSymbol?.patterns?.some(p => !!p.rotatable)
   )
   return {
     id: symbol.id,
@@ -387,12 +417,12 @@ function toMapSymbol(symbol: OmapSymbol, symbolsById: Record<number, OmapSymbol>
 
 /**
  * @param {OmapSymbol} symbol
- * @returns {import('../../../panmap/map').RenderLayer[]}
+ * @returns {import('../../../panmap/model').RenderLayer[]}
  */
 function symbolToRenderLayers(
   symbol: OmapSymbol,
   symbolsById: Record<number, OmapSymbol>,
-  seen = new Set<number>()
+  seen = new Set<number>(),
 ): RenderLayer[] {
   if (seen.has(symbol.id)) return []
   seen.add(symbol.id)
@@ -413,15 +443,16 @@ function symbolToRenderLayers(
       // line). Refs that contain an area part (like 521.2 → canopy
       // combined) don't map to a borderSym slot; Mapper emits them
       // as a plain area, so we do too. Refs to plain areas drop as well.
-      const refSym = b.symbolRef !== undefined ? symbolsById[b.symbolRef] : undefined
+      const refSym =
+        b.symbolRef !== undefined ? symbolsById[b.symbolRef] : undefined
       const refIsLine = refSym ? isEffectivelyLine(refSym, symbolsById) : false
       if (
-        aSym?.areaSymbol
-        && !aSym.lineSymbol
-        && !aSym.pointSymbol
-        && !aSym.textSymbol
-        && b.symbolRef !== undefined
-        && !b.symbol
+        aSym?.areaSymbol &&
+        !aSym.lineSymbol &&
+        !aSym.pointSymbol &&
+        !aSym.textSymbol &&
+        b.symbolRef !== undefined &&
+        !b.symbol
       ) {
         const areaLayers = symbolToRenderLayers(aSym, symbolsById, seen)
         if (refIsLine) {
@@ -439,9 +470,12 @@ function symbolToRenderLayers(
       }
     }
     return parts.flatMap(part => {
-      const partSymbol = part.symbol
-        || (part.symbolRef !== undefined ? symbolsById[part.symbolRef] : undefined)
-      return partSymbol ? symbolToRenderLayers(partSymbol, symbolsById, seen) : []
+      const partSymbol =
+        part.symbol ||
+        (part.symbolRef !== undefined ? symbolsById[part.symbolRef] : undefined)
+      return partSymbol
+        ? symbolToRenderLayers(partSymbol, symbolsById, seen)
+        : []
     })
   }
 
@@ -467,12 +501,19 @@ function symbolToRenderLayers(
       // Dash bookkeeping used to compute OCAD's `mainLength`,
       // `endLength`, and `nPrimSym` — even non-dashed lines carry a
       // `segment_length` used for mid-symbol placement.
-      segmentLength: (symbol.lineSymbol as { segmentLength?: number }).segmentLength,
+      segmentLength: (symbol.lineSymbol as { segmentLength?: number })
+        .segmentLength,
       endLength: (symbol.lineSymbol as { endLength?: number }).endLength,
-      midSymbolsPerSpot: (symbol.lineSymbol as { midSymbolsPerSpot?: number }).midSymbolsPerSpot,
-      midSymbolDistance: (symbol.lineSymbol as { midSymbolDistance?: number }).midSymbolDistance,
-      minimumMidSymbolCount: (symbol.lineSymbol as { minimumMidSymbolCount?: number }).minimumMidSymbolCount,
-      showAtLeastOneSymbol: (symbol.lineSymbol as { showAtLeastOneSymbol?: boolean }).showAtLeastOneSymbol,
+      midSymbolsPerSpot: (symbol.lineSymbol as { midSymbolsPerSpot?: number })
+        .midSymbolsPerSpot,
+      midSymbolDistance: (symbol.lineSymbol as { midSymbolDistance?: number })
+        .midSymbolDistance,
+      minimumMidSymbolCount: (
+        symbol.lineSymbol as { minimumMidSymbolCount?: number }
+      ).minimumMidSymbolCount,
+      showAtLeastOneSymbol: (
+        symbol.lineSymbol as { showAtLeastOneSymbol?: boolean }
+      ).showAtLeastOneSymbol,
       // Start / end offsets used for OCAD's `distFromStart` /
       // `distToEnd` fields — displace the whole line pattern
       // relative to the object endpoints.
@@ -483,17 +524,23 @@ function symbolToRenderLayers(
       // double-line fields encode. Without them, road symbols like
       // ISOM 502.x drop their outer borders when re-exported to OCAD.
       borders: symbol.lineSymbol.borders?.length
-        ? symbol.lineSymbol.borders.map((b: {
-            color: number; width: number; shift: number;
-            dashed?: boolean; dashLength?: number; breakLength?: number;
-          }) => ({
-            color: b.color,
-            width: b.width,
-            shift: b.shift,
-            dashed: b.dashed,
-            dashLength: b.dashLength,
-            breakLength: b.breakLength,
-          }))
+        ? symbol.lineSymbol.borders.map(
+            (b: {
+              color: number
+              width: number
+              shift: number
+              dashed?: boolean
+              dashLength?: number
+              breakLength?: number
+            }) => ({
+              color: b.color,
+              width: b.width,
+              shift: b.shift,
+              dashed: b.dashed,
+              dashLength: b.dashLength,
+              breakLength: b.breakLength,
+            }),
+          )
         : undefined,
     },
     symbol.lineSymbol &&
@@ -515,7 +562,7 @@ function symbolToRenderLayers(
             pattern =>
               pattern.type === 1 &&
               pattern.color !== undefined &&
-              pattern.color >= 0
+              pattern.color >= 0,
           )
           .map(pattern => ({
             type: 'hatch-fill',
@@ -545,8 +592,14 @@ function symbolToRenderLayers(
               pattern.symbol?.pointSymbol?.innerColor ??
               pattern.symbol?.areaSymbol?.innerColor ??
               pattern.symbol?.lineSymbol?.color,
-            width: Math.max(pattern.pointDistance || pattern.lineSpacing || 1, 1),
-            height: Math.max(pattern.pointDistance || pattern.lineSpacing || 1, 1),
+            width: Math.max(
+              pattern.pointDistance || pattern.lineSpacing || 1,
+              1,
+            ),
+            height: Math.max(
+              pattern.pointDistance || pattern.lineSpacing || 1,
+              1,
+            ),
             angle: pattern.angle ? (pattern.angle * 180) / Math.PI : 0,
             pattern,
           }))
@@ -599,7 +652,7 @@ function toMapObject(
   object: OmapObject,
   index: number,
   symbolsById: Record<number, OmapSymbol>,
-  partId?: string
+  partId?: string,
 ) {
   const symbol = symbolsById[object.symbol]
   const coordinates = mapCoords(object.coords)
@@ -679,22 +732,34 @@ function isEffectivelyLine(
   if (symbol.lineSymbol) return true
   if (!symbol.combinedSymbol?.parts?.length) return false
   return symbol.combinedSymbol.parts.every(part => {
-    const child = part.symbol ?? (part.symbolRef !== undefined ? symbolsById[part.symbolRef] : undefined)
+    const child =
+      part.symbol ??
+      (part.symbolRef !== undefined ? symbolsById[part.symbolRef] : undefined)
     return child ? isEffectivelyLine(child, symbolsById, seen) : false
   })
 }
 
-function hasAreaVariant(symbol, symbolsById?: Record<number, unknown>): boolean {
+function hasAreaVariant(
+  symbol,
+  symbolsById?: Record<number, unknown>,
+): boolean {
   if (symbol.areaSymbol) return true
   if (!symbol.combinedSymbol?.parts) return false
   return symbol.combinedSymbol.parts.some(part => {
-    const s = part.symbol ?? (symbolsById && part.symbolRef !== undefined ? symbolsById[part.symbolRef] : null)
+    const s =
+      part.symbol ??
+      (symbolsById && part.symbolRef !== undefined
+        ? symbolsById[part.symbolRef]
+        : null)
     return s ? hasAreaVariant(s, symbolsById) : false
   })
 }
 
 /** Bounds including the object's textBox extent if present. */
-function getBounds(coordinates: ArrayLike<number>[], object: { textBox?: { width: number; height: number } | null }) {
+function getBounds(
+  coordinates: ArrayLike<number>[],
+  object: { textBox?: { width: number; height: number } | null },
+) {
   const base = boundsForCoords(coordinates)
   if (!base) return null
   if (object.textBox) {

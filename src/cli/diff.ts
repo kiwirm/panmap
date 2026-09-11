@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises'
-import { XMLSerializer, DOMImplementation } from '@xmldom/xmldom'
+import { XMLSerializer } from '@xmldom/xmldom'
 import { read, diff, diffChanges, mapToSvg } from '../index.js'
 
 interface DiffCmdOptions {
@@ -43,7 +43,6 @@ export async function runDiff(
     await fs.writeFile(output, result.overallSvg)
   } else {
     const svg = mapToSvg(diff(before, after), {
-      document: new DOMImplementation().createDocument(null, 'xml', null),
       backgroundColor: options.whiteBackground ? 'white' : undefined,
       bounds,
     })

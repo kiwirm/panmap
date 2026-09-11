@@ -25,7 +25,7 @@
  *   MAPPER_PARITY_ROOT       — override fixtures root (default:
  *                              `test/parity-fixtures`).
  *   MAPPER_PARITY_MAX_CRIT   — max acceptable render-critical diffs
- *                              per file per path (default: 10).
+ *                              per file per path (default: 5).
  *   MAPPER_PARITY_LIMIT      — process at most N pairs. Defaults to
  *                              4 to keep CI runtime bounded; set to
  *                              `0` to run every fixture.
@@ -41,8 +41,8 @@ import { read as readMap, write as writeMap } from '../src/index.ts'
 import { readOcad } from './helpers/raw.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const ROOT = process.env.MAPPER_PARITY_ROOT
-  ?? path.join(HERE, 'parity-fixtures')
+const ROOT =
+  process.env.MAPPER_PARITY_ROOT ?? path.join(HERE, 'parity-fixtures')
 const MAX_CRITICAL = Number(process.env.MAPPER_PARITY_MAX_CRIT ?? '5')
 const LIMIT = Number(process.env.MAPPER_PARITY_LIMIT ?? '4')
 // Per-test timeout — the gitmap-detour paths (path 3, 4) do a full
@@ -57,19 +57,38 @@ const PER_TEST_TIMEOUT_MS = 6 * 60 * 1000
 // sequences, description strings, colorSet ordering, etc.) and only
 // counted, not asserted on.
 const RENDER_CRITICAL = new Set([
-  'hatchMode', 'hatchColor', 'hatchLineWidth', 'hatchDist',
-  'hatchAngle1', 'hatchAngle2',
-  'structMode', 'structDraw', 'structWidth', 'structHeight', 'structAngle',
-  'fillColor', 'fillOn',
+  'hatchMode',
+  'hatchColor',
+  'hatchLineWidth',
+  'hatchDist',
+  'hatchAngle1',
+  'hatchAngle2',
+  'structMode',
+  'structDraw',
+  'structWidth',
+  'structHeight',
+  'structAngle',
+  'fillColor',
+  'fillOn',
   'borderOn',
-  'lineColor', 'lineWidth', 'lineStyle',
-  'fontColor', 'fontSize',
+  'lineColor',
+  'lineWidth',
+  'lineStyle',
+  'fontColor',
+  'fontSize',
   'nColors',
 ])
 
 const IGNORE = new Set([
-  '_byteRange', 'warnings', 'iconBits', 'descriptionWords',
-  'symbolTreeGroup', 'mystery64', 'size', 'filePos', '_tail',
+  '_byteRange',
+  'warnings',
+  'iconBits',
+  'descriptionWords',
+  'symbolTreeGroup',
+  'mystery64',
+  'size',
+  'filePos',
+  '_tail',
   '_fontNameBytes',
 ])
 
@@ -79,15 +98,18 @@ function collectPairs(root) {
   // Each fixture lives in `<root>/<stem>/` with `source.{xmap|omap}`
   // and `mapper.ocd`. Anything without both files is skipped.
   let entries
-  try { entries = fsSync.readdirSync(root, { withFileTypes: true }) }
-  catch { return [] }
+  try {
+    entries = fsSync.readdirSync(root, { withFileTypes: true })
+  } catch {
+    return []
+  }
   const out = []
   for (const e of entries) {
     if (!e.isDirectory()) continue
     const dir = path.join(root, e.name)
     const files = fsSync.readdirSync(dir)
-    const source = files.find((f) => f === 'source.xmap' || f === 'source.omap')
-    const ocdName = files.find((f) => f === 'mapper.ocd')
+    const source = files.find(f => f === 'source.xmap' || f === 'source.omap')
+    const ocdName = files.find(f => f === 'mapper.ocd')
     if (!source || !ocdName) continue
     out.push({
       stem: e.name,
@@ -104,13 +126,23 @@ function diffSymbols(ours, mapper) {
   const other = []
   const walk = (name, ov, mv) => {
     if (JSON.stringify(ov) === JSON.stringify(mv)) return
-    if (ov && mv && typeof ov === 'object' && typeof mv === 'object' && !Array.isArray(ov)) {
+    if (
+      ov &&
+      mv &&
+      typeof ov === 'object' &&
+      typeof mv === 'object' &&
+      !Array.isArray(ov)
+    ) {
       const keys = new Set([...Object.keys(ov), ...Object.keys(mv)])
       for (const k of keys) walk(name + '.' + k, ov[k], mv[k])
       return
     }
     const leaf = name.split('.').pop()
-    ;(RENDER_CRITICAL.has(leaf) ? critical : other).push({ name, ours: ov, mapper: mv })
+    ;(RENDER_CRITICAL.has(leaf) ? critical : other).push({
+      name,
+      ours: ov,
+      mapper: mv,
+    })
   }
   for (const k of Object.keys(mapper)) {
     if (IGNORE.has(k)) continue
@@ -121,8 +153,11 @@ function diffSymbols(ours, mapper) {
 
 async function withTmp(fn) {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'panmap-parity-'))
-  try { return await fn(tmp) }
-  finally { fs.rm(tmp, { recursive: true, force: true }).catch(() => {}) }
+  try {
+    return await fn(tmp)
+  } finally {
+    fs.rm(tmp, { recursive: true, force: true }).catch(() => {})
+  }
 }
 
 async function ocdSymbolSet(ocdPath) {
@@ -136,10 +171,15 @@ async function ocdSymbolSet(ocdPath) {
 async function scoreVsPairedOcd(oursOcdPath, mapperOcdPath) {
   const ours = await ocdSymbolSet(oursOcdPath)
   const mapper = await ocdSymbolSet(mapperOcdPath)
-  let critical = 0, other = 0, missing = 0
+  let critical = 0,
+    other = 0,
+    missing = 0
   for (const m of mapper) {
     const o = ours.find(s => s.symNum === m.symNum)
-    if (!o) { missing++; continue }
+    if (!o) {
+      missing++
+      continue
+    }
     const d = diffSymbols(o, m)
     critical += d.critical.length
     other += d.other.length
@@ -158,10 +198,10 @@ async function scoreVsPairedOcd(oursOcdPath, mapperOcdPath) {
 const pairs = collectPairs(ROOT)
 
 if (pairs.length === 0) {
-  test('mapper-parity: no fixtures present', (t) => {
+  test('mapper-parity: no fixtures present', t => {
     t.pass(
       `Skipping — no fixtures found under ${ROOT}. See ` +
-      `test/parity-fixtures/manifest.json for the expected layout.`,
+        `test/parity-fixtures/manifest.json for the expected layout.`,
     )
   })
 } else {
@@ -170,14 +210,16 @@ if (pairs.length === 0) {
     const { stem } = pair
 
     // Path 1: xmap → ocd
-    test(`${stem}: xmap → ocd (direct)`, async (t) => {
+    test(`${stem}: xmap → ocd (direct)`, async t => {
       t.timeout(PER_TEST_TIMEOUT_MS)
-      await withTmp(async (tmp) => {
+      await withTmp(async tmp => {
         const map = await readMap(pair.xmap)
         const out = path.join(tmp, 'x2o.ocd')
         await writeMap(map, out)
         const score = await scoreVsPairedOcd(out, pair.ocd)
-        t.log(`syms ours=${score.oursSyms} mapper=${score.mapperSyms} missing=${score.missing} critical=${score.critical} other=${score.other}`)
+        t.log(
+          `syms ours=${score.oursSyms} mapper=${score.mapperSyms} missing=${score.missing} critical=${score.critical} other=${score.other}`,
+        )
         t.true(
           score.critical <= MAX_CRITICAL,
           `expected ≤ ${MAX_CRITICAL} render-critical diffs vs Mapper's OCD, got ${score.critical}`,
@@ -190,8 +232,8 @@ if (pairs.length === 0) {
     // because Mapper's xmap is XML with an ordering that we don't
     // reproduce; instead confirm the OCD we then write from our xmap
     // still scores near-parity.
-    test(`${stem}: ocd → xmap → ocd (round-trip parity)`, async (t) => {
-      await withTmp(async (tmp) => {
+    test(`${stem}: ocd → xmap → ocd (round-trip parity)`, async t => {
+      await withTmp(async tmp => {
         const src = await readMap(pair.ocd)
         const xmapOut = path.join(tmp, 'o2x.xmap')
         await writeMap(src, xmapOut)
@@ -210,8 +252,8 @@ if (pairs.length === 0) {
     // Path 3: xmap → gitmap → ocd. Gitmap is our git-friendly
     // intermediate; a round-trip through it must land near parity
     // with the original OCD.
-    test(`${stem}: xmap → gitmap → ocd`, async (t) => {
-      await withTmp(async (tmp) => {
+    test(`${stem}: xmap → gitmap → ocd`, async t => {
+      await withTmp(async tmp => {
         const map = await readMap(pair.xmap)
         const gm = path.join(tmp, 'trip.gitmap')
         await writeMap(map, gm)
@@ -229,8 +271,8 @@ if (pairs.length === 0) {
 
     // Path 4: ocd → gitmap → xmap → ocd. The full circle. A double
     // round-trip is the strongest check of gitmap fidelity.
-    test(`${stem}: ocd → gitmap → xmap → ocd`, async (t) => {
-      await withTmp(async (tmp) => {
+    test(`${stem}: ocd → gitmap → xmap → ocd`, async t => {
+      await withTmp(async tmp => {
         const src = await readMap(pair.ocd)
         const gm = path.join(tmp, 'trip.gitmap')
         await writeMap(src, gm)
@@ -241,7 +283,9 @@ if (pairs.length === 0) {
         const ocdOut = path.join(tmp, 'trip.ocd')
         await writeMap(rt2, ocdOut)
         const score = await scoreVsPairedOcd(ocdOut, pair.ocd)
-        t.log(`ocd→gitmap→xmap→ocd critical=${score.critical} other=${score.other}`)
+        t.log(
+          `ocd→gitmap→xmap→ocd critical=${score.critical} other=${score.other}`,
+        )
         t.true(
           score.critical <= MAX_CRITICAL,
           `expected ≤ ${MAX_CRITICAL} render-critical diffs after ocd→gitmap→xmap→ocd, got ${score.critical}`,

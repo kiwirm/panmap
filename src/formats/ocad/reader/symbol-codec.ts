@@ -5,8 +5,8 @@
  *   - the reader's per-type constructor dispatch (currently one file per
  *     symbol type in `read/`),
  *   - the writer's switch on `symbol.type` (encode-symbol.ts),
- *   - the toMap render-layer dispatch (to-map.ts symbolToRenderLayers),
- *   - the xmap render-layer dispatch (xmap/to-map.ts).
+ *   - the ocad render-layer dispatch (reader/to-panmap.ts symbolToRenderLayers),
+ *   - the xmap render-layer dispatch (omap/reader/to-panmap.ts).
  *
  * For now, only the type-name maps are shared. Consumers still perform
  * their own dispatch; when a full registry lands, it should own those

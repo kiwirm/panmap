@@ -12,11 +12,11 @@ test('too small files can not be opened', async (/** @type {ExecutionContext} */
 
 test('can open valid file', async (/** @type {ExecutionContext} */ t) => {
   const map = await readOcad(fixtureFile('basic-1.ocd'))
-  t.is(12, map.header.version, 'Version mismatch')
-  t.is(0, map.header.subVersion, 'Subversion mismatch')
-  t.is(0, map.header.subSubVersion, 'Subsubversion mismatch')
-  t.is(4164, map.header.symbolIndexBlock, 'First symbol index block')
-  t.is(5196, map.header.objectIndexBlock, 'First object index block')
+  t.is(map.header.version, 12, 'Version mismatch')
+  t.is(map.header.subVersion, 0, 'Subversion mismatch')
+  t.is(map.header.subSubVersion, 0, 'Subsubversion mismatch')
+  t.is(map.header.symbolIndexBlock, 4164, 'First symbol index block')
+  t.is(map.header.objectIndexBlock, 5196, 'First object index block')
 })
 
 test('can read symbols from file', async (/** @type {ExecutionContext} */ t) => {
@@ -32,21 +32,21 @@ test('can read objects from file', async (/** @type {ExecutionContext} */ t) => 
 test('can get CRS', async (/** @type {ExecutionContext} */ t) => {
   const map = await readOcad(fixtureFile('basic-1.ocd'))
   const crs = map.getCrs()
-  t.is(316000, crs.easting)
-  t.is(6404000, crs.northing)
-  t.is(15000, crs.scale)
-  t.is(3006, crs.code)
-  t.is('EPSG', crs.catalog)
+  t.is(crs.easting, 316000)
+  t.is(crs.northing, 6404000)
+  t.is(crs.scale, 15000)
+  t.is(crs.code, 3006)
+  t.is(crs.catalog, 'EPSG')
 })
 
 test('can convert to projected CRS', async (/** @type {ExecutionContext} */ t) => {
   const map = await readOcad(fixtureFile('basic-1.ocd'))
   const crs = map.getCrs()
-  t.deepEqual([316000, 6404000], crs.toProjectedCoord([0, 0]))
+  t.deepEqual(crs.toProjectedCoord([0, 0]), [316000, 6404000])
 })
 
 test('can convert to map coord', async (/** @type {ExecutionContext} */ t) => {
   const map = await readOcad(fixtureFile('basic-1.ocd'))
   const crs = map.getCrs()
-  t.deepEqual([0, 0], crs.toMapCoord([316000, 6404000]))
+  t.deepEqual(crs.toMapCoord([316000, 6404000]), [0, 0])
 })
