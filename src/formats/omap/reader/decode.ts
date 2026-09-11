@@ -356,7 +356,7 @@ const RAW_PASSTHROUGH_KEYS = [
   'templates',
   'view',
   'print',
-]
+] as const
 
 /**
  * Re-parses the XML with attribute-distinguishing config so we can capture

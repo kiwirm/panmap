@@ -5,6 +5,7 @@
  * symmetric with the ocad/omap `to-panmap` stages.
  */
 import Panmap from '../../../panmap/model.js'
+import type { RenderLayer } from '../../../panmap/render-layers.js'
 import { boundsForCoords } from '../../../panmap/coord.js'
 import {
   capStyleFromGitmap,
@@ -23,6 +24,50 @@ export interface GitmapFile {
   privateData?: Record<string, unknown>
   /** Human-readable origin (directory path or "bundle") for `sourceFile`. */
   label: string
+}
+
+/** A colour record as it appears in a gitmap `colors.ndjson` line. */
+interface GitmapColor {
+  id: number | string
+  order: number | string
+  name?: string
+  /** `[r, g, b]` integer array. */
+  rgb?: unknown
+  cmyk?: [number, number, number, number]
+  opacity?: number
+  renderOrder?: number
+}
+
+/** A symbol record as it appears in a gitmap `symbols.ndjson` line. */
+interface GitmapSymbol {
+  id: number | string
+  code?: string
+  name?: string
+  type: string
+  hidden?: boolean
+  rotatable?: boolean
+  textSymbol?: { rotatable?: boolean; fontSize?: number }
+  layers?: unknown[]
+}
+
+/** An object record as it appears in a gitmap `objects.ndjson` line. */
+interface GitmapObject {
+  order?: number
+  partId?: string
+  symbolId: number | string
+  type: string
+  coordinates?: unknown[]
+  holes?: unknown
+  text?: string
+  /** Degrees; converted to radians by `rotationFromGitmap`. */
+  rotation?: unknown
+  hidden?: boolean
+  hAlign?: unknown
+  vAlign?: unknown
+  textBox?: { width: number; height: number }
+  pattern?: unknown
+  tag?: string
+  tagType?: number
 }
 
 export default function gitmapToPanmap(file: GitmapFile): Panmap {
@@ -100,7 +145,7 @@ function numericIfPossible(v: unknown): number | string {
   return String(v ?? '')
 }
 
-function colorFromGitmap(color) {
+function colorFromGitmap(color: GitmapColor) {
   return {
     id: color.id,
     sourceId: color.order,
@@ -122,7 +167,7 @@ function rgbToString(rgb: unknown): string | undefined {
   return undefined
 }
 
-function symbolFromGitmap(symbol, index = 0) {
+function symbolFromGitmap(symbol: GitmapSymbol, index = 0) {
   const layers = symbol.layers ?? []
   return {
     id: symbol.id,
@@ -157,7 +202,7 @@ function fontSizeFromLayers(layers: unknown[]): number | undefined {
 }
 
 function objectFromGitmap(
-  object,
+  object: GitmapObject,
   symbolIds: Map<string | number, string | number>,
   index = 0,
   multiPart = false,
@@ -187,8 +232,8 @@ function objectFromGitmap(
   }
 }
 
-function renderLayerFromGitmap(layer) {
-  const output = { ...layer }
+function renderLayerFromGitmap(layer: unknown): RenderLayer {
+  const output = { ...(layer as Record<string, unknown>) }
   // Reverse the canonical enum strings back to the model's OCAD/Mapper ints.
   if (output.capStyle !== undefined)
     output.capStyle = capStyleFromGitmap(output.capStyle)
@@ -199,29 +244,36 @@ function renderLayerFromGitmap(layer) {
   if (Array.isArray(output.elements)) {
     output.elements = output.elements.map(elementFromGitmap)
   }
-  ;[
-    'primSymElements',
-    'cornerSymElements',
-    'startSymElements',
-    'endSymElements',
-  ].forEach(key => {
-    if (Array.isArray(output[key])) {
-      output[key] = output[key].map(elementFromGitmap)
+  ;(
+    [
+      'primSymElements',
+      'cornerSymElements',
+      'startSymElements',
+      'endSymElements',
+    ] as const
+  ).forEach(key => {
+    const arr = output[key]
+    if (Array.isArray(arr)) {
+      output[key] = arr.map(elementFromGitmap)
     }
   })
-  return output
+  return output as unknown as RenderLayer
 }
 
 // A stroke casing line: restore the model's `color` field from `colorId`.
-function borderFromGitmap(border) {
-  if (!border || typeof border !== 'object' || border.colorId === undefined)
+function borderFromGitmap(border: unknown) {
+  if (
+    !border ||
+    typeof border !== 'object' ||
+    (border as Record<string, unknown>).colorId === undefined
+  )
     return border
-  const { colorId, ...rest } = border
+  const { colorId, ...rest } = border as Record<string, unknown>
   return { color: colorId, ...rest }
 }
 
-function elementFromGitmap(element) {
-  const output = { ...element }
+function elementFromGitmap(element: unknown) {
+  const output = { ...(element as Record<string, unknown>) }
   // Restore the model field names the OCD/OMap writers expect: gitmap renamed
   // color→colorId and coords→coordinates and dropped the derived numberCoords
   // (= coordinates.length).
@@ -230,7 +282,7 @@ function elementFromGitmap(element) {
     delete output.colorId
   }
   if (output.radius !== undefined) {
-    output.diameter = output.radius * 2
+    output.diameter = (output.radius as number) * 2
     delete output.radius
   }
   const coordSrc = Array.isArray(output.coordinates)
@@ -239,19 +291,27 @@ function elementFromGitmap(element) {
       ? output.coords
       : undefined
   if (coordSrc) {
-    output.coords = coordsFromGitmap(coordSrc)
+    const coords = coordsFromGitmap(coordSrc)
+    output.coords = coords
     delete output.coordinates
-    output.numberCoords = output.coords.length
+    output.numberCoords = coords.length
   }
   return output
 }
 
 // Object/pattern rotation is stored in degrees in gitmap; the model uses
 // radians. Convert the pattern override's rotation back on read.
-function patternFromGitmap(pattern) {
-  if (!pattern || typeof pattern !== 'object' || pattern.rotation === undefined)
+function patternFromGitmap(pattern: unknown) {
+  if (
+    !pattern ||
+    typeof pattern !== 'object' ||
+    (pattern as Record<string, unknown>).rotation === undefined
+  )
     return pattern
-  return { ...pattern, rotation: rotationFromGitmap(pattern.rotation) }
+  return {
+    ...pattern,
+    rotation: rotationFromGitmap((pattern as Record<string, unknown>).rotation),
+  }
 }
 
 type CoordArray = Array<number> & { xFlags?: number; yFlags?: number }

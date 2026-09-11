@@ -4,13 +4,35 @@ import {
   CircleElementType,
   DotElementType,
 } from '../../formats/ocad/native/symbol-element-types.js'
+import type { MapObject } from '../../panmap/model.js'
+import type {
+  RenderLayer,
+  RenderElement,
+  PointSymbolSpec,
+  DecorationSymbol,
+} from '../../panmap/render-layers.js'
+import type { FlaggedCoord } from '../../panmap/coord.js'
 import { escapeXmlAttr as escapeAttr } from '../../util/xml.js'
-import { coordsToPath } from './path.js'
+import { coordsToPath, type Transform } from './path.js'
 import { dashToSvg } from './style.js'
-import { getColor, isValidColorId, opacityAttr, orderFor } from './colors.js'
+import {
+  getColor,
+  isValidColorId,
+  opacityAttr,
+  orderFor,
+  type ColorLookup,
+} from './colors.js'
 
-function pointLayerToSvg(object, layer, colors, transform) {
-  const rawCoord = object.coordinates[0]
+/** One emitted SVG primitive tagged with the colour it paints in. */
+type SvgPrimitive = { colorId: number | string | undefined; node: string }
+
+function pointLayerToSvg(
+  object: MapObject,
+  layer: RenderLayer,
+  colors: ColorLookup,
+  transform: Transform,
+) {
+  const rawCoord = (object.coordinates as FlaggedCoord[] | undefined)?.[0]
   const coord = rawCoord && transform(rawCoord)
   if (!rawCoord || !coord) return null
 
@@ -37,7 +59,7 @@ function pointLayerToSvg(object, layer, colors, transform) {
     // order (not the source-order of elements within the symbol).
     // Object rotation is radians in the source-format's y-up frame;
     // negate for the y-down coord space we render into (see textLayerToSvg).
-    return (layer.elements || []).flatMap(element =>
+    return ((layer.elements as RenderElement[]) || []).flatMap(element =>
       pointElementToSvg(
         element,
         rawCoord,
@@ -64,12 +86,12 @@ function pointLayerToSvg(object, layer, colors, transform) {
 // centring on `innerRadius` lets a fat ring reach inward and overpaint the
 // inner fill (e.g. 418 with r=10, w=30 hid the r=10 white centre).
 function pointSymbolCircles(
-  pointSymbol,
+  pointSymbol: PointSymbolSpec,
   cx: number,
   cy: number,
-  colors,
-): Array<{ colorId: any; node: string }> {
-  const out: Array<{ colorId: any; node: string }> = []
+  colors: ColorLookup,
+): SvgPrimitive[] {
+  const out: SvgPrimitive[] = []
   if (isValidColorId(pointSymbol.innerColor) && pointSymbol.innerRadius > 0) {
     out.push({
       colorId: pointSymbol.innerColor,
@@ -100,15 +122,15 @@ function pointSymbolCircles(
 // the whole group into one order. Rotation is baked into element coords
 // rather than wrapping in an SVG group.
 function xmapPointSymbolToSvg(
-  symbol,
-  x,
-  y,
-  colors,
-  transform = coord => coord,
+  symbol: DecorationSymbol,
+  x: number,
+  y: number,
+  colors: ColorLookup,
+  transform: Transform = coord => coord,
   rotation = 0,
-): Array<{ colorId: any; node: string }> {
+): SvgPrimitive[] {
   const anchor = transform([x, y])
-  const out: Array<{ colorId: any; node: string }> = []
+  const out: SvgPrimitive[] = []
   const pointSymbol = symbol.pointSymbol
   if (!pointSymbol) return out
 
@@ -128,12 +150,12 @@ function xmapPointSymbolToSvg(
 // containing layer's render order, and Mapper's own convention is that
 // each colour draws at its own priority level.
 function pointElementToSvg(
-  element,
-  anchor,
-  colors,
-  transform = coord => coord,
+  element: RenderElement,
+  anchor: ArrayLike<number>,
+  colors: ColorLookup,
+  transform: Transform = coord => coord,
   angle = 0,
-): Array<{ colorId: any; node: string }> {
+): SvgPrimitive[] {
   if (element.coords) {
     // OCAD-style element (already flat, single colour).
     const node = ocadPointElementToSvg(
@@ -163,7 +185,7 @@ function pointElementToSvg(
       element.symbol.lineSymbol && element.symbol.lineSymbol.color
     const strokeWidth =
       element.symbol.lineSymbol && element.symbol.lineSymbol.lineWidth
-    const out: Array<{ colorId: any; node: string }> = []
+    const out: SvgPrimitive[] = []
     if (isValidColorId(fillColorId)) {
       out.push({
         colorId: fillColorId,
@@ -172,7 +194,7 @@ function pointElementToSvg(
         )}" fill-rule="evenodd" />`,
       })
     }
-    if (isValidColorId(strokeColorId) && strokeWidth > 0) {
+    if (isValidColorId(strokeColorId) && (strokeWidth as number) > 0) {
       out.push({
         colorId: strokeColorId,
         node: `<path d="${coordsToPath(coords)} Z" fill="none" stroke="${escapeAttr(
@@ -186,7 +208,8 @@ function pointElementToSvg(
   if (element.symbol.lineSymbol) {
     const strokeColorId = element.symbol.lineSymbol.color
     const strokeWidth = element.symbol.lineSymbol.lineWidth
-    if (!isValidColorId(strokeColorId) || strokeWidth <= 0) return []
+    if (!isValidColorId(strokeColorId) || (strokeWidth as number) <= 0)
+      return []
     return [
       {
         colorId: strokeColorId,
@@ -210,7 +233,13 @@ function pointElementToSvg(
   return []
 }
 
-function ocadPointElementToSvg(element, anchor, colors, transform, angle = 0) {
+function ocadPointElementToSvg(
+  element: RenderElement,
+  anchor: ArrayLike<number>,
+  colors: ColorLookup,
+  transform: Transform,
+  angle = 0,
+): string | null {
   const coords = (element.coords || []).map(coord =>
     transform(addRotatedCoord(anchor, coord, angle)),
   )
@@ -245,7 +274,11 @@ function ocadPointElementToSvg(element, anchor, colors, transform, angle = 0) {
   }
 }
 
-function addRotatedCoord(anchor, coord, angle) {
+function addRotatedCoord(
+  anchor: ArrayLike<number>,
+  coord: ArrayLike<number>,
+  angle: number,
+): number[] {
   if (!angle) return [coord[0] + anchor[0], coord[1] + anchor[1]]
 
   const cos = Math.cos(angle)

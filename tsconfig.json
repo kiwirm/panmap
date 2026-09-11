@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "alwaysStrict": true,
     "strictNullChecks": true,
+    "noImplicitAny": true,
     "noEmit": true,
     "removeComments": false
   },

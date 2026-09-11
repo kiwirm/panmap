@@ -1,4 +1,6 @@
 import type Panmap from '../../panmap/model.js'
+import type { MapObject, MapSymbol } from '../../panmap/model.js'
+import type { RenderLayer } from '../../panmap/render-layers.js'
 import { getSymbolsById } from './colors.js'
 
 const supportedLayerTypes = new Set([
@@ -73,7 +75,10 @@ function getMapSvgRenderSupport(map: Panmap): MapSvgRenderSupport {
   }
 }
 
-function getUnsupportedReasons(object, symbol) {
+function getUnsupportedReasons(
+  object: MapObject,
+  symbol: MapSymbol | undefined,
+): string[] {
   const reasons: string[] = []
 
   if (!symbol) return ['missing symbol']
@@ -96,7 +101,7 @@ function getUnsupportedReasons(object, symbol) {
   return Array.from(new Set(reasons))
 }
 
-function canRenderObjectLayer(object, layer) {
+function canRenderObjectLayer(object: MapObject, layer: RenderLayer): boolean {
   switch (object.type) {
     case 'line':
       return (

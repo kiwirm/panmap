@@ -7,8 +7,8 @@ import {
   isFirstHolePoint,
 } from '../../panmap/coord.js'
 
-type Coord = ArrayLike<number>
-type Transform = (coord: Coord) => Coord
+export type Coord = ArrayLike<number>
+export type Transform = (coord: Coord) => Coord
 
 /** Convert a coordinate list (with bezier / hole-point flags) into an SVG
  *  path `d` attribute.

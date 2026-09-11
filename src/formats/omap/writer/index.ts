@@ -20,6 +20,7 @@ import type {
   MapTemplates,
   MapView,
 } from '../../../panmap/model.js'
+import type { FlaggedCoord } from '../../../panmap/coord.js'
 import { formatNotes } from '../../codecs/index.js'
 import { coordinatesForOmap } from '../codecs/index.js'
 import { escapeXmlAttr as xmlAttr } from '../../../util/xml.js'
@@ -458,7 +459,7 @@ function objectToXml(
   return lines.join('\n')
 }
 
-function coordToXml(coord): string {
+function coordToXml(coord: FlaggedCoord): string {
   const flagAttr =
     coord.flags !== undefined ? ` flags="${attr(coord.flags)}"` : ''
   return `      <coord x="${dim(coord[0])}" y="${dim(coord[1])}"${flagAttr}/>`

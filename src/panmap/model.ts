@@ -190,7 +190,7 @@ export interface MapSymbol {
   /** Format-native text-symbol payload (OCAD TextSymbol11 / XMap
    *  text_symbol). Only the fields consumed cross-format are typed
    *  here; format-specific extras fall through. */
-  textSymbol?: { rotatable?: boolean }
+  textSymbol?: { rotatable?: boolean; fontSize?: number }
   layers: RenderLayer[]
 }
 

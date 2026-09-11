@@ -1,8 +1,19 @@
 import { escapeXmlAttr as escapeAttr } from '../../util/xml.js'
-import { getColor } from './colors.js'
+import type {
+  HatchLayer,
+  StructureLayer,
+  PointPatternLayer,
+  RenderElement,
+  DecorationSymbol,
+} from '../../panmap/render-layers.js'
+import { getColor, type ColorLookup } from './colors.js'
 import { ocadPointElementToSvg, xmapPointSymbolToSvg } from './point-symbols.js'
 
-function hatchPatternToSvg(id, layer, colors) {
+function hatchPatternToSvg(
+  id: string,
+  layer: HatchLayer,
+  colors: ColorLookup,
+): string {
   const spacing = Math.max(layer.spacing || 1, 1)
   const lineWidth = Math.max(layer.lineWidth || 1, 1)
   return `<pattern id="${id}" patternUnits="userSpaceOnUse" patternTransform="rotate(${
@@ -12,7 +23,11 @@ function hatchPatternToSvg(id, layer, colors) {
   )}" /></pattern>`
 }
 
-function structurePatternToSvg(id, layer, colors) {
+function structurePatternToSvg(
+  id: string,
+  layer: StructureLayer,
+  colors: ColorLookup,
+): string {
   const width = Math.max(layer.width || layer.symbolWidth || 1, 1)
   const height = Math.max(layer.height || layer.symbolHeight || 1, 1)
   const symbolWidth = Math.max(layer.symbolWidth || width, 1)
@@ -26,7 +41,7 @@ function structurePatternToSvg(id, layer, colors) {
 
   const content = anchors
     .flatMap(anchor =>
-      (layer.elements || []).map(element =>
+      ((layer.elements as RenderElement[]) || []).map(element =>
         ocadPointElementToSvg(element, anchor, colors, coord => coord),
       ),
     )
@@ -38,12 +53,21 @@ function structurePatternToSvg(id, layer, colors) {
   })" width="${width}" height="${height}">${content}</pattern>`
 }
 
-function pointPatternToSvg(id, layer, colors) {
+function pointPatternToSvg(
+  id: string,
+  layer: PointPatternLayer,
+  colors: ColorLookup,
+): string {
   const width = Math.max(layer.width || 1, 1)
   const height = Math.max(layer.height || width, 1)
   const pattern = layer.pattern || {}
   const content = pattern.symbol
-    ? xmapPointSymbolToSvg(pattern.symbol, width / 2, height / 2, colors)
+    ? xmapPointSymbolToSvg(
+        pattern.symbol as DecorationSymbol,
+        width / 2,
+        height / 2,
+        colors,
+      )
     : ''
   const translateX = pattern.offsetAlongLine || 0
   const translateY = pattern.lineOffset || 0

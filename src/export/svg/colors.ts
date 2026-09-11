@@ -1,22 +1,34 @@
 import { LINE_ELEMENT_LAYER_KEYS } from '../../panmap/coord.js'
+import type Panmap from '../../panmap/model.js'
+import type {
+  MapColor,
+  MapSymbol,
+  BaseRenderLayer,
+} from '../../panmap/model.js'
+import type { RenderElement } from '../../panmap/render-layers.js'
 import { cmykFractionToRgb } from '../../util/cmyk-to-rgb.js'
 
-function opacityAttr(layer) {
+/** Colours keyed by their id, as produced by `getColorsById`. */
+export type ColorLookup = Record<string | number, MapColor>
+/** Symbols keyed by their id, as produced by `getSymbolsById`. */
+export type SymbolLookup = Record<string | number, MapSymbol>
+
+function opacityAttr(layer: { opacity?: number }): string {
   return layer.opacity === undefined ? '' : ` opacity="${layer.opacity}"`
 }
 
-function getSymbolsById(map) {
+function getSymbolsById(map: Panmap): SymbolLookup {
   return map.symbols.reduce((symbols, symbol) => {
     symbols[symbol.id] = symbol
     return symbols
-  }, {})
+  }, {} as SymbolLookup)
 }
 
-function getColorsById(map) {
+function getColorsById(map: Panmap): ColorLookup {
   return map.colors.reduce((colors, color) => {
     if (color) colors[color.id] = normaliseColorRgb(color)
     return colors
-  }, {})
+  }, {} as ColorLookup)
 }
 
 // Recover from source files that carry `<rgb method="custom" r=0 g=0 b=0/>`
@@ -25,7 +37,7 @@ function getColorsById(map) {
 // same so a colour like "Green 45%" doesn't paint pure black just
 // because the file's custom RGB slot was never populated.
 const RGB_BLACK = 'rgb(0, 0, 0)'
-function normaliseColorRgb(color) {
+function normaliseColorRgb(color: MapColor): MapColor {
   if (color.rgb !== RGB_BLACK) return color
   const cmyk = color.cmyk
   if (!Array.isArray(cmyk) || cmyk.length < 4) return color
@@ -36,8 +48,12 @@ function normaliseColorRgb(color) {
   return { ...color, rgb: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})` }
 }
 
-function getColor(layer, colors) {
-  return colors[layer.colorId] ? colors[layer.colorId].rgb : 'rgb(0, 0, 0)'
+function getColor(
+  layer: { colorId?: number | string | null },
+  colors: ColorLookup,
+): string {
+  const id = layer.colorId as string | number
+  return colors[id] ? colors[id].rgb : 'rgb(0, 0, 0)'
 }
 
 /**
@@ -53,17 +69,22 @@ function isValidColorId(id: unknown): boolean {
   return false
 }
 
-function getColorOrder(layer, colors) {
-  if (colors[layer.colorId]) return colors[layer.colorId].renderOrder
+function getColorOrder(layer: BaseRenderLayer, colors: ColorLookup): number {
+  const layerColor = layer.colorId as string | number
+  if (colors[layerColor]) return colors[layerColor].renderOrder
 
   const colorIds: unknown[] = []
   if (Array.isArray(layer.elements)) {
-    layer.elements.forEach(element => colorIds.push(element.color))
+    layer.elements.forEach(element =>
+      colorIds.push((element as RenderElement).color),
+    )
   }
   LINE_ELEMENT_LAYER_KEYS.forEach(key => {
     if (key === 'secSymElements') return
     if (Array.isArray(layer[key])) {
-      layer[key].forEach(element => colorIds.push(element.color))
+      ;(layer[key] as RenderElement[]).forEach(element =>
+        colorIds.push(element.color),
+      )
     }
   })
 
@@ -91,14 +112,22 @@ function getColorOrder(layer, colors) {
  * under white halo because they were joined in one string" reduce to
  * "every primitive resolved with the same helper".
  */
-function orderFor(colorId: unknown, layer, colors): number {
+function orderFor(
+  colorId: unknown,
+  layer: BaseRenderLayer,
+  colors: ColorLookup,
+): number {
   const key = colorId as string | number
   if (colors[key]) return colors[key].renderOrder
   return getColorOrder(layer, colors)
 }
 
-function getElementColorOrder(element, colors) {
-  return colors[element.color] ? colors[element.color].renderOrder : 0
+function getElementColorOrder(
+  element: { color?: number | string },
+  colors: ColorLookup,
+): number {
+  const key = element.color as string | number
+  return colors[key] ? colors[key].renderOrder : 0
 }
 
 export {

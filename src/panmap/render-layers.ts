@@ -54,6 +54,56 @@ export interface FillLayer extends BaseRenderLayer {
   type: 'fill'
 }
 
+/**
+ * A single decoration primitive stashed in a layer's `elements` /
+ * `*SymElements` arrays: an OCAD symbol element (flat `coords` + a
+ * single `color`) or an XMap nested element (its own `object` +
+ * `symbol` subtree). Only the fields the SVG exporter reads are
+ * modelled; format-specific extras fall through.
+ */
+export interface RenderElement {
+  type?: number
+  color?: number | string
+  lineWidth?: number
+  diameter?: number
+  /** OCAD-style flat coords (`[x, y]` tuples). */
+  coords?: number[][]
+  /** XMap-style nested object coords (`{ x, y }` objects). */
+  object?: { coords?: Array<{ x: number; y: number }> }
+  symbol?: DecorationSymbol
+  // Dash descriptor carried by OCAD line elements (see style.ts::dashToSvg).
+  dashLength?: number
+  breakLength?: number
+  dashesInGroup?: number
+  inGroupBreakLength?: number
+  mainLength?: number
+  mainGap?: number
+  secGap?: number
+}
+
+/** The disc + ring geometry of a point symbol, plus its nested elements. */
+export interface PointSymbolSpec {
+  innerColor?: number | string
+  /** Radius of the inner disc, in map units (0 = no disc). */
+  innerRadius: number
+  outerColor?: number | string
+  /** Width of the outer ring, in map units (0 = no ring). */
+  outerWidth: number
+  rotatable?: boolean
+  elements?: RenderElement[]
+}
+
+/**
+ * A point/area/line symbol nested inside a decoration — a line
+ * mid/dash/start/end symbol or an area pattern's symbol. Only the
+ * fields the SVG exporter reads are modelled.
+ */
+export interface DecorationSymbol {
+  pointSymbol?: PointSymbolSpec
+  areaSymbol?: { innerColor?: number | string }
+  lineSymbol?: { color?: number | string; lineWidth?: number }
+}
+
 export interface DashSpec {
   dashLength?: number
   breakLength?: number
@@ -143,10 +193,26 @@ export interface DoubleLineLayer extends BaseRenderLayer {
   rightWidth?: number
   centerWidth?: number
   mode?: number
+  /** OCAD double-line flag bits (bit 0 = draw as solid overprint pair). */
+  flags?: number
 }
 
 export interface LineElementsLayer extends BaseRenderLayer {
   type: 'line-elements'
+  /** Spacing between primary decoration placements along the line. */
+  mainLength?: number
+  /** Reserved end-run length used to inset the first/last placement. */
+  endLength?: number
+  /** Decoration elements placed at even intervals along the line. */
+  primSymElements?: RenderElement[]
+  /** Secondary-run decoration elements (currently unused by the renderer). */
+  secSymElements?: RenderElement[]
+  /** Decoration elements placed at each interior corner. */
+  cornerSymElements?: RenderElement[]
+  /** Decoration elements placed at the line start. */
+  startSymElements?: RenderElement[]
+  /** Decoration elements placed at the line end. */
+  endSymElements?: RenderElement[]
 }
 
 export interface LineSymbolsSpec {
@@ -154,6 +220,20 @@ export interface LineSymbolsSpec {
   dashSymbol?: unknown
   startSymbol?: unknown
   endSymbol?: unknown
+  /** Nominal spacing between mid/dash symbol placements. */
+  segmentLength?: number
+  /** Explicit mid-symbol spacing (overrides `segmentLength` when set). */
+  midSymbolDistance?: number
+  /** Dash-symbol dash + break lengths (used to derive spacing). */
+  dashLength?: number
+  breakLength?: number
+  /** Offsets that inset the first/last dash-symbol placement. */
+  startOffset?: number
+  endOffset?: number
+  /** Lower bound on the number of mid-symbol placements. */
+  minimumMidSymbolCount?: number
+  /** Force at least one placement even on short lines. */
+  showAtLeastOneSymbol?: boolean
 }
 
 export interface LineSymbolsLayer extends BaseRenderLayer {

@@ -215,7 +215,7 @@ export function borderToGitmap(
 
 export function elementToGitmap(
   colorIds: Map<string | number, string>,
-  element,
+  element: Record<string, unknown>,
 ) {
   const output: Record<string, unknown> = {}
   Object.entries(element).forEach(([key, value]) => {

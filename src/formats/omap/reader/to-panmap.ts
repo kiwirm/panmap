@@ -28,10 +28,13 @@ import type {
  * Panmap model.
  */
 function omapFileToMap(xmapFile: OmapFile): Panmap {
-  const symbolsById = xmapFile.symbols.reduce((symbols, symbol) => {
-    symbols[symbol.id] = symbol
-    return symbols
-  }, {})
+  const symbolsById = xmapFile.symbols.reduce(
+    (symbols, symbol) => {
+      symbols[symbol.id] = symbol
+      return symbols
+    },
+    {} as Record<number, OmapSymbol>,
+  )
 
   const notesText = extractNotesText(xmapFile.extras?.notes)
   const { userText, extensions } = parseNotes(notesText)
@@ -697,7 +700,7 @@ function mapCoords(coords: OmapCoord[]) {
 
 type TdPolyLike = InstanceType<typeof TdPoly> & { omapFlags?: number }
 
-function symbolTypeName(symbol) {
+function symbolTypeName(symbol: OmapSymbol): string {
   if (symbol.textSymbol) return 'text'
   if (symbol.pointSymbol) return 'point'
   if (symbol.areaSymbol) return 'area'
@@ -706,7 +709,11 @@ function symbolTypeName(symbol) {
   return 'unknown'
 }
 
-function objectTypeName(object, symbol, symbolsById?: Record<number, unknown>) {
+function objectTypeName(
+  object: OmapObject,
+  symbol: OmapSymbol | undefined,
+  symbolsById?: Record<number, OmapSymbol>,
+): string {
   if (object.type === 0) return 'point'
   if (object.type === 4) return 'text'
   if (symbol && hasAreaVariant(symbol, symbolsById)) return 'area'
@@ -740,8 +747,8 @@ function isEffectivelyLine(
 }
 
 function hasAreaVariant(
-  symbol,
-  symbolsById?: Record<number, unknown>,
+  symbol: OmapSymbol,
+  symbolsById?: Record<number, OmapSymbol>,
 ): boolean {
   if (symbol.areaSymbol) return true
   if (!symbol.combinedSymbol?.parts) return false

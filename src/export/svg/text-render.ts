@@ -1,11 +1,21 @@
+import type { MapObject } from '../../panmap/model.js'
+import type { TextLayer } from '../../panmap/render-layers.js'
+import type { FlaggedCoord } from '../../panmap/coord.js'
 import {
   escapeXmlAttr as escapeAttr,
   escapeXmlText as escapeText,
 } from '../../util/xml.js'
-import { getColor, opacityAttr } from './colors.js'
+import { getColor, opacityAttr, type ColorLookup } from './colors.js'
+import type { Transform } from './path.js'
 
-function textLayerToSvg(object, layer, colors, transform) {
-  const coord = object.coordinates[0] && transform(object.coordinates[0])
+function textLayerToSvg(
+  object: MapObject,
+  layer: TextLayer,
+  colors: ColorLookup,
+  transform: Transform,
+): string | null {
+  const first = (object.coordinates as FlaggedCoord[])[0]
+  const coord = first && transform(first)
   if (!coord || !object.text) return null
 
   // Object rotation is stored in radians, positive CCW in the source
@@ -25,8 +35,8 @@ function textLayerToSvg(object, layer, colors, transform) {
   // Mapper text alignment: hAlign 0=left, 1=center, 2=right; vAlign
   // 0=baseline, 1=top, 2=middle, 3=bottom. Map to SVG text-anchor +
   // dominant-baseline so the anchor point sits where Mapper places it.
-  const hAlign = (object as any).hAlign
-  const vAlign = (object as any).vAlign
+  const hAlign = object.hAlign
+  const vAlign = object.vAlign
   const anchor = hAlign === 1 ? 'middle' : hAlign === 2 ? 'end' : 'start'
   const baseline =
     vAlign === 1

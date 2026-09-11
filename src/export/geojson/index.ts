@@ -1,7 +1,8 @@
 import { coordEach } from '@turf/meta'
 import { featureCollection } from '@turf/helpers'
+import type { Feature, FeatureCollection, Geometry } from 'geojson'
 import Bezier from 'bezier-js'
-import selectFeatures from './select-features.js'
+import selectFeatures, { type MapToGeoJsonOptions } from './select-features.js'
 import {
   LineElementType,
   AreaElementType,
@@ -9,6 +10,10 @@ import {
   DotElementType,
 } from '../../formats/ocad/native/symbol-element-types.js'
 import TdPoly from '../../formats/ocad/reader/decode/td-poly.js'
+import type SymbolElement from '../../formats/ocad/reader/decode/symbol-element.js'
+import type Panmap from '../../panmap/model.js'
+import type { MapObject, MapSymbol } from '../../panmap/model.js'
+import type { CrsView } from '../../panmap/crs.js'
 import {
   isFirstBezier,
   isSecondBezier,
@@ -95,7 +100,7 @@ export default mapToGeoJson
  * @param {MapToGeoJsonOptions=} options
  * @returns {FeatureCollection<Geometry, MapObjectProperties>}
  */
-function mapToGeoJson(map, options) {
+function mapToGeoJson(map: Panmap, options: MapToGeoJsonOptions = {}) {
   options = { ...defaultOptions, ...options }
 
   const features = selectFeatures(
@@ -106,8 +111,9 @@ function mapToGeoJson(map, options) {
   )
   const result = featureCollection(features)
 
-  if (options.applyCrs && map.getCrs()) {
-    applyCrs(result, map.getCrs())
+  const crs = map.getCrs()
+  if (options.applyCrs && crs) {
+    applyCrs(result, crs)
   }
 
   coordEach(result, c => {
@@ -125,29 +131,34 @@ function mapToGeoJson(map, options) {
  * @param {number} i
  * @returns {Feature<Geometry, MapObjectProperties>[]}
  */
-const mapObjectToGeoJson = (options, symbols, object, i) => {
+const mapObjectToGeoJson = (
+  options: MapToGeoJsonOptions,
+  symbols: Record<number | string, MapSymbol>,
+  object: MapObject,
+  i: number,
+): Feature[] | undefined => {
   const symbol = symbols[object.symbolId]
   if (!symbol || (!options.exportHidden && symbol.hidden)) return
 
-  /** @type Geometry */
-  let geometry
+  const coords = object.coordinates as TdPoly[]
+  let geometry: Geometry
   switch (object.type) {
     case 'point':
       geometry = {
         type: 'Point',
-        coordinates: object.coordinates[0].slice(),
+        coordinates: coords[0].slice(),
       }
       break
     case 'line':
       geometry = {
         type: 'LineString',
-        coordinates: extractCoords(object.coordinates).map(c => c.slice()),
+        coordinates: extractCoords(coords).map(c => c.slice()),
       }
       break
     case 'area':
       geometry = {
         type: 'Polygon',
-        coordinates: coordinatesToRings(object.coordinates),
+        coordinates: coordinatesToRings(coords),
       }
       break
     case 'text':
@@ -160,10 +171,7 @@ const mapObjectToGeoJson = (options, symbols, object, i) => {
         throw new Error(`Text object's symbol is not a text symbol`)
 
       const lineHeight = (Number(fontSize) / 10) * 0.352778 * 100
-      const anchorCoord = [
-        object.coordinates[0][0],
-        object.coordinates[0][1] + lineHeight,
-      ]
+      const anchorCoord = [coords[0][0], coords[0][1] + lineHeight]
 
       geometry = {
         type: 'Point',
@@ -200,7 +208,7 @@ const extractCoords = (coords: TdPoly[]): TdPoly[] => {
       cp2 = c
     } else if (cp1 && cp2) {
       const l = cp2.sub(cp1).vLength()
-      const bezier = new Bezier([lastC, cp1, cp2, c].flat())
+      const bezier = new Bezier([lastC, cp1, cp2, c].flat() as number[])
       const bezierCoords = bezier
         .getLUT(Math.round(l / 2))
         .map(bc => TdPoly.fromCoords(bc.x, bc.y))
@@ -229,18 +237,17 @@ const extractCoords = (coords: TdPoly[]): TdPoly[] => {
  * @returns {Feature<Geometry, ElementProperties>}
  */
 const createElement = (
-  symbol,
-  name,
-  index,
-  element,
-  c,
-  angle,
-  options,
-  object,
-  objectId,
+  symbol: MapSymbol,
+  name: string,
+  index: number,
+  element: SymbolElement,
+  c: TdPoly,
+  angle: number,
+  options: MapToGeoJsonOptions & { idCount: number },
+  object: MapObject,
+  objectId: number,
 ) => {
-  /** @type Geometry */
-  let geometry
+  let geometry: Geometry | undefined
   const coords = extractCoords(element.coords)
   const rotatedCoords = angle ? coords.map(lc => lc.rotate(angle)) : coords
   const translatedCoords = rotatedCoords.map(lc => lc.add(c))
@@ -278,7 +285,7 @@ const createElement = (
   }
 }
 
-const applyCrs = (featureCollection, crs) => {
+const applyCrs = (featureCollection: FeatureCollection, crs: CrsView) => {
   coordEach(featureCollection, coord => {
     const crsCoord = crs.toProjectedCoord(coord)
 
@@ -287,14 +294,14 @@ const applyCrs = (featureCollection, crs) => {
   })
 }
 
-function formatNum(num, digits) {
+function formatNum(num: number, digits: number | undefined): number {
   const pow = Math.pow(10, digits === undefined ? 6 : digits)
   return Math.round(num * pow) / pow
 }
 
-const coordinatesToRings = coordinates => {
-  const rings: any[][] = []
-  let currentRing: any[] = []
+const coordinatesToRings = (coordinates: TdPoly[]): number[][][] => {
+  const rings: number[][][] = []
+  let currentRing: number[][] = []
   rings.push(currentRing)
   for (let i = 0; i < coordinates.length; i++) {
     const c = coordinates[i]
@@ -320,7 +327,7 @@ const coordinatesToRings = coordinates => {
  * @param {import('./map').MapObject} object
  * @returns {MapObjectProperties}
  */
-function getProperties(object) {
+function getProperties(object: MapObject) {
   return {
     id: object.id,
     symbolId: object.symbolId,

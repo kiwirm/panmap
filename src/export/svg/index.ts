@@ -1,7 +1,21 @@
 import { DOMParser, type Element as DOMElement } from '@xmldom/xmldom'
 import type Panmap from '../../panmap/model.js'
+import type { MapObject } from '../../panmap/model.js'
+import type {
+  RenderLayer,
+  StrokeLayer,
+  LineElementsLayer,
+  DoubleLineLayer,
+  LineSymbolsLayer,
+  HatchLayer,
+  StructureLayer,
+  PointPatternLayer,
+  BorderSymbolLayer,
+  TextLayer,
+} from '../../panmap/render-layers.js'
+import type { FlaggedCoord } from '../../panmap/coord.js'
 import { escapeXmlAttr as escapeAttr } from '../../util/xml.js'
-import { coordsToPath } from './path.js'
+import { coordsToPath, type Transform } from './path.js'
 import { dashToSvg, lineJoinToSvg, lineCapToSvg } from './style.js'
 import {
   getColor,
@@ -11,6 +25,8 @@ import {
   orderFor,
   opacityAttr,
   isValidColorId,
+  type ColorLookup,
+  type SymbolLookup,
 } from './colors.js'
 import {
   lineElementsLayerToSvg,
@@ -136,39 +152,55 @@ function renderDirectly(
 }
 
 function objectLayerToSvg(
-  object,
-  layer,
-  colors,
-  defs,
-  patternIndex,
-  transform,
-  symbols = {},
-) {
+  object: MapObject,
+  layer: RenderLayer,
+  colors: ColorLookup,
+  defs: string[],
+  patternIndex: number,
+  transform: Transform,
+  symbols: SymbolLookup = {},
+): string | null | Array<{ order: number; node: string }> {
   switch (object.type) {
     case 'line': {
       if (layer.type === 'line-elements') {
-        return lineElementsLayerToSvg(object, layer, colors, transform)
+        return lineElementsLayerToSvg(
+          object,
+          layer as LineElementsLayer,
+          colors,
+          transform,
+        )
       }
       if (layer.type === 'double-line') {
-        return doubleLineLayerToSvg(object, layer, colors, transform)
+        return doubleLineLayerToSvg(
+          object,
+          layer as DoubleLineLayer,
+          colors,
+          transform,
+        )
       }
       if (layer.type === 'line-symbols') {
-        return lineSymbolsLayerToSvg(object, layer, colors, transform)
+        return lineSymbolsLayerToSvg(
+          object,
+          layer as LineSymbolsLayer,
+          colors,
+          transform,
+        )
       }
       if (layer.type !== 'stroke') return null
+      const strokeLayer = layer as StrokeLayer
       // colorId = -1 (or otherwise unresolvable) marks the layer as
       // deliberately invisible — a composition slot for borders / line-
       // symbols to hang off. Rendering it as a black stroke turned
       // symbol 309 (narrow marsh) into a fat black line.
-      const hasMainColor = isValidColorId(layer.colorId)
-      const dashArray = dashToSvg(layer.dash)
-      const d = coordsToPath(object.coordinates, transform)
+      const hasMainColor = isValidColorId(strokeLayer.colorId)
+      const dashArray = dashToSvg(strokeLayer.dash)
+      const d = coordsToPath(object.coordinates as FlaggedCoord[], transform)
       const mainNode = hasMainColor
         ? `<path d="${d}" stroke="${escapeAttr(
-            getColor(layer, colors),
-          )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
-            layer,
-          )}" stroke-linecap="${lineCapToSvg(layer)}"${opacityAttr(layer)}${
+            getColor(strokeLayer, colors),
+          )}" stroke-width="${strokeLayer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
+            strokeLayer,
+          )}" stroke-linecap="${lineCapToSvg(strokeLayer)}"${opacityAttr(strokeLayer)}${
             dashArray ? ` stroke-dasharray="${dashArray}"` : ''
           } />`
         : null
@@ -188,14 +220,16 @@ function objectLayerToSvg(
       // coords yet, so it scribbles on curves. Skip borders for
       // composite lines until that helper grows bezier support.
       const borders =
-        Array.isArray(layer.borders) && hasMainColor ? layer.borders : []
+        Array.isArray(strokeLayer.borders) && hasMainColor
+          ? strokeLayer.borders
+          : []
       if (!borders.length) return mainNode
       const bordersOut: Array<{ order: number; node: string }> = (
         borders as unknown[]
       )
         .map((b: any) => {
           if (!b || !isValidColorId(b.color) || !(b.width > 0)) return null
-          const mainW = Number(layer.width) || 0
+          const mainW = Number(strokeLayer.width) || 0
           const shift = Number(b.shift) || 0
           const bw = Number(b.width) || 0
           const outerWidth = mainW + 2 * shift + 2 * bw
@@ -204,12 +238,12 @@ function objectLayerToSvg(
               ? `${b.dashLength} ${b.breakLength || b.dashLength}`
               : null
           return {
-            order: orderFor(b.color, layer, colors),
+            order: orderFor(b.color, strokeLayer, colors),
             node: `<path d="${d}" stroke="${escapeAttr(
               getColor({ colorId: b.color }, colors),
             )}" stroke-width="${outerWidth}" fill="none" stroke-linejoin="${lineJoinToSvg(
-              layer,
-            )}" stroke-linecap="${lineCapToSvg(layer)}"${
+              strokeLayer,
+            )}" stroke-linecap="${lineCapToSvg(strokeLayer)}"${
               bDash ? ` stroke-dasharray="${bDash}"` : ''
             } />`,
           }
@@ -218,39 +252,41 @@ function objectLayerToSvg(
       return mainNode
         ? [
             ...bordersOut,
-            { order: getColorOrder(layer, colors), node: mainNode },
+            { order: getColorOrder(strokeLayer, colors), node: mainNode },
           ]
         : bordersOut
     }
     case 'area':
       if (layer.type === 'stroke') {
-        if (!isValidColorId(layer.colorId)) return null
-        const dashArray = dashToSvg(layer.dash)
-        return `<path d="${coordsToPath(object.coordinates, transform)} Z" stroke="${escapeAttr(
-          getColor(layer, colors),
-        )}" stroke-width="${layer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
-          layer,
-        )}" stroke-linecap="${lineCapToSvg(layer)}"${
+        const strokeLayer = layer as StrokeLayer
+        if (!isValidColorId(strokeLayer.colorId)) return null
+        const dashArray = dashToSvg(strokeLayer.dash)
+        return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" stroke="${escapeAttr(
+          getColor(strokeLayer, colors),
+        )}" stroke-width="${strokeLayer.width}" fill="none" stroke-linejoin="${lineJoinToSvg(
+          strokeLayer,
+        )}" stroke-linecap="${lineCapToSvg(strokeLayer)}"${
           dashArray ? ` stroke-dasharray="${dashArray}"` : ''
-        }${opacityAttr(layer)} />`
+        }${opacityAttr(strokeLayer)} />`
       }
       if (layer.type === 'hatch-fill') {
         const id = `map-hatch-${patternIndex}`
-        defs.push(hatchPatternToSvg(id, layer, colors))
-        return `<path d="${coordsToPath(object.coordinates, transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(layer)} />`
+        defs.push(hatchPatternToSvg(id, layer as HatchLayer, colors))
+        return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(layer)} />`
       }
       if (layer.type === 'structure-fill') {
         const id = `map-structure-${patternIndex}`
-        defs.push(structurePatternToSvg(id, layer, colors))
-        return `<path d="${coordsToPath(object.coordinates, transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(layer)} />`
+        defs.push(structurePatternToSvg(id, layer as StructureLayer, colors))
+        return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(layer)} />`
       }
       if (layer.type === 'point-pattern-fill') {
         const id = `map-point-pattern-${patternIndex}`
-        defs.push(pointPatternToSvg(id, layer, colors))
-        return `<path d="${coordsToPath(object.coordinates, transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(layer)} />`
+        defs.push(pointPatternToSvg(id, layer as PointPatternLayer, colors))
+        return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(layer)} />`
       }
       if (layer.type === 'border-symbol') {
-        const borderSymbol = symbols[layer.symbolId]
+        const borderSymbol =
+          symbols[(layer as BorderSymbolLayer).symbolId as string | number]
         if (!borderSymbol) return null
         const lineObject = { ...object, type: 'line' }
         return (borderSymbol.layers || [])
@@ -269,7 +305,7 @@ function objectLayerToSvg(
           .join('')
       }
       if (layer.type !== 'fill') return null
-      return `<path d="${coordsToPath(object.coordinates, transform)} Z" fill="${escapeAttr(
+      return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" fill="${escapeAttr(
         getColor(layer, colors),
       )}" fill-rule="evenodd"${opacityAttr(layer)} />`
     case 'point':
@@ -277,13 +313,17 @@ function objectLayerToSvg(
     case 'text':
     case 'line-text':
       if (layer.type !== 'text') return null
-      return textLayerToSvg(object, layer, colors, transform)
+      return textLayerToSvg(object, layer as TextLayer, colors, transform)
     default:
       return null
   }
 }
 
-function renderedLayerEntries(rendered, layer, colors) {
+function renderedLayerEntries(
+  rendered: string | null | Array<{ order?: number; node: string }>,
+  layer: RenderLayer,
+  colors: ColorLookup,
+): Array<{ order: number; node: string }> {
   if (!rendered) return []
   if (Array.isArray(rendered)) {
     return rendered
