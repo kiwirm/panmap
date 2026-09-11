@@ -1,67 +1,4 @@
-import type {
-  MapColor,
-  MapObject,
-  MapSymbol,
-  RenderLayer,
-} from '../../../panmap/model.js'
-import { cleanNumber } from '../../../util/number.js'
-import {
-  capStyleToGitmap,
-  joinStyleToGitmap,
-  hAlignToGitmap,
-  vAlignToGitmap,
-  rotationToGitmap,
-} from '../codecs/index.js'
-import { canonicalSymbolCode } from '../../../panmap/symbol-code.js'
-
-function toGitmapColor(color: MapColor) {
-  return {
-    id: stableColorId(color),
-    order: color.sourceId ?? color.id,
-    name: color.name || '',
-    // Screen colour as an integer [r, g, b] (0–255), matching cmyk's array shape.
-    rgb: rgbToArray(color.rgb),
-    // OCAD-side rendering uses CMYK, not RGB — persist it so a gitmap → ocd
-    // round-trip preserves ink density. OCAD stores CMYK as whole percentages,
-    // so snap to that grid (2 dp): an OCD-sourced colour is already quantised
-    // while an OMap-sourced copy keeps half-percent values — snapping matches.
-    cmyk: roundTuple(color.cmyk, 2),
-    opacity: color.opacity,
-    // Paint priority (higher = drawn on top). Distinct from `order` (palette
-    // index): the two diverge in OCAD maps where list order ≠ draw order.
-    renderOrder: color.renderOrder ?? 0,
-  }
-}
-
-function roundTuple(tuple: unknown, dp: number): unknown {
-  if (!Array.isArray(tuple)) return tuple
-  const f = 10 ** dp
-  return tuple.map(v => (typeof v === 'number' ? Math.round(v * f) / f : v))
-}
-
-// Normalise a model RGB (a CSS `rgb(r,g,b)` string, or an [r,g,b] array in 0–255
-// or 0–1) to a canonical integer [r, g, b] triple (0–255).
-function rgbToArray(rgb: unknown): [number, number, number] | undefined {
-  if (typeof rgb === 'string') {
-    const m = rgb.match(/-?\d+(?:\.\d+)?/g)
-    if (!m || m.length < 3) return undefined
-    return m.slice(0, 3).map(n => Math.round(Number(n))) as [
-      number,
-      number,
-      number,
-    ]
-  }
-  if (Array.isArray(rgb) && rgb.length >= 3) {
-    const max = Math.max(rgb[0], rgb[1], rgb[2])
-    const scale = max <= 1 ? 255 : 1
-    return rgb.slice(0, 3).map(v => Math.round(Number(v) * scale)) as [
-      number,
-      number,
-      number,
-    ]
-  }
-  return undefined
-}
+import type { MapSymbol, RenderLayer } from '../../../../panmap/model.js'
 
 // Derive the canonical symbol type from the (already-canonicalised) layers.
 // OCAD models an area-with-outline as an `area` symbol + a border line; OMap
@@ -75,7 +12,7 @@ function rgbToArray(rgb: unknown): [number, number, number] | undefined {
 // the source-format `combined` label while the layer content reads as a
 // plain line — causing a one-cycle drift on omap round-trips where the
 // re-imported xmap sees `line` (matching the layer content).
-function canonicalSymbolType(
+export function canonicalSymbolType(
   originalType: string | undefined,
   canonLayers: readonly RenderLayer[],
 ): string | undefined {
@@ -167,7 +104,9 @@ function pointElementToLayer(el: unknown): RenderLayer | null {
 // reproduced — OMap's rule was opaque and eager splitting produced spurious
 // diffs on symbols like 105.1 (Earth wall, minimum) where OMap keeps
 // everything as one point-elements layer.
-function canonicalisePointElementsLayer(layer: RenderLayer): RenderLayer[] {
+export function canonicalisePointElementsLayer(
+  layer: RenderLayer,
+): RenderLayer[] {
   const l = layer as { type?: string; elements?: unknown[] }
   if (l.type !== 'point-elements' || !Array.isArray(l.elements)) return [layer]
   // Flatten any OMap-nested `{symbol, object}` elements to OCD-flat records
@@ -643,7 +582,7 @@ function canonicaliseOuterPatternSymbol(sym: unknown): unknown {
 // path. Single-disc-at-origin patterns are LIFTED to the outer pointSymbol
 // (innerColor + innerRadius, empty elements[]) to match OMap's convention
 // for that shape — the OCD writer's `extractPatternElements` reads either.
-function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
+export function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
   const l = layer as {
     type?: string
     colorId?: unknown
@@ -802,7 +741,7 @@ function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
 // `midSymbolDistance`/`midSymbolsPerSpot`, which the writers already use
 // as the primary source. Storing them here too creates a per-reader-default
 // diff (OCAD carries the actual mainLength; OMap emits its 400 default).
-function lineSymbolsToLineElements(layer: RenderLayer): RenderLayer[] {
+export function lineSymbolsToLineElements(layer: RenderLayer): RenderLayer[] {
   const l = layer as {
     type?: string
     lineSymbol?: {
@@ -859,7 +798,7 @@ function lineSymbolsToLineElements(layer: RenderLayer): RenderLayer[] {
 // reader doesn't run `normaliseOmapFlags` on symbol-internal element coords).
 // Removing them lets both dialects agree on the coord shape; Bezier / dash
 // info lives on the object coords + primary stroke where it matters.
-function stripLineElementsRedundancy(layer: RenderLayer): RenderLayer {
+export function stripLineElementsRedundancy(layer: RenderLayer): RenderLayer {
   const l = layer as { type?: string } & Record<string, unknown>
   if (l.type !== 'line-elements') return layer
   const {
@@ -896,7 +835,7 @@ function stripLineElementsRedundancy(layer: RenderLayer): RenderLayer {
 // Guarded to only fire on line-typed symbols with a companion `double-line`
 // (or its canonical `stroke.borders` form). Fill/hatch/pattern symbols that
 // use a colorId=-1 marker for their own reasons stay untouched.
-function isPhantomStroke(layer: RenderLayer): boolean {
+export function isPhantomStroke(layer: RenderLayer): boolean {
   const l = layer as { type?: string; colorId?: unknown; width?: number }
   if (l.type !== 'stroke') return false
   const idInvalid =
@@ -914,7 +853,7 @@ function isPhantomStroke(layer: RenderLayer): boolean {
 // Geometry (verified on paired maps): `shift = borderWidth / 2`. Where the
 // left/right colours and widths match (near-universal), a single symmetric
 // borders[] entry suffices; asymmetric cases emit two entries.
-function doubleLineToStroke(layer: RenderLayer): RenderLayer {
+export function doubleLineToStroke(layer: RenderLayer): RenderLayer {
   const l = layer as {
     type?: string
     flags?: number
@@ -970,7 +909,7 @@ function doubleLineToStroke(layer: RenderLayer): RenderLayer {
 // `<border>` shift — which Mapper omits, so it reads back as 0. Normalise every
 // stroke border to borderWidth/2 so the two sources converge. Writer-only: the
 // in-memory model (and thus rendering) is untouched.
-function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
+export function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
   const l = layer as {
     type?: string
     borders?: Array<{ width?: number; shift?: number }>
@@ -988,7 +927,9 @@ function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
 // tree's geometry to the OCAD grid — the same lossy-to-OCAD canonicalisation
 // already applied to rotation and CMYK — so the OCD-synthesised and OMap-native
 // patterns converge. Angles (radians) are left untouched. Writer-only.
-function canonicalisePointPatternGeometry(layer: RenderLayer): RenderLayer {
+export function canonicalisePointPatternGeometry(
+  layer: RenderLayer,
+): RenderLayer {
   const l = layer as { type?: string; pattern?: unknown }
   if (l.type !== 'point-pattern-fill' || !l.pattern) return layer
   return {
@@ -1017,7 +958,7 @@ function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
 // two sources converge. Writer-only. (Does NOT touch borders: their width is
 // already integer here, and shift = width/2 which the OCD writer reconstructs
 // from.)
-function canonicaliseStrokeWidth(layer: RenderLayer): RenderLayer {
+export function canonicaliseStrokeWidth(layer: RenderLayer): RenderLayer {
   const l = layer as {
     type?: string
     width?: number
@@ -1038,7 +979,7 @@ function canonicaliseStrokeWidth(layer: RenderLayer): RenderLayer {
 // OCAD stores a point disc/ring as an integer-diameter element, so its radius
 // lands on a 0.5 grid; OMap keeps sub-unit precision (16.7 vs 16.5). Snap the
 // radius so both sources agree.
-function canonicalisePointRadius(layer: RenderLayer): RenderLayer {
+export function canonicalisePointRadius(layer: RenderLayer): RenderLayer {
   const l = layer as { type?: string; radius?: number }
   if (l.type !== 'point-fill' && l.type !== 'point-stroke') return layer
   if (typeof l.radius !== 'number') return layer
@@ -1054,7 +995,9 @@ function canonicalisePointRadius(layer: RenderLayer): RenderLayer {
 // Fire only when both are present AND the primary is a visible non-borders
 // stroke — otherwise leaves the pair alone (e.g. 509 Railway keeps two
 // distinct strokes because neither has borders).
-function mergePrimaryStrokeWithBorders(layers: RenderLayer[]): RenderLayer[] {
+export function mergePrimaryStrokeWithBorders(
+  layers: RenderLayer[],
+): RenderLayer[] {
   const strokeIdx: number[] = []
   for (let i = 0; i < layers.length; i++) {
     if ((layers[i] as { type?: string }).type === 'stroke') strokeIdx.push(i)
@@ -1108,7 +1051,7 @@ const LAYER_ORDER_GROUPS: Record<string, number> = {
   'border-symbol': 10,
   'double-line': 4,
 }
-function canonicalLayerOrder(a: RenderLayer, b: RenderLayer): number {
+export function canonicalLayerOrder(a: RenderLayer, b: RenderLayer): number {
   const ga = LAYER_ORDER_GROUPS[(a as { type: string }).type] ?? 99
   const gb = LAYER_ORDER_GROUPS[(b as { type: string }).type] ?? 99
   return ga - gb
@@ -1119,7 +1062,7 @@ function canonicalLayerOrder(a: RenderLayer, b: RenderLayer): number {
 // symbols (e.g. butlers-bush 201/301/302 area strokes with a phantom
 // {color:-1, width:15, shift:7}). Dropping them matches the OCD side
 // (which never emits phantoms) without losing visible geometry.
-function stripPhantomBorders(layer: RenderLayer): RenderLayer {
+export function stripPhantomBorders(layer: RenderLayer): RenderLayer {
   const l = layer as { type?: string; borders?: unknown[] } & Record<
     string,
     unknown
@@ -1143,7 +1086,7 @@ function stripPhantomBorders(layer: RenderLayer): RenderLayer {
 // non-dashed non-primary strokes for `frameFields` to pick up without it)
 // and fill in OMap's default `joinStyle: 1, capStyle: 0` so both dialects
 // agree.
-function canonicaliseFrameStroke(layer: RenderLayer): RenderLayer {
+export function canonicaliseFrameStroke(layer: RenderLayer): RenderLayer {
   const l = layer as { type?: string; frame?: boolean } & Record<
     string,
     unknown
@@ -1163,7 +1106,7 @@ function canonicaliseFrameStroke(layer: RenderLayer): RenderLayer {
 // OMap reader emits such phantom layers (e.g. a disc with colorId -1) where the
 // OCAD reader emits none, so dropping them canonicalises the layer set without
 // changing what's drawn.
-function isPhantomFillLayer(layer: RenderLayer): boolean {
+export function isPhantomFillLayer(layer: RenderLayer): boolean {
   const l = layer as { type?: string; colorId?: unknown; color?: unknown }
   if (l.type !== 'point-fill' && l.type !== 'point-stroke') return false
   const id = l.colorId ?? l.color
@@ -1187,7 +1130,7 @@ function isPhantomFillLayer(layer: RenderLayer): boolean {
 // Preserving the reference lets the OCD writer's `synthesize-symbols` reuse
 // the existing 990.x symbol rather than allocating a NEW one every cycle
 // (drift observed: bottle-lake grew 990.10 → 990.1.10 → ... over cycles).
-function dereferenceBorderSymbol(
+export function dereferenceBorderSymbol(
   layer: RenderLayer,
   symbolsById: Map<string | number, MapSymbol>,
 ): RenderLayer {
@@ -1215,598 +1158,4 @@ function dereferenceBorderSymbol(
     joinStyle: refStroke.joinStyle ?? 0,
     capStyle: refStroke.capStyle ?? 0,
   } as unknown as RenderLayer
-}
-
-function toGitmapSymbol(
-  symbol: MapSymbol,
-  colorIds: Map<string | number, string>,
-  symbolIds: Map<string | number, string> = new Map(),
-  symbolsById: Map<string | number, MapSymbol> = new Map(),
-) {
-  const layers = symbol.layers || []
-  // Only drop phantom strokes when the symbol also has a `double-line`
-  // (or already-canonicalised `stroke.borders`): the phantom's sole job
-  // is to mark "the primary is invisible; visible geometry lives in the
-  // companion". Without that companion, a colorId=-1 stroke may be
-  // load-bearing (e.g. cell placeholders).
-  const hasDoubleLineCompanion = layers.some(l => {
-    const t = (l as { type?: string }).type
-    if (t === 'double-line') return true
-    if (t !== 'stroke') return false
-    const borders = (l as { borders?: unknown[] }).borders
-    return Array.isArray(borders) && borders.length > 0
-  })
-  const canonLayers = mergePrimaryStrokeWithBorders(
-    layers
-      .filter(layer => !isPhantomFillLayer(layer))
-      .filter(layer => !(hasDoubleLineCompanion && isPhantomStroke(layer)))
-      .flatMap(canonicalisePointElementsLayer)
-      .map(doubleLineToStroke)
-      .map(canonicaliseFrameStroke)
-      .map(stripPhantomBorders)
-      .map(canonicaliseBorderShift)
-      .map(canonicaliseStrokeWidth)
-      .map(canonicalisePointRadius)
-      .map(l => dereferenceBorderSymbol(l, symbolsById))
-      .flatMap(lineSymbolsToLineElements)
-      .map(stripLineElementsRedundancy)
-      .flatMap(structureFillToPointPattern)
-      .map(canonicalisePointPatternGeometry)
-      .sort(canonicalLayerOrder),
-  )
-  return {
-    id: stableSymbolId(symbol),
-    code: canonicalSymbolCode(symbol.code) || undefined,
-    name: symbol.name,
-    // Derive type from CANONICAL layers, not raw — my transforms can
-    // collapse `combined` into a plain `line` (e.g. via
-    // `mergePrimaryStrokeWithBorders`), and gitmap should reflect that.
-    type: canonicalSymbolType(symbol.type, canonLayers),
-    // Omit boolean fields that equal their default so a semantic toggle
-    // shows up in `git diff` as a real field add, not a value swap.
-    hidden: symbol.hidden ? true : undefined,
-    rotatable: symbol.rotatable || undefined,
-    // Text typography lives once, in the `text` render layer's `text` object
-    // (no duplicate top-level fontSize / per-layer fontSize+fontFamily).
-    textSymbol: toJsonSafe(symbol.textSymbol),
-    layers: canonLayers.map(layer =>
-      renderLayerToGitmap(layer, colorIds, symbolIds),
-    ),
-  }
-}
-
-function toGitmapObject(
-  object: MapObject,
-  symbolIds: Map<string | number, string>,
-  partId = 'part_main',
-  // Canonical z-order rank (the object's index in the map's render order).
-  // Replaces the raw source-file object id as `sourceId`, so the SAME map from
-  // OCD vs OMAP serialises identically — the source formats number objects
-  // differently, but their z-order is the same, so the rank is canonical.
-  zRank?: number,
-) {
-  const symbolId = symbolIds.get(object.symbolId) || String(object.symbolId)
-  const rings = ringsToJson(object.coordinates || [])
-  return {
-    // Render order, as a canonical dense rank rather than the format-specific
-    // source id (falls back to the raw id when no rank is supplied). The symbol
-    // is referenced by `symbolId` (which is code-derived, e.g. sym_101, so the
-    // code is already readable in a diff — no separate symbolCode needed).
-    order: zRank ?? object.id,
-    partId,
-    symbolId,
-    type: object.type,
-    // The outer boundary; interior rings (holes) go in `holes`. Ring structure
-    // is explicit, so no positional `hole` coord flag is stored.
-    coordinates: rings.coordinates,
-    holes: rings.holes,
-    // Omit default/empty fields so the same object serialises identically no
-    // matter which reader produced it (one format emits `text:""`/`rotation:0`/
-    // a zero pattern, another omits them).
-    text: object.text || undefined,
-    rotation: rotationToGitmap(object.rotation) || undefined,
-    hidden: object.hidden ? true : undefined,
-    // Omit default alignment (0 = left / baseline): the OMap reader emits it
-    // explicitly while the OCAD reader leaves it undefined, so dropping the
-    // default makes the same label serialise identically. Non-default alignment
-    // is preserved.
-    hAlign: object.hAlign ? hAlignToGitmap(object.hAlign) : undefined,
-    vAlign: object.vAlign ? vAlignToGitmap(object.vAlign) : undefined,
-    textBox: object.textBox,
-    pattern: cleanPattern(object.pattern),
-    // A free-form per-object string payload with a type discriminator (OCAD's
-    // "object string" — course/control codes, database links). Neutral names.
-    tag: object.tag,
-    tagType: object.tagType,
-  }
-}
-
-// A pattern that is all-defaults (no rotation, origin at 0,0) carries no
-// information — one format emits it explicitly, another omits it. Drop it so
-// they match. The rotation is snapped to OCAD's 0.1° grid (like object
-// rotation), since an OCD-sourced pattern angle is already quantised while an
-// OMap-sourced copy keeps full float precision.
-function cleanPattern(pattern: unknown): unknown {
-  if (!pattern || typeof pattern !== 'object') return undefined
-  const p = pattern as {
-    rotation?: number
-    origin?: { x?: number; y?: number }
-  }
-  const rotation = rotationToGitmap(p.rotation)
-  const ox = p.origin?.x || 0
-  const oy = p.origin?.y || 0
-  if (rotation === 0 && ox === 0 && oy === 0) return undefined
-  return { ...(pattern as object), rotation: rotation || undefined }
-}
-
-// Fields to drop when canonicalising a `stroke` render layer, so an OCD- and an
-// OMap-sourced copy of the same line serialise identically. The OCAD reader
-// emits `lineStyle` (a packed cap+join byte that `capStyle`/`joinStyle` already
-// carry, and that the SVG renderer ignores) and gates zero offsets to
-// undefined; the OMap reader omits `lineStyle` but always emits the zero
-// defaults. Dropping `lineStyle` + the defaults reconciles both. Non-default
-// values are kept (a stroke that genuinely offsets or hides its mid-symbol).
-function strokeCanonicalDrops(layer: RenderLayer): ReadonlySet<string> {
-  if ((layer as { type?: string }).type !== 'stroke') return EMPTY_DROP
-  const l = layer as Record<string, unknown>
-  const drop = new Set<string>(['lineStyle'])
-  if (!l.minimumMidSymbolCount) drop.add('minimumMidSymbolCount')
-  if (l.showAtLeastOneSymbol === true || l.showAtLeastOneSymbol === undefined) {
-    drop.add('showAtLeastOneSymbol')
-  }
-  if (!l.startOffset) drop.add('startOffset')
-  if (!l.endOffset) drop.add('endOffset')
-  // Mid-symbol placement fields (`segmentLength` / `midSymbolsPerSpot` /
-  // `midSymbolDistance`) only matter when the stroke actually has mid-symbol
-  // elements. Both readers emit them regardless, with different defaults
-  // (OCAD leaves segmentLength undefined or copies mainLength; OMap always
-  // emits `400`). When no `primSymElements` array is present, drop them.
-  const hasMidSymbols =
-    Array.isArray(l.primSymElements) &&
-    (l.primSymElements as unknown[]).length > 0
-  // Top-level `endLength` is an OCAD-only slot for a special "last dash"
-  // length; OMap doesn't emit it at all. Drop whenever a dash is present
-  // (its vocab collapse in `canonicaliseDash` doesn't carry endLength
-  // anyway) OR when it's an orphan (no dash and no mid-symbol; e.g. 509.2
-  // Tramway where OMap emits `endLength: 150` as dead data).
-  const dashObj = l.dash as
-    { mainLength?: number; mainGap?: number; secGap?: number } | undefined
-  const isOrphan = !dashObj && !hasMidSymbols
-  if (!l.endLength || dashObj || isOrphan) {
-    drop.add('endLength')
-  }
-  if (!hasMidSymbols) {
-    drop.add('segmentLength')
-    // No mid-symbol geometry → the count is dead data whatever its value (OCD
-    // omits it; OMap may emit 0 or 1). Drop it unconditionally.
-    drop.add('midSymbolsPerSpot')
-    if (!l.midSymbolDistance) drop.add('midSymbolDistance')
-    // `minimumMidSymbolCount` gates whether Mapper draws mid-symbols on short
-    // segments; if the stroke has no mid-symbol geometry to place, the field
-    // is dead data. OMap emits values (2, 3, 5) on many symbols where OCD
-    // omits it (e.g. butlers-bush 309 / 416 / 532). Drop it when there are
-    // no mid-symbol elements.
-    drop.add('minimumMidSymbolCount')
-  }
-  return drop
-}
-
-const EMPTY_DROP: ReadonlySet<string> = new Set()
-
-// Canonicalise a stroke's `dash` sub-object. The two readers emit the same
-// dash pattern with different vocabularies:
-//   OCD  {mainLength, mainGap, secGap, endLength, endGap}
-//   OMap {dashLength, breakLength, dashesInGroup, inGroupBreakLength}
-// Both reduce to `{dashLength, breakLength, [dashesInGroup>1], [inGroupBreakLength]}`.
-//
-// OCD decoding follows three cases, discriminated by `mainGap` and `secGap`:
-//   - `mainGap` set  → 2-dash group. `mainLength = 2·dashLength + inGroupBreakLength`
-//     so `dashLength = (mainLength - secGap) / 2`, `breakLength = mainGap`,
-//     `inGroupBreakLength = secGap`. (E.g. 337 stairway: 337=2·150+37.)
-//   - `mainGap` zero, `secGap` set → 1-dash groups back-to-back with `secGap`
-//     between. `mainLength = dashLength + secGap` so `dashLength = mainLength - secGap`,
-//     `breakLength = secGap`. (E.g. 106 ruined earth wall: 200 = 165 + 35.)
-//   - `secGap` zero → plain repeat, `dashLength = mainLength`, `breakLength = mainGap`.
-//
-// `endLength`/`endGap` mirror `mainLength`/`secGap` (OCD-only redundancy for
-// terminal dashes) and are dropped by `strokeCanonicalDrops`. OMap's
-// `inGroupBreakLength` is emitted even when `dashesInGroup=1` — dead data
-// in that case, dropped.
-function canonicaliseDash(dash: unknown): unknown {
-  if (!dash || typeof dash !== 'object') return dash
-  const source = dash as Record<string, unknown>
-  const num = (k: string): number | undefined => {
-    const v = source[k]
-    return typeof v === 'number' ? v : undefined
-  }
-  const mainLength = num('mainLength')
-  if (mainLength !== undefined) {
-    const mainGap = num('mainGap') ?? 0
-    const secGap = num('secGap') ?? 0
-    if (secGap > 0 && mainGap > 0) {
-      return {
-        dashLength: (mainLength - secGap) / 2,
-        breakLength: mainGap,
-        dashesInGroup: 2,
-        inGroupBreakLength: secGap,
-      }
-    }
-    if (secGap > 0) {
-      return { dashLength: mainLength - secGap, breakLength: secGap }
-    }
-    return { dashLength: mainLength, breakLength: mainGap }
-  }
-  const output: Record<string, unknown> = {}
-  const dashesInGroup = num('dashesInGroup') ?? 1
-  for (const [k, v] of Object.entries(source)) {
-    if (k === 'inGroupBreakLength' && dashesInGroup <= 1) continue
-    if (k === 'dashesInGroup' && v === 1) continue
-    output[k] = v
-  }
-  return output
-}
-
-// Nested `text.text.*` keys to drop when they equal their default. The OCD
-// reader emits the full OCAD text-symbol block (`wordSpace: 100`,
-// `verticalAlignment: 0`, `indentFirst: 0`, `indentOther: 0`) verbatim; the
-// OMap reader omits any field the mapper hasn't touched. Dropping the OCD
-// defaults reconciles them without touching semantic values (`alignment`,
-// `lineSpace`, etc. flow through untouched).
-// Snap a mm font size to OCAD's storage grid (whole tenths of point). OCAD
-// files store fontSize as `rawTenthsOfPoint` (integer); the reader converts
-// with `× 25.4 / 720`. OMap stores mm directly, so the same visual "6pt"
-// symbol can end up as 2.046 (OCD) vs 2.063 (OMap file, if Mapper stored
-// 5.85 pt). Snap both to the coarser tenths-of-pt integer grid so they
-// coincide — 1/72 in ≈ 0.35 mm at 1pt, so <0.05mm difference isn't
-// visible on paper maps.
-function snapFontSizeMm(mm: number): number {
-  const tenthsOfPt = Math.round((mm * 720) / 25.4)
-  return Number(((tenthsOfPt * 25.4) / 720).toFixed(3))
-}
-
-function canonicaliseTextBody(text: unknown): unknown {
-  if (!text || typeof text !== 'object') return text
-  const source = text as Record<string, unknown>
-  const output: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(source)) {
-    if (key === 'wordSpace' && value === 100) continue
-    if (key === 'verticalAlignment' && value === 0) continue
-    if (key === 'indentFirst' && value === 0) continue
-    if (key === 'indentOther' && value === 0) continue
-    if (key === 'fontSize' && typeof value === 'number') {
-      output[key] = snapFontSizeMm(value)
-      continue
-    }
-    // OMap stores horizontal text alignment on the OBJECT (`hAlign`), not on
-    // the text symbol; OCD emits `alignment` on the symbol here as its
-    // default. Drop it — either it's the neutral 0 (left/none, OMap's
-    // implicit default) or it's non-zero and redundant with per-object
-    // hAlign that the OMap side reads. Symbol-level alignment doesn't
-    // survive the OMap-native round-trip anyway.
-    if (key === 'alignment') continue
-    // `lineSpace` between the two readers uses different arithmetic (OCAD
-    // stores a percent-of-fontsize, OMap stores a Qt-based mm-ish value)
-    // and no single conversion recovers both — 916 8pt shows OCD 1.2 vs
-    // OMap 1.044 for the same visual spacing. Drop it: the OCD writer's
-    // symbol-body reads it back from the primary `text` block with a
-    // sensible default when absent.
-    if (key === 'lineSpace') continue
-    output[key] = value
-  }
-  return output
-}
-
-function renderLayerToGitmap(
-  layer: RenderLayer,
-  colorIds: Map<string | number, string>,
-  symbolIds: Map<string | number, string> = new Map(),
-) {
-  const output: Record<string, unknown> = {}
-  const drop = strokeCanonicalDrops(layer)
-  const layerType = (layer as { type?: string }).type
-
-  Object.entries(layer).forEach(([key, value]) => {
-    if (value === undefined) return
-    if (drop.has(key)) return
-    // Canonical colour reference is `colorId` everywhere; a layer that mirrored
-    // its source with a bare `color` is renamed here.
-    if (key === 'colorId' || key === 'color') {
-      output.colorId = colorIds.get(value as string | number) || value
-      return
-    }
-    // OCAD/Mapper integer enums → semantic strings (see ./enums).
-    if (key === 'capStyle') {
-      output[key] = capStyleToGitmap(value)
-      return
-    }
-    if (key === 'joinStyle') {
-      output[key] = joinStyleToGitmap(value)
-      return
-    }
-    if (key === 'borders' && Array.isArray(value)) {
-      output[key] = value.map(b => borderToGitmap(b, colorIds))
-      return
-    }
-    // `border-symbol.symbolId` points to another map symbol. OCD stores the
-    // referenced symbol's raw symNum (e.g. `301004`); OMap stores its own
-    // internal id (e.g. `75`). Both resolve to the same real symbol
-    // (`code: 301.4`), so remap through the canonical gitmap symbol id.
-    if (layerType === 'border-symbol' && key === 'symbolId') {
-      output[key] = symbolIds.get(value as string | number) || value
-      return
-    }
-    if (layerType === 'text' && key === 'text') {
-      output[key] = remapColors(
-        toJsonSafe(canonicaliseTextBody(value)),
-        colorIds,
-      )
-      return
-    }
-    // Text typography is authoritative in the nested `text` object; drop the
-    // duplicated per-layer fontSize / fontFamily.
-    if (layerType === 'text' && (key === 'fontSize' || key === 'fontFamily')) {
-      return
-    }
-    if (layerType === 'stroke' && key === 'dash') {
-      output[key] = toJsonSafe(canonicaliseDash(value))
-      return
-    }
-    if (key === 'elements' && Array.isArray(value)) {
-      output[key] = value.map(elementToGitmap.bind(null, colorIds))
-      return
-    }
-    if (
-      [
-        'primSymElements',
-        'cornerSymElements',
-        'startSymElements',
-        'endSymElements',
-      ].includes(key) &&
-      Array.isArray(value)
-    ) {
-      output[key] = value.map(elementToGitmap.bind(null, colorIds))
-      return
-    }
-    // Deep-remap color references inside nested structures such as
-    // `pattern.symbol.pointSymbol.innerColor` — otherwise the raw
-    // integer color ID leaks into gitmap and gitmap-read can no
-    // longer resolve it against the (string-keyed) colors table.
-    output[key] = remapColors(toJsonSafe(value), colorIds)
-  })
-
-  return output
-}
-
-// Keys that hold color-id references anywhere in the symbol tree.
-const COLOR_ID_KEYS = new Set([
-  'color',
-  'colorId',
-  'innerColor',
-  'outerColor',
-  'fillColor',
-  'leftColor',
-  'rightColor',
-  'hatchColor',
-])
-
-function remapColors(
-  node: unknown,
-  colorIds: Map<string | number, string>,
-): unknown {
-  if (Array.isArray(node)) {
-    return node.map(child => remapColors(child, colorIds))
-  }
-  if (!node || typeof node !== 'object') return node
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-    if (
-      COLOR_ID_KEYS.has(k) &&
-      (typeof v === 'number' || typeof v === 'string')
-    ) {
-      out[k] = colorIds.get(v as string | number) ?? v
-    } else {
-      out[k] = remapColors(v, colorIds)
-    }
-  }
-  return out
-}
-
-// A stroke casing line. Mirrors the layer rename: the source's bare `color`
-// becomes the canonical `colorId`.
-function borderToGitmap(
-  border: unknown,
-  colorIds: Map<string | number, string>,
-): unknown {
-  if (!border || typeof border !== 'object') return border
-  const output: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(
-    border as Record<string, unknown>,
-  )) {
-    if (value === undefined) continue
-    if (key === 'color') {
-      output.colorId = colorIds.get(value as string | number) ?? value
-      continue
-    }
-    output[key] = value
-  }
-  return output
-}
-
-function elementToGitmap(colorIds: Map<string | number, string>, element) {
-  const output: Record<string, unknown> = {}
-  Object.entries(element).forEach(([key, value]) => {
-    if (value === undefined) return
-    // `numberCoords` is a derived count (= coordinates.length); the canonical
-    // form omits derived counts. The reader restores it from the array.
-    if (key === 'numberCoords') return
-    if (key === 'color') {
-      // Canonical colour reference is `colorId` everywhere.
-      output.colorId = colorIds.get(value as string | number) || value
-      return
-    }
-    if (key === 'coords') {
-      // Icon-primitive geometry uses the same tuple form AND the same field
-      // name as object `coordinates` (see elementCoordToJson).
-      output.coordinates = (value as unknown[]).map(elementCoordToJson)
-      return
-    }
-    if (key === 'diameter') {
-      // Canonical circular size is `radius`, matching point-fill/point-stroke;
-      // OCAD icon primitives store diameter, so halve it here.
-      output.radius = (value as number) / 2
-      return
-    }
-    // XMap-style element.symbol carries a full nested symbol tree
-    // (areaSymbol / lineSymbol / pointSymbol) with its own color
-    // references — recurse via remapColors, not toJsonSafe, so those
-    // integer ids get lifted to the Panmap string ids.
-    output[key] = remapColors(toJsonSafe(value), colorIds)
-  })
-  return output
-}
-
-function coordinatesToJson(coordinates: unknown[]): unknown[] {
-  return coordinates.map(coord => coordToJson(coord))
-}
-
-// Split flat model coordinates into explicit rings. A multi-ring area marks its
-// ring boundaries with the hole bit (yFlags 0x02) on the LAST coord of each ring
-// that a hole follows (Mapper's isHolePoint). Emit the first ring as the outer
-// boundary and the rest as `holes`; the boundary is now structural, so the
-// `hole` flag is not written on any tuple. A single-ring object (line, simple
-// area, point, text) yields just `coordinates` with no `holes`.
-function ringsToJson(coordinates: unknown[]): {
-  coordinates: unknown[]
-  holes?: unknown[][]
-} {
-  const rings: unknown[][] = [[]]
-  coordinates.forEach((coord, i) => {
-    rings[rings.length - 1].push(coord)
-    const yF = (coord as { yFlags?: number }).yFlags ?? 0
-    if (yF & 0x02 && i < coordinates.length - 1) rings.push([])
-  })
-  const [outer, ...inner] = rings
-  const out: { coordinates: unknown[]; holes?: unknown[][] } = {
-    coordinates: coordinatesToJson(outer),
-  }
-  if (inner.length) out.holes = inner.map(ring => coordinatesToJson(ring))
-  return out
-}
-
-// Element (icon primitive) coord as a compact tuple `[x, y]` / `[x, y, flags]`,
-// the same shape as object coords. Unlike an object, an icon primitive is a
-// single shape that isn't ring-split, so `hole` stays a valid semantic flag here
-// (an icon area primitive can carry a hole boundary). Element coords are
-// symbol-internal (y-up), so they are never Y-flipped.
-function elementCoordToJson(coord: unknown): unknown {
-  const src = coord as {
-    0?: number
-    1?: number
-    x?: number
-    y?: number
-    xFlags?: number
-    yFlags?: number
-  }
-  const isTuple = Array.isArray(coord)
-  const x = cleanNumber(isTuple ? src[0] : src.x)
-  const y = cleanNumber(isTuple ? src[1] : src.y)
-  const flags = semanticCoordFlags(src.xFlags ?? 0, src.yFlags ?? 0, true)
-  return flags ? [x, y, flags] : [x, y]
-}
-
-/**
- * Serialise a coordinate as a compact tuple.
- *
- * Plain vertex: `[x, y]`. A vertex carrying path flags: `[x, y, flags]`, where
- * `flags` is an object of SEMANTIC boolean keys — `control` (a Bézier control
- * point), `corner`, `dash`. Hole-ring boundaries are structural (see
- * `ringsToJson`), not a coord flag. The OCAD-shaped xFlags/yFlags bytes are
- * translated to these on write and back on read; the raw OMap byte is not stored.
- */
-function coordToJson(coord: unknown): unknown {
-  const src = coord as {
-    0?: number
-    1?: number
-    x?: number
-    y?: number
-    xFlags?: number
-    yFlags?: number
-  }
-  const isTuple = Array.isArray(coord)
-  const x = cleanNumber(isTuple ? src[0] : src.x)
-  const y = cleanNumber(isTuple ? src[1] : src.y)
-  const flags = semanticCoordFlags(src.xFlags ?? 0, src.yFlags ?? 0)
-  return flags ? [x, y, flags] : [x, y]
-}
-
-// OCAD flag bytes → semantic flags. xFlags 0x01/0x02 are the two Bézier control
-// points (both -> `control`; cp1 vs cp2 is recovered by position on read).
-// yFlags: 0x01 corner, 0x02 hole, 0x08 dash point. Object coords pass
-// `includeHole = false` — their hole rings are structural (outer `coordinates` +
-// `holes`); element (icon) coords pass `true`, since a primitive isn't ring-split.
-function semanticCoordFlags(
-  xF: number,
-  yF: number,
-  includeHole = false,
-): Record<string, true> | undefined {
-  const f: Record<string, true> = {}
-  if (xF & 0x03) f.control = true
-  if (yF & 0x01) f.corner = true
-  if (includeHole && yF & 0x02) f.hole = true
-  if (yF & 0x08) f.dash = true
-  return Object.keys(f).length ? f : undefined
-}
-
-function toJsonSafe(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(toJsonSafe)
-  // Round scalars to the shared 3-dp grid (as coordinates are). The two readers
-  // reach render-layer sizes/angles by different arithmetic — OCAD from integer
-  // tenths, OMap from radians/µm — so the same value lands as `90` vs
-  // `90.0002…` or `1.058` vs `1.0583333…`. Rounding makes them serialise
-  // identically; integers pass through untouched.
-  if (typeof value === 'number') {
-    return Number.isInteger(value) ? value : Number(value.toFixed(3))
-  }
-  if (!value || typeof value !== 'object') return value
-
-  const output: Record<string, unknown> = {}
-  Object.entries(value as Record<string, unknown>).forEach(([key, child]) => {
-    if (child === undefined || typeof child === 'function') return
-    output[key] = toJsonSafe(child)
-  })
-  return output
-}
-
-function stableColorId(color: MapColor): string {
-  // Include a stable disambiguator so duplicate-named color slots
-  // (port-hills has 6 different "Green" entries used at different
-  // render orders) don't collapse into one gitmap id. Renumber via
-  // sourceId when present, else id — either is stable across a
-  // single map's serialisation.
-  const base = slug(color.name || String(color.id)) || String(color.id)
-  const disc = color.sourceId ?? color.id
-  return `color_${base}_${disc}`
-}
-
-function stableSymbolId(symbol: MapSymbol): string {
-  const code =
-    canonicalSymbolCode(symbol.code) || String(symbol.sourceId ?? symbol.id)
-  return `sym_${slug(code)}`
-}
-
-function slug(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-}
-
-export {
-  toGitmapColor,
-  toGitmapSymbol,
-  toGitmapObject,
-  stableColorId,
-  stableSymbolId,
-  coordinatesToJson,
 }

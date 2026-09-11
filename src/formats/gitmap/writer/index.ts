@@ -7,7 +7,7 @@ import {
   stableColorId,
   stableSymbolId,
   toGitmapSymbol,
-} from './from-panmap.js'
+} from './from-panmap/index.js'
 import { stableJson, stableJsonPretty } from './stable-json.js'
 
 interface WriteGitmapOptions {
