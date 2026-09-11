@@ -31,7 +31,7 @@ import {
   colorIdMap,
   symbolIdMap,
   omapObjectType,
-} from './from-panmap.js'
+} from './from-panmap/index.js'
 
 const extrasBuilder = new XMLBuilder({
   ignoreAttributes: false,

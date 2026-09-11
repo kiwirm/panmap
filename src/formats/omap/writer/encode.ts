@@ -15,7 +15,7 @@ import type {
   OmapPointSymbol,
   OmapTextSymbol,
 } from '../native.js'
-import type { RawOmapSymbol } from './from-panmap.js'
+import type { RawOmapSymbol } from './from-panmap/index.js'
 import { attr, attrs, boolAttr, dim, indent, text } from './xml.js'
 
 export function xmapSymbolToXml(symbol: RawOmapSymbol, id?: number): string {
