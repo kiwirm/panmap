@@ -1,0 +1,20 @@
+# Build output
+dist
+
+# Dependencies & lockfiles
+node_modules
+package-lock.json
+examples/**/package-lock.json
+
+# Generated data (owned by scripts/gen-crs-grids.mjs)
+src/formats/ocad/native/crs-grids.ts
+src/formats/ocad/native/crs-grids.csv
+
+# Test fixtures & golden snapshots — must stay byte-exact
+test/fixtures
+test/snapshots
+test/parity-fixtures
+test/fixtures.manifest.json
+
+# Binary / non-source assets
+example-images

@@ -10,7 +10,12 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: [],
-  rules: {},
+  rules: {
+    // House convention: named `function` declarations (hoisted, better stack
+    // traces, TS overloads); arrow functions stay allowed for callbacks and
+    // const helpers. Bans stray `const x = function () {}` expressions.
+    'func-style': ['error', 'declaration', { allowArrowFunctions: true }],
+  },
   settings: {},
   overrides: [
     {

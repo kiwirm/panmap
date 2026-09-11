@@ -29,13 +29,15 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/main.js",
-    "test": "tsc --noEmit && npm run lint && ava",
+    "test": "tsc --noEmit && npm run lint && npm run format:check && ava",
     "test:full": "npm run fetch:test-data && npm test",
     "parity": "ava test/mapper-parity.parity.js --timeout=10m",
     "fetch:test-data": "node scripts/fetch-test-data.mjs",
     "gen:crs-grids": "node scripts/gen-crs-grids.mjs",
     "build:fixtures": "node scripts/build-fixtures-tarball.mjs",
     "lint": "eslint src/",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -80,6 +82,7 @@
     "eslint-plugin-n": "^15.2.0",
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-standard": "^5.0.0",
+    "prettier": "^3.9.6",
     "tsx": "^4.7.0",
     "typescript": "^5.5.4"
   },
