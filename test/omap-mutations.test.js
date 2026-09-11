@@ -170,13 +170,13 @@ test('line symbol body preserved after name mutation', async (/** @type {Executi
 
   const rt = await roundTrip(map)
   const xml = await fs.readFile(
-    (await (async () => {
+    await (async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'xmap-body-'))
       const out = path.join(tmp, 'map.xmap')
       await writeOmap(map, out)
       return out
-    })()),
-    'utf-8'
+    })(),
+    'utf-8',
   )
   // The raw line_symbol body must still be present — no fallback to the
   // stripped-down synthetic line_symbol encoder.
@@ -218,7 +218,9 @@ test('canonical object fields survive omap round-trip', async (/** @type {Execut
   textObj.text = 'Summit MODIFIED'
   textObj.rotation = 1.0
 
-  const lineObj = map.objects.find(o => o.type === 'line' && o.coordinates?.length === 4)
+  const lineObj = map.objects.find(
+    o => o.type === 'line' && o.coordinates?.length === 4,
+  )
   // Move the first coord
   lineObj.coordinates[0][0] = -2000
 
@@ -227,7 +229,9 @@ test('canonical object fields survive omap round-trip', async (/** @type {Execut
   t.truthy(rtText, 'text mutation survived')
   t.is(rtText.rotation, 1.0)
 
-  const rtLine = rt.objects.find(o => o.type === 'line' && o.coordinates?.length === 4)
+  const rtLine = rt.objects.find(
+    o => o.type === 'line' && o.coordinates?.length === 4,
+  )
   t.is(rtLine.coordinates[0][0], -2000, 'coord mutation survived')
 })
 
@@ -288,7 +292,10 @@ test('adding a new object to a xmap-sourced map survives round-trip', async (/**
     id: 9999,
     symbolId: map.symbols[0].id,
     type: 'line',
-    coordinates: [[-100, 0], [100, 0]],
+    coordinates: [
+      [-100, 0],
+      [100, 0],
+    ],
     hidden: false,
     text: '',
     rotation: 0,

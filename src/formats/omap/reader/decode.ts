@@ -4,7 +4,6 @@ import { cmykFractionToRgb } from '../../../util/cmyk-to-rgb.js'
 import { ATTR_PREFIX, MAP_UNIT_SCALE } from '../native.js'
 import type { OmapFile, OmapExtras, OmapPart } from '../native.js'
 
-
 async function readOmapFile(filename: string): Promise<OmapFile> {
   const xml = await fs.promises.readFile(filename, 'utf-8')
   return parseOmapXml(xml)
@@ -41,7 +40,9 @@ function parseOmapXml(xml: string): OmapFile {
       priority: parseNumber(color.priority),
       name: color.name ?? '',
       rgb: parseRgb(color),
-      cmyk: cmykValid ? ([c, m, y, k] as [number, number, number, number]) : undefined,
+      cmyk: cmykValid
+        ? ([c, m, y, k] as [number, number, number, number])
+        : undefined,
       opacity: Number.isFinite(opacity) ? opacity : undefined,
     }
   })
@@ -56,8 +57,10 @@ function parseOmapXml(xml: string): OmapFile {
       type: parseNumber(node.type),
       symbol: parseNumber(node.symbol),
       rotation: node.rotation !== undefined ? Number(node.rotation) : undefined,
-      hAlign: node.h_align !== undefined ? parseNumber(node.h_align) : undefined,
-      vAlign: node.v_align !== undefined ? parseNumber(node.v_align) : undefined,
+      hAlign:
+        node.h_align !== undefined ? parseNumber(node.h_align) : undefined,
+      vAlign:
+        node.v_align !== undefined ? parseNumber(node.v_align) : undefined,
       coords: parseCoords(node),
       text: typeof node.text === 'string' ? node.text : null,
       textBox: sizeNode
@@ -109,7 +112,7 @@ function parseOmapXml(xml: string): OmapFile {
           dashesInGroup: parseNumber(symbol.line_symbol.dashes_in_group, 1),
           inGroupBreakLength: parseDim(
             symbol.line_symbol.in_group_break_length,
-            500
+            500,
           ),
           endLength: parseDim(symbol.line_symbol.end_length, 0),
           dashSymbol: symbol.line_symbol?.dash_symbol?.symbol
@@ -124,15 +127,15 @@ function parseOmapXml(xml: string): OmapFile {
               : isTrue(symbol.line_symbol.show_at_least_one_symbol),
           midSymbolsPerSpot: parseNumber(
             symbol.line_symbol.mid_symbols_per_spot,
-            1
+            1,
           ),
           minimumMidSymbolCount: parseNumber(
             symbol.line_symbol.minimum_mid_symbol_count,
-            0
+            0,
           ),
           minimumMidSymbolCountWhenClosed: parseNumber(
             symbol.line_symbol.minimum_mid_symbol_count_when_closed,
-            0
+            0,
           ),
           suppressDashSymbolAtEnds:
             symbol.line_symbol.suppress_dash_symbol_at_ends === undefined
@@ -149,11 +152,11 @@ function parseOmapXml(xml: string): OmapFile {
             : undefined,
           midSymbolDistance: parseDim(
             symbol.line_symbol.mid_symbol_distance,
-            0
+            0,
           ),
           midSymbolPlacement: parseNumber(
             symbol.line_symbol.mid_symbol_placement,
-            0
+            0,
           ),
           startSymbol: symbol.line_symbol?.start_symbol?.symbol
             ? parseSymbolNode(symbol.line_symbol.start_symbol.symbol)
@@ -174,7 +177,9 @@ function parseOmapXml(xml: string): OmapFile {
           lineOffset: parseDim(pattern.line_offset, 0),
           offsetAlongLine: parseDim(pattern.offset_along_line, 0),
           color:
-            pattern.color !== undefined ? parseNumber(pattern.color, -1) : undefined,
+            pattern.color !== undefined
+              ? parseNumber(pattern.color, -1)
+              : undefined,
           lineWidth: parseDim(pattern.line_width, 0),
           rotatable: isTrue(pattern.rotatable),
           // Preserve xmap `no_clipping` (0/1/2) so the OCAD synth
@@ -280,15 +285,15 @@ function parseOmapXml(xml: string): OmapFile {
                   mode: parseNumber(symbol.text_symbol.framing.mode, 0),
                   lineHalfWidth: parseDim(
                     symbol.text_symbol.framing.line_half_width,
-                    0
+                    0,
                   ),
                   shadowX: parseDim(
                     symbol.text_symbol.framing.shadow_x_offset,
-                    0
+                    0,
                   ),
                   shadowY: parseDim(
                     symbol.text_symbol.framing.shadow_y_offset,
-                    0
+                    0,
                   ),
                 }
               : undefined,
@@ -299,10 +304,7 @@ function parseOmapXml(xml: string): OmapFile {
                       ? parseNumber(symbol.text_symbol.line_below.color, -1)
                       : undefined,
                   width: parseDim(symbol.text_symbol.line_below.width, 0),
-                  distance: parseDim(
-                    symbol.text_symbol.line_below.distance,
-                    0
-                  ),
+                  distance: parseDim(symbol.text_symbol.line_below.distance, 0),
                 }
               : undefined,
           }
@@ -320,15 +322,17 @@ function parseOmapXml(xml: string): OmapFile {
     .concat(ensureArray(map?.parts?.part))
   const parts: OmapPart[] = partNodes.map(part => ({
     name: typeof part?.name === 'string' ? part.name : undefined,
-    objects: ensureArray(part?.objects?.object).map(parseObject).filter(Boolean),
+    objects: ensureArray(part?.objects?.object)
+      .map(parseObject)
+      .filter(Boolean),
   }))
   // Objects placed directly under a barrier/map (non-standard) join the first
   // part, or form an implicit single part when there are no <part> elements.
   const looseObjects = barriers
     .flatMap(barrier =>
       ensureArray(barrier?.symbols?.objects?.object).concat(
-        ensureArray(barrier?.objects?.object)
-      )
+        ensureArray(barrier?.objects?.object),
+      ),
     )
     .concat(ensureArray(map?.objects?.object))
     .map(parseObject)
@@ -454,7 +458,7 @@ function parseDim(value: XmlValue, fallback = 0): number {
 
 function parseCoords(node: Record<string, any> | undefined) {
   const coordNodes = ensureArray(node?.coords?.coord).concat(
-    ensureArray(node?.coord)
+    ensureArray(node?.coord),
   )
   if (coordNodes.length) {
     return coordNodes.map(coord => ({
@@ -468,8 +472,8 @@ function parseCoords(node: Record<string, any> | undefined) {
     typeof node?.coords === 'string'
       ? node.coords
       : typeof node?.coords?.['#text'] === 'string'
-      ? node.coords['#text']
-      : null
+        ? node.coords['#text']
+        : null
   if (!packedCoords) return []
 
   return packedCoords
@@ -486,7 +490,9 @@ function parseCoords(node: Record<string, any> | undefined) {
     })
 }
 
-function parseRgb(colorNode: Record<string, any> | undefined): { r: number; g: number; b: number } | null {
+function parseRgb(
+  colorNode: Record<string, any> | undefined,
+): { r: number; g: number; b: number } | null {
   const rgb = colorNode?.rgb
   const rgbMethod = String(rgb?.method ?? '').toLowerCase()
   if (rgb && rgbMethod === 'custom') {
@@ -507,7 +513,7 @@ function parseRgb(colorNode: Record<string, any> | undefined): { r: number; g: n
       quantizeChannel(c),
       quantizeChannel(m),
       quantizeChannel(y),
-      quantizeChannel(k)
+      quantizeChannel(k),
     )
     return { r: rgb[0], g: rgb[1], b: rgb[2] }
   }
@@ -518,7 +524,7 @@ function parseRgb(colorNode: Record<string, any> | undefined): { r: number; g: n
 function rgbValuesToBytes(
   r: XmlValue,
   g: XmlValue,
-  b: XmlValue
+  b: XmlValue,
 ): { r: number; g: number; b: number } {
   const values = [Number(r), Number(g), Number(b)]
   const scale = Math.max(...values) <= 1 ? 255 : 1
@@ -536,6 +542,5 @@ function toByte(value: XmlValue): number {
 function quantizeChannel(value: number): number {
   return Math.round(value * 100) / 100
 }
-
 
 export { parseOmapXml, parseOmap, readOmapFile }

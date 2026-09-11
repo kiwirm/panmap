@@ -16,7 +16,7 @@ export default class SymbolElement {
     const type = reader.readSmallInt()
     if (type < 1 || type > 4) {
       throw new InvalidSymbolElementError(
-        `Symbol element with invalid type (${type}).`
+        `Symbol element with invalid type (${type}).`,
       )
     }
 
@@ -32,7 +32,7 @@ export default class SymbolElement {
       // Negative coord counts have appeared in real files; bail rather than allocate.
       throw new InvalidSymbolElementError(
         `Symbol element with invalid (${this.numberCoords}) number of coordinates.`,
-        this
+        this,
       )
     }
 

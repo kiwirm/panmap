@@ -10,15 +10,17 @@ import { fileURLToPath } from 'node:url'
 import { XMLSerializer } from '@xmldom/xmldom'
 import readOcad from '../src/formats/ocad/reader/decode/index.ts'
 import ocadFileToMap from '../src/formats/ocad/reader/to-panmap.ts'
-import { readOmap } from "./helpers/omap.js"
+import { readOmap } from './helpers/omap.js'
 import omapFileToMap from '../src/formats/omap/reader/to-panmap.ts'
 import mapToSvg from '../src/export/svg/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
 
 const serializer = new XMLSerializer()
-const svgString = (map) => serializer.serializeToString(mapToSvg(map))
+const svgString = map => serializer.serializeToString(mapToSvg(map))
 
-const SNAPSHOTS_DIR = fileURLToPath(new URL('./snapshots/svg/', import.meta.url))
+const SNAPSHOTS_DIR = fileURLToPath(
+  new URL('./snapshots/svg/', import.meta.url),
+)
 const UPDATE = process.env.UPDATE_SVG_SNAPSHOTS === '1'
 
 async function ensureDir(dir) {

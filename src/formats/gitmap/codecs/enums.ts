@@ -33,7 +33,8 @@ function fromStr(table: readonly string[], v: unknown): unknown {
 export const capStyleToGitmap = (v: unknown): unknown => toStr(CAP_STYLE, v)
 export const capStyleFromGitmap = (v: unknown): unknown => fromStr(CAP_STYLE, v)
 export const joinStyleToGitmap = (v: unknown): unknown => toStr(JOIN_STYLE, v)
-export const joinStyleFromGitmap = (v: unknown): unknown => fromStr(JOIN_STYLE, v)
+export const joinStyleFromGitmap = (v: unknown): unknown =>
+  fromStr(JOIN_STYLE, v)
 export const hAlignToGitmap = (v: unknown): unknown => toStr(H_ALIGN, v)
 export const hAlignFromGitmap = (v: unknown): unknown => fromStr(H_ALIGN, v)
 export const vAlignToGitmap = (v: unknown): unknown => toStr(V_ALIGN, v)

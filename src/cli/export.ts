@@ -25,7 +25,7 @@ interface ExportOpts {
 export async function runExport(
   input: string,
   output: string,
-  options: ExportCmdOptions
+  options: ExportCmdOptions,
 ): Promise<void> {
   const format = (options.format ?? path.extname(output).slice(1)).toLowerCase()
 
@@ -38,7 +38,10 @@ export async function runExport(
 
   switch (format) {
     case 'svg':
-      await exportMap(await read(input), output, { format: 'svg', ...exportOpts })
+      await exportMap(await read(input), output, {
+        format: 'svg',
+        ...exportOpts,
+      })
       return
     case 'json':
     case 'geojson':
@@ -59,7 +62,7 @@ async function exportGeoJson(
   input: string,
   output: string,
   crsOption: string | undefined,
-  exportOpts: ExportOpts
+  exportOpts: ExportOpts,
 ): Promise<void> {
   const map = await read(input)
   const crs = map.getCrs()
@@ -87,16 +90,18 @@ async function exportGeoJson(
 async function toMvt(
   input: string,
   output: string,
-  exportOpts: ExportOpts
+  exportOpts: ExportOpts,
 ): Promise<void> {
   const map = await read(input)
   const crs = map.getCrs()
   if (!crs || crs.catalog !== 'EPSG' || crs.code <= 0) {
-    throw new Error(`Unsupported CRS ${crs?.catalog ?? null}:${crs?.code ?? 0} in map.`)
+    throw new Error(
+      `Unsupported CRS ${crs?.catalog ?? null}:${crs?.code ?? 0} in map.`,
+    )
   }
   const geoJson = toWgs84(
     mapToGeoJson(map, exportOpts),
-    await getProj4Def(crs.code)
+    await getProj4Def(crs.code),
   )
   const tileIndex = geojsonvt(geoJson, {
     maxZoom: 14,
@@ -121,7 +126,7 @@ function getProj4Def(crs: number): Promise<string> {
         let data = ''
         res.on('data', chunk => (data += chunk))
         res.on('end', () => resolve(data))
-      }
+      },
     )
     req.on('error', reject)
     req.end()

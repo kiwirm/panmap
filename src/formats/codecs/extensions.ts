@@ -69,31 +69,43 @@ export function parseNotes(text: string | null | undefined): ParsedNotes {
     }
     if (OPEN_FENCE_RE.test(lines[i])) {
       throw new ExtensionsError(
-        'Nested gitmap-extensions block found; only one block per notes field is allowed'
+        'Nested gitmap-extensions block found; only one block per notes field is allowed',
       )
     }
   }
   if (closeIndex === -1) {
-    throw new ExtensionsError('gitmap-extensions block is missing its closing fence')
+    throw new ExtensionsError(
+      'gitmap-extensions block is missing its closing fence',
+    )
   }
 
-  const jsonText = lines.slice(openIndex + 1, closeIndex).join('\n').trim()
+  const jsonText = lines
+    .slice(openIndex + 1, closeIndex)
+    .join('\n')
+    .trim()
   let extensions: Extensions
   try {
     const parsed = jsonText === '' ? {} : JSON.parse(jsonText)
-    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (
+      parsed === null ||
+      typeof parsed !== 'object' ||
+      Array.isArray(parsed)
+    ) {
       throw new ExtensionsError('gitmap-extensions body must be a JSON object')
     }
     extensions = parsed as Extensions
   } catch (error) {
     if (error instanceof ExtensionsError) throw error
     throw new ExtensionsError(
-      `gitmap-extensions body is not valid JSON: ${(error as Error).message}`
+      `gitmap-extensions body is not valid JSON: ${(error as Error).message}`,
     )
   }
 
   const before = lines.slice(0, openIndex).join('\n').replace(/\n+$/, '')
-  const after = lines.slice(closeIndex + 1).join('\n').replace(/^\n+/, '')
+  const after = lines
+    .slice(closeIndex + 1)
+    .join('\n')
+    .replace(/^\n+/, '')
   const userText = joinUserText(before, after)
   return { userText, extensions }
 }
@@ -104,7 +116,7 @@ export function parseNotes(text: string | null | undefined): ParsedNotes {
  */
 export function formatNotes(
   userText: string | null | undefined,
-  extensions: Extensions | null | undefined
+  extensions: Extensions | null | undefined,
 ): string {
   const raw = userText ?? ''
   const hasExtensions = extensions && Object.keys(extensions).length > 0
@@ -131,15 +143,18 @@ export function stripExtensionsBlock(text: string | null | undefined): string {
 
 function stripAnyBlock(text: string): string {
   const lines = text.split('\n')
-  const openIndex = lines.findIndex((line) => OPEN_FENCE_RE.test(line))
+  const openIndex = lines.findIndex(line => OPEN_FENCE_RE.test(line))
   if (openIndex === -1) return text
   const closeIndex = lines
     .slice(openIndex + 1)
-    .findIndex((line) => CLOSE_FENCE_RE.test(line))
+    .findIndex(line => CLOSE_FENCE_RE.test(line))
   if (closeIndex === -1) return text
   const absoluteClose = openIndex + 1 + closeIndex
   const before = lines.slice(0, openIndex).join('\n').replace(/\n+$/, '')
-  const after = lines.slice(absoluteClose + 1).join('\n').replace(/^\n+/, '')
+  const after = lines
+    .slice(absoluteClose + 1)
+    .join('\n')
+    .replace(/^\n+/, '')
   return joinUserText(before, after)
 }
 

@@ -43,7 +43,8 @@ import { decodeLineStyle } from '../codecs/line-style.js'
  */
 export default function ocadFileToMap(ocadFile: OcadFile): Panmap {
   const notesEntry = ocadFile.parameterStrings[OCAD_NOTES_RECTYPE]?.[0]
-  const notesText = typeof notesEntry?._first === 'string' ? notesEntry._first : ''
+  const notesText =
+    typeof notesEntry?._first === 'string' ? notesEntry._first : ''
   const { userText, extensions } = parseNotes(notesText)
   const view = extractView(ocadFile)
   const georeferencing = extractGeoreferencing(ocadFile)
@@ -73,7 +74,7 @@ export default function ocadFileToMap(ocadFile: OcadFile): Panmap {
     colors: toMapColors(ocadFile),
     symbols: ocadFile.symbols.map(toMapSymbol),
     objects: (ocadFile.objects as unknown as TObject[]).map((object, i) =>
-      toMapObject(object, i, textHAlign)
+      toMapObject(object, i, textHAlign),
     ),
     warnings: ocadFile.warnings,
     view,
@@ -119,7 +120,9 @@ function toMapColors(ocadFile: OcadFile): MapColor[] {
 }
 
 // OCAD font size is tenths of a point; the canonical model uses millimetres.
-function convertOcadFontSizeToMm(fontSize: number | undefined): number | undefined {
+function convertOcadFontSizeToMm(
+  fontSize: number | undefined,
+): number | undefined {
   return fontSize ? (fontSize * 25.4) / 720 : undefined
 }
 
@@ -137,7 +140,9 @@ function toMapSymbol(symbol: BaseSymbol): MapSymbol {
     // OCAD stores font size in tenths of a point; the model contract (and the
     // OMap reader) is millimetres. Convert here so a text symbol's top-level
     // fontSize matches cross-format (the text render layer already does this).
-    fontSize: convertOcadFontSizeToMm((symbol as { fontSize?: number }).fontSize),
+    fontSize: convertOcadFontSizeToMm(
+      (symbol as { fontSize?: number }).fontSize,
+    ),
     layers: symbolToRenderLayers(symbol),
   }
 }
@@ -228,34 +233,36 @@ function lineRenderLayers(s: LineSymbolDef): RenderLayer[] {
     // framing). XMap represents the same thing as a two-part combined
     // line symbol; surface as a Panmap stroke so the adapter emits
     // it and Mapper's OCD re-import re-attaches it as fr*.
-    ((s as { frColor?: number; frWidth?: number }).frColor !== undefined
-      && (s as { frWidth?: number }).frWidth !== undefined
-      && (s as { frWidth?: number }).frWidth! > 0) && {
-      type: 'stroke',
-      colorId: (s as { frColor?: number }).frColor,
-      width: (s as { frWidth?: number }).frWidth,
-      lineStyle: (s as { frStyle?: number }).frStyle ?? 0,
-      // Mark as the frame stroke so downstream synth can distinguish it
-      // from a border-carrier stroke (both are "secondary" strokes).
-      frame: true,
-    },
-    s.doubleLine?.dblMode ? {
-      type: 'double-line',
-      mode: s.doubleLine.dblMode,
-      flags: s.doubleLine.dblFlags,
-      fillColorId: s.doubleLine.dblFillColor,
-      leftColorId: s.doubleLine.dblLeftColor,
-      rightColorId: s.doubleLine.dblRightColor,
-      centerWidth: s.doubleLine.dblWidth,
-      leftWidth: s.doubleLine.dblLeftWidth,
-      rightWidth: s.doubleLine.dblRightWidth,
-      // Dashed borders (dblMode 2/3/4) carry the dash rhythm in
-      // dblLength / dblGap. Preserve so extractBorders can put the
-      // dash_length / break_length on each xmap `<border>`.
-      dashLength: s.doubleLine.dblLength,
-      breakLength: s.doubleLine.dblGap,
-      lineStyle: s.lineStyle,
-    } : undefined,
+    (s as { frColor?: number; frWidth?: number }).frColor !== undefined &&
+      (s as { frWidth?: number }).frWidth !== undefined &&
+      (s as { frWidth?: number }).frWidth! > 0 && {
+        type: 'stroke',
+        colorId: (s as { frColor?: number }).frColor,
+        width: (s as { frWidth?: number }).frWidth,
+        lineStyle: (s as { frStyle?: number }).frStyle ?? 0,
+        // Mark as the frame stroke so downstream synth can distinguish it
+        // from a border-carrier stroke (both are "secondary" strokes).
+        frame: true,
+      },
+    s.doubleLine?.dblMode
+      ? {
+          type: 'double-line',
+          mode: s.doubleLine.dblMode,
+          flags: s.doubleLine.dblFlags,
+          fillColorId: s.doubleLine.dblFillColor,
+          leftColorId: s.doubleLine.dblLeftColor,
+          rightColorId: s.doubleLine.dblRightColor,
+          centerWidth: s.doubleLine.dblWidth,
+          leftWidth: s.doubleLine.dblLeftWidth,
+          rightWidth: s.doubleLine.dblRightWidth,
+          // Dashed borders (dblMode 2/3/4) carry the dash rhythm in
+          // dblLength / dblGap. Preserve so extractBorders can put the
+          // dash_length / break_length on each xmap `<border>`.
+          dashLength: s.doubleLine.dblLength,
+          breakLength: s.doubleLine.dblGap,
+          lineStyle: s.lineStyle,
+        }
+      : undefined,
   ]
   return layers.filter(Boolean) as RenderLayer[]
 }
@@ -372,7 +379,7 @@ function flipRectY<T>(rc: T): T {
 function toMapObject(
   object: TObject,
   index: number,
-  textHAlign?: Map<number, number>
+  textHAlign?: Map<number, number>,
 ): MapObject {
   const type = ocadObjectTypeName(object.objType)
   const angleRad = ocadAngleToRadians(object.ang)
@@ -406,7 +413,7 @@ function toMapObject(
     coordinates: negateCoordsY(
       type === 'text'
         ? canonicalTextAnchor(object.coordinates)
-        : shiftHoleFlagsFromOcad(object.coordinates)
+        : shiftHoleFlagsFromOcad(object.coordinates),
     ),
     text: object.text,
     rotation: patternRotated ? 0 : angleRad,
@@ -430,7 +437,7 @@ function toMapObject(
     bounds: flipRectY(object.objIndex?.rc),
     tag: object.objectString || undefined,
     tagType:
-      object.nObjectString > 0 ? object.objectStringType ?? 0 : undefined,
+      object.nObjectString > 0 ? (object.objectStringType ?? 0) : undefined,
   }
 }
 
@@ -474,7 +481,8 @@ function numberValue(v: unknown): number | undefined {
  * ref_point; those xmap concepts don't survive an OCAD trip.
  */
 function extractGeoreferencing(ocadFile: OcadFile): MapCrs | undefined {
-  const entry = ocadFile.parameterStrings[1039]?.[0] as Record<string, unknown> | undefined
+  const entry = ocadFile.parameterStrings[1039]?.[0] as
+    Record<string, unknown> | undefined
   if (!entry) return undefined
   const crs: MapCrs = {}
   const scale = numberValue(entry.m)
@@ -514,7 +522,8 @@ function extractGeoreferencing(ocadFile: OcadFile): MapCrs | undefined {
       }
       // declination = grivation (grid→magnetic) + meridian convergence
       // (true→grid). `a` is OCAD's grivation.
-      if (a !== undefined) crs.declination = round(a + derived.convergenceDeg, 2)
+      if (a !== undefined)
+        crs.declination = round(a + derived.convergenceDeg, 2)
     }
   }
   return Object.keys(crs).length ? crs : undefined

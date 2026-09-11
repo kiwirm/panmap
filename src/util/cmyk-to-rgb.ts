@@ -9,7 +9,12 @@ export type Cmyk = readonly [number, number, number, number]
 
 /** Convert CMYK (each 0–100) to packed RGB (each 0–255). */
 export default function convertToRgb(src: Cmyk): Uint8ClampedArray {
-  return cmykFractionToRgb(src[0] / 100, src[1] / 100, src[2] / 100, src[3] / 100)
+  return cmykFractionToRgb(
+    src[0] / 100,
+    src[1] / 100,
+    src[2] / 100,
+    src[3] / 100,
+  )
 }
 
 /** Convert CMYK (each 0–1) to packed RGB (each 0–255). */
@@ -17,7 +22,7 @@ export function cmykFractionToRgb(
   c: number,
   m: number,
   y: number,
-  k: number
+  k: number,
 ): Uint8ClampedArray {
   const rgb = new Uint8ClampedArray(3)
   rgb[0] =

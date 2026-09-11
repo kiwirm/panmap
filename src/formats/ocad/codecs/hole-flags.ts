@@ -18,7 +18,9 @@ import { YFLAG_FIRST_HOLE_POINT } from '../../../panmap/coord.js'
  * consumers already ignore it (`isFirstHolePoint(c) && i < length-1`). Moving it
  * would corrupt closed lines (measured: 220 on bottle-lake).
  */
-export function shiftHoleFlagsToOcad<T extends { yFlags?: number }>(coords: T[]): T[] {
+export function shiftHoleFlagsToOcad<T extends { yFlags?: number }>(
+  coords: T[],
+): T[] {
   // Walk high→low so a moved flag isn't re-moved: each interior hole flag at
   // k (k ≤ length-2) advances to k+1; a last-coord flag is only ever a target.
   for (let i = coords.length - 1; i > 0; i--) {
@@ -30,7 +32,9 @@ export function shiftHoleFlagsToOcad<T extends { yFlags?: number }>(coords: T[])
   return coords
 }
 
-export function shiftHoleFlagsFromOcad<T extends { yFlags?: number }>(coords: T[]): T[] {
+export function shiftHoleFlagsFromOcad<T extends { yFlags?: number }>(
+  coords: T[],
+): T[] {
   // Exact inverse: walk low→high (a moved flag lands on an already-passed
   // index, so it's never re-moved) and move each interior hole flag at j back
   // to j-1. Skip the final coord — see the ClosePoint note above.

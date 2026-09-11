@@ -7,7 +7,7 @@ interface ConvertCmdOptions {
 export async function runConvert(
   input: string,
   output: string,
-  options: ConvertCmdOptions
+  options: ConvertCmdOptions,
 ): Promise<void> {
   await convert(input, output, { format: options.format, overwrite: true })
 }

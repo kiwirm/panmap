@@ -34,7 +34,7 @@ export function canonicalTextAnchor<T>(coords: T[]): T[] {
  */
 export function expandTextBoxCoords(
   anchor: OcadTextBoxCoord,
-  text: string
+  text: string,
 ): OcadTextBoxCoord[] {
   const CHAR_WIDTH = 60 // ~0.6 mm per char at 5-6 pt — matches sample "Lima Rd" (378 / ~7 chars ≈ 54)
   const LINE_HEIGHT = 128 // ~1.3 mm, matching the sample rectangles
@@ -46,6 +46,17 @@ export function expandTextBoxCoords(
   const belowY = anchorY - Math.round(LINE_HEIGHT * 0.15)
   const aboveY = anchorY + Math.round(LINE_HEIGHT * 0.85)
   const rightX = anchorX + width
-  const mk = (x: number, y: number): OcadTextBoxCoord => ({ 0: x, 1: y, xFlags: 0, yFlags: 0 })
-  return [anchor, mk(anchorX, belowY), mk(rightX, belowY), mk(rightX, aboveY), mk(anchorX, aboveY)]
+  const mk = (x: number, y: number): OcadTextBoxCoord => ({
+    0: x,
+    1: y,
+    xFlags: 0,
+    yFlags: 0,
+  })
+  return [
+    anchor,
+    mk(anchorX, belowY),
+    mk(rightX, belowY),
+    mk(rightX, aboveY),
+    mk(anchorX, aboveY),
+  ]
 }

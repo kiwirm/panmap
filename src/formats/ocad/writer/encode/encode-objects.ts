@@ -17,7 +17,7 @@ export interface ObjectRecord {
  */
 export function writeObjectRecords(
   writer: BufferWriter,
-  objects: ObjectRecord[]
+  objects: ObjectRecord[],
 ): { offsets: number[]; lengths: number[] } {
   const offsets: number[] = []
   const lengths: number[] = []
@@ -30,7 +30,7 @@ export function writeObjectRecords(
     const start = writer.offset
     writeTObject12(
       writer,
-      object as unknown as Parameters<typeof writeTObject12>[1]
+      object as unknown as Parameters<typeof writeTObject12>[1],
     )
     offsets.push(start)
     lengths.push(writer.offset - start)
@@ -48,7 +48,7 @@ export function writeObjectIndexBlocks(
   writer: BufferWriter,
   objects: ObjectRecord[],
   offsets: number[],
-  lengths: number[]
+  lengths: number[],
 ): number {
   if (!objects.length) return 0
 
@@ -67,7 +67,7 @@ export function writeObjectIndexBlocks(
         writer,
         objects[flat].objIndex,
         offsets[flat],
-        lengths[flat]
+        lengths[flat],
       )
     }
   }
@@ -83,7 +83,7 @@ function writeObjectIndexEntry(
   writer: BufferWriter,
   objIndex: ObjectIndex,
   pos: number,
-  len: number
+  len: number,
 ): void {
   // Field-level encode. Layout matches the reader in object-index.ts:
   //   [rc.min.x i32][rc.min.y i32][rc.max.x i32][rc.max.y i32]

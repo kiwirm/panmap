@@ -4,7 +4,6 @@ import writeGitmap from './formats/gitmap/writer/index.js'
 import writeOcad from './formats/ocad/writer/index.js'
 import writeOmap from './formats/omap/writer/index.js'
 
-
 export type NativeFormat = 'gitmap' | 'xmap' | 'omap' | 'ocd' | 'ocad'
 
 export interface WriteOptions {
@@ -21,7 +20,7 @@ export interface WriteOptions {
 export async function write(
   map: Panmap,
   filename: string,
-  options: WriteOptions = {}
+  options: WriteOptions = {},
 ): Promise<void> {
   const format = (
     options.format || path.extname(filename).slice(1)
@@ -42,7 +41,7 @@ export async function write(
     default:
       throw new Error(
         `Unsupported native format: ${format}. ` +
-          `Use exportMap() for lossy outputs (svg, geojson, mvt).`
+          `Use exportMap() for lossy outputs (svg, geojson, mvt).`,
       )
   }
 }

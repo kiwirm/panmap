@@ -49,10 +49,11 @@ export function synthesizeParameterStrings(map: Panmap): {
   }
 
   const sourceStrings = map.metadata?.parameterStrings as
-    | Record<string | number, ParameterStringValues[] | undefined>
-    | undefined
+    Record<string | number, ParameterStringValues[] | undefined> | undefined
   const hasSourceRec = (rt: number): boolean =>
-    !!sourceStrings && Array.isArray(sourceStrings[rt]) && sourceStrings[rt]!.length > 0
+    !!sourceStrings &&
+    Array.isArray(sourceStrings[rt]) &&
+    sourceStrings[rt]!.length > 0
 
   // For OCAD-sourced maps, prefer the source's rec 9 verbatim —
   // Mapper's per-colour spot-colour separations, halftones, and
@@ -98,21 +99,22 @@ function colorParamString(color: MapColor): ParameterStringValues {
   // persists CMYK — so if it's missing we take the color as unpainted
   // rather than trying to reverse-engineer it from RGB.
   const cmykSource = color.cmyk ?? [0, 0, 0, 0]
-  const [c, m, y, k] = cmykSource.map((v) =>
-    Math.round(clamp01(v) * 100),
-  )
+  const [c, m, y, k] = cmykSource.map(v => Math.round(clamp01(v) * 100))
   // Slot number: falls back to renderOrder if sourceId isn't a number
   // (gitmap sources use string slugs).
-  const n = typeof color.sourceId === 'number'
-    ? color.sourceId
-    : typeof color.id === 'number' ? color.id : color.renderOrder
+  const n =
+    typeof color.sourceId === 'number'
+      ? color.sourceId
+      : typeof color.id === 'number'
+        ? color.id
+        : color.renderOrder
   const pairs: Array<{ code: string; value: string }> = [
     { code: 'n', value: String(n) },
     { code: 'c', value: String(c) },
     { code: 'm', value: String(m) },
     { code: 'y', value: String(y) },
     { code: 'k', value: String(k) },
-    { code: 'o', value: '1' },   // overprint on
+    { code: 'o', value: '1' }, // overprint on
     { code: 't', value: String(Math.round(clamp01(color.opacity ?? 1) * 100)) },
   ]
   const values: ParameterStringValues = {
@@ -139,9 +141,10 @@ function setupParamString(map: Panmap): ParameterStringValues {
   // can't reconstruct grid rotation / CRS ID / offsets from Panmap
   // fields alone at Mapper's precision, and dropping them would break
   // the georeferencing.
-  const sourceSetup = (map.metadata?.parameterStrings as
-    | Record<string | number, ParameterStringValues[] | undefined>
-    | undefined)?.['1039']?.[0]
+  const sourceSetup = (
+    map.metadata?.parameterStrings as
+      Record<string | number, ParameterStringValues[] | undefined> | undefined
+  )?.['1039']?.[0]
   if (sourceSetup) return sourceSetup
 
   // Xmap/gitmap-sourced map with a `georeferencing` shape (Panmap):
@@ -150,15 +153,16 @@ function setupParamString(map: Panmap): ParameterStringValues {
   // we fall through to paper coords.
   const g = map.georeferencing
   const scale =
-    (g?.scale as number | undefined)
-    ?? (map.metadata?.scale as number | undefined)
-    ?? (map.metadata?.mapScale as number | undefined)
-    ?? 15000
+    (g?.scale as number | undefined) ??
+    (map.metadata?.scale as number | undefined) ??
+    (map.metadata?.mapScale as number | undefined) ??
+    15000
   const gridId = gridIdForCrs(g)
   const grivation = g?.grivation ?? 0
   const projX = g?.projected?.refPoint?.x
   const projY = g?.projected?.refPoint?.y
-  const useReal = gridId !== undefined && projX !== undefined && projY !== undefined
+  const useReal =
+    gridId !== undefined && projX !== undefined && projY !== undefined
   // Grid spacing pair. `d` = real-world grid distance in metres; `g` =
   // the same distance projected to paper mm = d × 1000 / scale. OOM
   // enforces this invariant on export (ocd_file_export.cpp:945-966).
@@ -194,7 +198,9 @@ function gridIdForCrs(crs: Panmap['georeferencing']): number | undefined {
   if (!epsgStr) return undefined
   const epsg = Number(epsgStr)
   if (!Number.isFinite(epsg)) return undefined
-  const match = crsGrids.find(([, code, catalog]) => code === epsg && catalog === 'EPSG')
+  const match = crsGrids.find(
+    ([, code, catalog]) => code === epsg && catalog === 'EPSG',
+  )
   return match?.[0]
 }
 
@@ -211,9 +217,10 @@ function gridIdForCrs(crs: Panmap['georeferencing']): number | undefined {
 function viewParamString(map: Panmap): ParameterStringValues {
   // OCAD-sourced maps keep their 1030 record verbatim so v/m/t/b/c/h/d
   // and the exact centre/zoom Mapper wrote survive the round-trip.
-  const sourceView = (map.metadata?.parameterStrings as
-    | Record<string | number, ParameterStringValues[] | undefined>
-    | undefined)?.['1030']?.[0]
+  const sourceView = (
+    map.metadata?.parameterStrings as
+      Record<string | number, ParameterStringValues[] | undefined> | undefined
+  )?.['1030']?.[0]
   if (sourceView) return sourceView
 
   const centre = map.view?.center ?? objectCentreMm(map)
@@ -247,7 +254,10 @@ function viewParamString(map: Panmap): ParameterStringValues {
 function objectCentreMm(map: Panmap): { x: number; y: number } {
   const objects: MapObject[] = map.objects ?? []
   const flipY = map.sourceFormat !== 'ocad'
-  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
   for (const o of objects) {
     if (o.hidden) continue
     for (const c of o.coordinates ?? []) {

@@ -112,7 +112,7 @@ export default abstract class BaseSymbol implements BaseSymbolProps {
 
   protected readElements(
     reader: BufferReader,
-    dataSize: number
+    dataSize: number,
   ): SymbolElement[] {
     const elements: SymbolElement[] = []
     for (let i = 0; i < dataSize; i += 2) {

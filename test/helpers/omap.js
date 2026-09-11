@@ -8,7 +8,10 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { parseOmap, readOmapFile } from '../../src/formats/omap/reader/decode.ts'
+import {
+  parseOmap,
+  readOmapFile,
+} from '../../src/formats/omap/reader/decode.ts'
 import { writeOmap } from '../../src/formats/omap/writer/index.ts'
 
 /** Accepts an XMap file path, an XMap XML string, or a Buffer. */
@@ -26,7 +29,7 @@ export async function readOmap(input) {
 export async function mapToOmapXml(map) {
   const tmp = path.join(
     os.tmpdir(),
-    `panmap-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.xmap`
+    `panmap-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.xmap`,
   )
   await writeOmap(map, tmp)
   try {

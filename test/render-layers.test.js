@@ -35,7 +35,10 @@ test('classifyAreaLayers buckets by type', t => {
   t.is(buckets.fill?.colorId, 1)
   t.is(buckets.fills.length, 1)
   t.is(buckets.strokes.length, 2)
-  t.deepEqual(buckets.strokes.map(l => l.colorId), [2, 3])
+  t.deepEqual(
+    buckets.strokes.map(l => l.colorId),
+    [2, 3],
+  )
   t.is(buckets.hatches.length, 2)
   t.is(buckets.structures.length, 1)
   t.is(buckets.pointPatterns.length, 1)
@@ -48,7 +51,10 @@ test('classifyAreaLayers preserves source order within each bucket', t => {
     { type: 'stroke', colorId: 'b' },
     { type: 'stroke', colorId: 'c' },
   ])
-  t.deepEqual(classifyAreaLayers(s).strokes.map(l => l.colorId), ['a', 'b', 'c'])
+  t.deepEqual(
+    classifyAreaLayers(s).strokes.map(l => l.colorId),
+    ['a', 'b', 'c'],
+  )
 })
 
 test('classifyAreaLayers only keeps the FIRST border-symbol', t => {
@@ -71,7 +77,12 @@ test('classifyAreaLayers on an empty symbol', t => {
 })
 
 test('classifyAreaLayers tolerates missing layers', t => {
-  const buckets = classifyAreaLayers({ id: 1, sourceId: 1, type: 'area', hidden: false })
+  const buckets = classifyAreaLayers({
+    id: 1,
+    sourceId: 1,
+    type: 'area',
+    hidden: false,
+  })
   t.deepEqual(buckets.strokes, [])
   t.is(buckets.fill, undefined)
 })

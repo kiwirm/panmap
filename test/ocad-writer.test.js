@@ -21,31 +21,31 @@ import { readOcad, ocadFileToMap } from './helpers/raw.js'
 // One small always-present fixture and one large holed map (corpus-only,
 // skipped in a bare clone). The invariant is format-agnostic, so a third map
 // added nothing.
-const FIXTURES = [
-  'basic-1.ocd',
-  'bottle-lake-bc98714_UpdatedCoady.ocd',
-]
+const FIXTURES = ['basic-1.ocd', 'bottle-lake-bc98714_UpdatedCoady.ocd']
 
 for (const fixture of FIXTURES) {
   const fixturePath = fixtureFile(fixture)
   const exists = fsSync.existsSync(fixturePath)
   const t = exists ? test : test.skip
 
-  t(`OCAD writer drops removed objects in ${fixture}`, async (/** @type {ExecutionContext} */ tt) => {
-    const original = await readOcad(fixturePath, { quietWarnings: true })
-    if (original.objects.length === 0) {
-      tt.pass('no objects to remove')
-      return
-    }
-    const map = ocadFileToMap(original)
-    const half = Math.floor(map.objects.length / 2)
-    map.objects = map.objects.slice(0, half)
-    original.objects = original.objects.slice(0, half)
+  t(
+    `OCAD writer drops removed objects in ${fixture}`,
+    async (/** @type {ExecutionContext} */ tt) => {
+      const original = await readOcad(fixturePath, { quietWarnings: true })
+      if (original.objects.length === 0) {
+        tt.pass('no objects to remove')
+        return
+      }
+      const map = ocadFileToMap(original)
+      const half = Math.floor(map.objects.length / 2)
+      map.objects = map.objects.slice(0, half)
+      original.objects = original.objects.slice(0, half)
 
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'ocad-mut-'))
-    const output = path.join(tmp, fixture)
-    await writeMap(map, output)
-    const reread = await readOcad(output, { quietWarnings: true })
-    tt.is(reread.objects.length, half)
-  })
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'ocad-mut-'))
+      const output = path.join(tmp, fixture)
+      await writeMap(map, output)
+      const reread = await readOcad(output, { quietWarnings: true })
+      tt.is(reread.objects.length, half)
+    },
+  )
 }

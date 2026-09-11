@@ -9,12 +9,13 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const FIXTURES_DIR = path.resolve(HERE, '..', 'fixtures')
 
 const OVERRIDES = {
-  '202012_Tahunanui.ocd':                'tahunanui/202012.ocd',
-  'basic-1.ocd':                         'basic-1/basic-1.ocd',
-  'double-line.ocd':                     'double-line/double-line.ocd',
-  'jarnvag.ocd':                         'jarnvag/jarnvag.ocd',
-  'myggfritt_byggnad2.ocd':              'myggfritt/byggnad2.ocd',
-  'bottle-lake-bc98714_UpdatedCoady.ocd': 'bottle-lake/bc98714-updated-coady.ocd',
+  '202012_Tahunanui.ocd': 'tahunanui/202012.ocd',
+  'basic-1.ocd': 'basic-1/basic-1.ocd',
+  'double-line.ocd': 'double-line/double-line.ocd',
+  'jarnvag.ocd': 'jarnvag/jarnvag.ocd',
+  'myggfritt_byggnad2.ocd': 'myggfritt/byggnad2.ocd',
+  'bottle-lake-bc98714_UpdatedCoady.ocd':
+    'bottle-lake/bc98714-updated-coady.ocd',
 }
 
 // Resolve `<slug>.<ext>` (old test/data/ name) to an absolute path under

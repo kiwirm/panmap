@@ -17,14 +17,14 @@ const dir = path.join(here, '..', 'src', 'formats', 'ocad', 'native')
 const csvPath = path.join(dir, 'crs-grids.csv')
 const outPath = path.join(dir, 'crs-grids.ts')
 
-const q = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+const q = s => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 
 const rows = fs
   .readFileSync(csvPath, 'utf8')
   .split(/\r?\n/)
   .slice(1) // drop the header row
-  .filter((line) => line.trim() !== '')
-  .map((line) => {
+  .filter(line => line.trim() !== '')
+  .map(line => {
     // OCAD-Grid-ID;CRS-Code;CRS-Catalog;Name;Comment — we keep the first four.
     // Names never contain ';' (they use '/'), so a plain split is safe.
     const [id, code, catalog = '', name = ''] = line.split(';')
@@ -48,4 +48,6 @@ export default crsGrids
 `
 
 fs.writeFileSync(outPath, out)
-console.log(`wrote ${rows.length} rows to ${path.relative(process.cwd(), outPath)}`)
+console.log(
+  `wrote ${rows.length} rows to ${path.relative(process.cwd(), outPath)}`,
+)

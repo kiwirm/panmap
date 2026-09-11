@@ -14,13 +14,19 @@ import type { MapSymbol } from '../../../../panmap/model.js'
  * to translate string ids (e.g. gitmap's `color_black`) to numeric slots.
  */
 const COLOR_KEYS = new Set([
-  'color', 'colorId',
-  'fillColor', 'fillColorId',
+  'color',
+  'colorId',
+  'fillColor',
+  'fillColorId',
   'hatchColor',
-  'innerColor', 'innerColorId',
-  'outerColor', 'outerColorId',
-  'leftColor', 'leftColorId',
-  'rightColor', 'rightColorId',
+  'innerColor',
+  'innerColorId',
+  'outerColor',
+  'outerColorId',
+  'leftColor',
+  'leftColorId',
+  'rightColor',
+  'rightColorId',
 ])
 
 export function collectSymbolColors(
@@ -32,11 +38,16 @@ export function collectSymbolColors(
   // render layers reference colors in [4,3,1,2,5,6] order.
   const seen = new Set<number>()
   const walk = (node: unknown): void => {
-    if (Array.isArray(node)) { for (const c of node) walk(c); return }
+    if (Array.isArray(node)) {
+      for (const c of node) walk(c)
+      return
+    }
     if (!node || typeof node !== 'object') return
     for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-      if (COLOR_KEYS.has(k)
-          && (typeof v === 'number' || typeof v === 'string')) {
+      if (
+        COLOR_KEYS.has(k) &&
+        (typeof v === 'number' || typeof v === 'string')
+      ) {
         if (typeof v === 'number') {
           if (v >= 0) seen.add(v)
         } else {

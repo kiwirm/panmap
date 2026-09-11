@@ -1,14 +1,18 @@
 import type { MapSymbol } from '../../../../../panmap/model.js'
 import { classifyLineLayers } from '../../../../../panmap/render-layers.js'
-import type { StrokeLayer , DoubleLineLayer } from '../../../../../panmap/render-layers.js'
+import type {
+  StrokeLayer,
+  DoubleLineLayer,
+} from '../../../../../panmap/render-layers.js'
 import { encodeLineStyle } from '../../../codecs/line-style.js'
 import {
-  strokeColorValid, pickMainStroke, mainStrokeVisible,
+  strokeColorValid,
+  pickMainStroke,
+  mainStrokeVisible,
 } from '../../../../../panmap/stroke-classifier.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
 import { pointElementFromXmap } from './point.js'
-
 
 function frameFields(
   primary: StrokeLayer | undefined,
@@ -18,7 +22,7 @@ function frameFields(
   const primaryDash = !!primary?.dash
   if (!primaryDash) return { frColor: 0, frWidth: 0, frStyle: 0 }
   const frame = strokes.find(
-    (s) => s !== primary && strokeColorValid(s) && !s.dash,
+    s => s !== primary && strokeColorValid(s) && !s.dash,
   )
   if (!frame) return { frColor: 0, frWidth: 0, frStyle: 0 }
   return {
@@ -38,13 +42,22 @@ function doubleLineFromCanonical(
   layer: DoubleLineLayer,
   colorNumber: ColorNumber,
 ): {
-  dblMode: number; dblFlags: number; dblFillColor: number
-  dblLeftColor: number; dblRightColor: number
-  dblWidth: number; dblLeftWidth: number; dblRightWidth: number
-  dblLength: number; dblGap: number; dblRes: [number, number]
+  dblMode: number
+  dblFlags: number
+  dblFillColor: number
+  dblLeftColor: number
+  dblRightColor: number
+  dblWidth: number
+  dblLeftWidth: number
+  dblRightWidth: number
+  dblLength: number
+  dblGap: number
+  dblRes: [number, number]
 } {
   const l = layer as DoubleLineLayer & {
-    flags?: number; dashLength?: number; breakLength?: number
+    flags?: number
+    dashLength?: number
+    breakLength?: number
   }
   return {
     dblMode: l.mode ?? 0,
@@ -73,26 +86,49 @@ export function deriveDoubleLine(
   colorNumber: ColorNumber,
   primaryVisible: boolean,
 ): {
-  dblMode: number; dblFlags: number; dblFillColor: number;
-  dblLeftColor: number; dblRightColor: number;
-  dblWidth: number; dblLeftWidth: number; dblRightWidth: number;
-  dblLength: number; dblGap: number; dblRes: [number, number];
+  dblMode: number
+  dblFlags: number
+  dblFillColor: number
+  dblLeftColor: number
+  dblRightColor: number
+  dblWidth: number
+  dblLeftWidth: number
+  dblRightWidth: number
+  dblLength: number
+  dblGap: number
+  dblRes: [number, number]
 } {
   const empty = {
-    dblMode: 0, dblFlags: 0, dblFillColor: 0, dblLeftColor: 0, dblRightColor: 0,
-    dblWidth: 0, dblLeftWidth: 0, dblRightWidth: 0, dblLength: 0, dblGap: 0,
+    dblMode: 0,
+    dblFlags: 0,
+    dblFillColor: 0,
+    dblLeftColor: 0,
+    dblRightColor: 0,
+    dblWidth: 0,
+    dblLeftWidth: 0,
+    dblRightWidth: 0,
+    dblLength: 0,
+    dblGap: 0,
     dblRes: [0, 0] as [number, number],
   }
-  let borderStroke: StrokeLayer | undefined = strokes.find((s) => {
+  let borderStroke: StrokeLayer | undefined = strokes.find(s => {
     const b = s.borders
     return Array.isArray(b) && b.length > 0
   })
   let borders = borderStroke?.borders as
-    Array<{ color: number; width: number; shift: number; dashed?: boolean; dashLength?: number; breakLength?: number }> | undefined
+    | Array<{
+        color: number
+        width: number
+        shift: number
+        dashed?: boolean
+        dashLength?: number
+        breakLength?: number
+      }>
+    | undefined
   if (!borderStroke) {
     const primaryDashed = !!primary?.dash
     if (!primaryDashed) {
-      borderStroke = strokes.find((s) => s !== primary && strokeColorValid(s))
+      borderStroke = strokes.find(s => s !== primary && strokeColorValid(s))
       borders = borders ?? []
     }
   }
@@ -108,7 +144,8 @@ export function deriveDoubleLine(
   }
   const leftValid = left ? isValidColor(left.color) : false
   const rightValid = right ? isValidColor(right.color) : false
-  const borderStrokeVisible = borderStroke !== primary && strokeColorValid(borderStroke)
+  const borderStrokeVisible =
+    borderStroke !== primary && strokeColorValid(borderStroke)
   if (!leftValid && !rightValid && !borderStrokeVisible) return empty
 
   const fillWidth = normUnits(borderStroke?.width)
@@ -116,8 +153,10 @@ export function deriveDoubleLine(
   const borderStrokeIsPrimary = borderStroke === primary
   if (!borderStrokeIsPrimary || !primaryVisible) {
     const rawFill = borderStroke?.colorId
-    fillColor = rawFill === undefined || rawFill === null || Number(rawFill) < 0
-      ? 0 : colorNumber(rawFill)
+    fillColor =
+      rawFill === undefined || rawFill === null || Number(rawFill) < 0
+        ? 0
+        : colorNumber(rawFill)
   }
   const leftDashed = !!left?.dashed
   const rightDashed = !!right?.dashed
@@ -157,8 +196,11 @@ export function lineBody(
   const doubleLine = doubleLineLayer
     ? doubleLineFromCanonical(doubleLineLayer, colorNumber)
     : deriveDoubleLine(
-      strokes, primary, colorNumber, mainStrokeVisible(primary, strokes),
-    )
+        strokes,
+        primary,
+        colorNumber,
+        mainStrokeVisible(primary, strokes),
+      )
   const mainMeta = strokes[0] !== primary ? strokes[0] : undefined
   const rhythm = encodeDashRhythm(primary, mainMeta)
   const visible = mainStrokeVisible(primary, strokes)
@@ -175,8 +217,10 @@ export function lineBody(
     primSymDist: normUnits(primary?.midSymbolDistance) || 0,
     doubleLine,
     decrease: {
-      decMode: 0, decSymbolSize: 0,
-      decSymbolDistance: false, decSymbolWidth: false,
+      decMode: 0,
+      decSymbolSize: 0,
+      decSymbolDistance: false,
+      decSymbolWidth: false,
     },
     ...(doubleLine.dblFillColor > 0
       ? { frColor: 0, frWidth: 0, frStyle: 0 }
@@ -188,22 +232,32 @@ export function lineBody(
     // symbols expose their mid/corner/start/end sub-symbols via a
     // `line-symbols` layer, in which case `lineDecorElements` builds
     // the OCAD elements from that nested shape.
-    primSymElements: lineElementsLayer?.primSymElements
-      ?? lineDecorElements(symbol, 'midSymbol', colorNumber, flipY),
+    primSymElements:
+      lineElementsLayer?.primSymElements ??
+      lineDecorElements(symbol, 'midSymbol', colorNumber, flipY),
     secSymElements: lineElementsLayer?.secSymElements ?? ([] as unknown[]),
-    cornerSymElements: lineElementsLayer?.cornerSymElements
-      ?? lineDecorElements(symbol, 'dashSymbol', colorNumber, flipY),
-    startSymElements: lineElementsLayer?.startSymElements
-      ?? lineDecorElements(symbol, 'startSymbol', colorNumber, flipY),
-    endSymElements: lineElementsLayer?.endSymElements
-      ?? lineDecorElements(symbol, 'endSymbol', colorNumber, flipY),
+    cornerSymElements:
+      lineElementsLayer?.cornerSymElements ??
+      lineDecorElements(symbol, 'dashSymbol', colorNumber, flipY),
+    startSymElements:
+      lineElementsLayer?.startSymElements ??
+      lineDecorElements(symbol, 'startSymbol', colorNumber, flipY),
+    endSymElements:
+      lineElementsLayer?.endSymElements ??
+      lineDecorElements(symbol, 'endSymbol', colorNumber, flipY),
   }
 }
 
 function encodeDashRhythm(
   primary: StrokeLayer | undefined,
   mainMeta: StrokeLayer | undefined,
-): { mainLength: number; endLength: number; mainGap: number; secGap: number; endGap: number } {
+): {
+  mainLength: number
+  endLength: number
+  mainGap: number
+  secGap: number
+  endGap: number
+} {
   const dash = primary?.dash
   if (dash) {
     // OCAD-sourced dashes come in with the OCAD field names already
@@ -212,10 +266,16 @@ function encodeDashRhythm(
     // the OCAD names when present so OCAD → synth → OCAD round-trips
     // the exact fields Mapper wrote.
     const dashAsOcad = dash as {
-      mainLength?: number; mainGap?: number; secGap?: number
-      endLength?: number; endGap?: number
+      mainLength?: number
+      mainGap?: number
+      secGap?: number
+      endLength?: number
+      endGap?: number
     }
-    if (dashAsOcad.mainLength !== undefined || dashAsOcad.mainGap !== undefined) {
+    if (
+      dashAsOcad.mainLength !== undefined ||
+      dashAsOcad.mainGap !== undefined
+    ) {
       return {
         mainLength: normUnits(dashAsOcad.mainLength),
         endLength: normUnits(dashAsOcad.endLength ?? dashAsOcad.mainLength),
@@ -231,19 +291,27 @@ function encodeDashRhythm(
     if (dashesInGroup > 1) {
       const mainLength = 2 * dashLen + inGroupBreak
       return {
-        mainLength, endLength: mainLength,
-        mainGap: breakLen, secGap: inGroupBreak, endGap: inGroupBreak,
+        mainLength,
+        endLength: mainLength,
+        mainGap: breakLen,
+        secGap: inGroupBreak,
+        endGap: inGroupBreak,
       }
     }
     return {
-      mainLength: dashLen, endLength: dashLen,
-      mainGap: breakLen, secGap: 0, endGap: 0,
+      mainLength: dashLen,
+      endLength: dashLen,
+      mainGap: breakLen,
+      secGap: 0,
+      endGap: 0,
     }
   }
   return {
     mainLength: normUnits(mainMeta?.segmentLength ?? primary?.segmentLength),
     endLength: normUnits(mainMeta?.endLength ?? primary?.endLength),
-    mainGap: 0, secGap: 0, endGap: 0,
+    mainGap: 0,
+    secGap: 0,
+    endGap: 0,
   }
 }
 
@@ -251,11 +319,13 @@ function encodePrimaryLineStyle(
   primary: StrokeLayer | undefined,
   mainMeta: StrokeLayer | undefined,
 ): number {
-  return mainMeta?.lineStyle
-    ?? encodeLineStyle(
+  return (
+    mainMeta?.lineStyle ??
+    encodeLineStyle(
       mainMeta?.capStyle ?? primary?.capStyle,
       mainMeta?.joinStyle ?? primary?.joinStyle,
     )
+  )
 }
 
 function encodeUseSymbolFlags(symbol: MapSymbol): number {

@@ -24,7 +24,7 @@ interface RawParameterString {
 export function syncNotesIntoOcadFile(
   ocadFile: OcadFile,
   userText: string,
-  extensions: Record<string, unknown>
+  extensions: Record<string, unknown>,
 ): void {
   const nextText = formatNotes(userText, extensions)
   const existing = findNotesEntry(ocadFile)
@@ -33,7 +33,7 @@ export function syncNotesIntoOcadFile(
     const currentText = String(existing.values._first ?? '')
     if (currentText === nextText) return
     existing.values._first = nextText
-    delete existing._byteRange   // force re-encode from values
+    delete existing._byteRange // force re-encode from values
     return
   }
 

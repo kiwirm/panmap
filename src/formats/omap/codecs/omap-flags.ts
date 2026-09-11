@@ -68,7 +68,7 @@ function omapFlagsOf(coord: FlaggedCoord | undefined): number {
  */
 export function coordinatesForOmap(coordinates: Coord[]): FlaggedCoord[] {
   const output: FlaggedCoord[] = coordinates.map(
-    coord => [coordX(coord), coordY(coord)] as FlaggedCoord
+    coord => [coordX(coord), coordY(coord)] as FlaggedCoord,
   )
 
   coordinates.forEach((coord, index) => {
@@ -82,7 +82,7 @@ export function coordinatesForOmap(coordinates: Coord[]): FlaggedCoord[] {
     const yF = coord.yFlags
     if (xF === undefined && yF === undefined) return
 
-    if (((xF ?? 0) & XFLAG_FIRST_BEZIER) && index > 0) {
+    if ((xF ?? 0) & XFLAG_FIRST_BEZIER && index > 0) {
       output[index - 1].flags = (output[index - 1].flags || 0) | 0x01
     }
     if ((yF ?? 0) & YFLAG_DASH_POINT || (yF ?? 0) & YFLAG_CORNER) {
@@ -112,7 +112,7 @@ export function coordinatesForOmap(coordinates: Coord[]): FlaggedCoord[] {
 function setPathHolePoint(coordinates: FlaggedCoord[], index: number): void {
   if (index < 0 || index >= coordinates.length) return
   if ((coordinates[index]?.flags ?? 0) & 0x01) return
-  if (index >= 1 && ((coordinates[index - 1]?.flags ?? 0) & 0x01)) return
-  if (index >= 2 && ((coordinates[index - 2]?.flags ?? 0) & 0x01)) return
+  if (index >= 1 && (coordinates[index - 1]?.flags ?? 0) & 0x01) return
+  if (index >= 2 && (coordinates[index - 2]?.flags ?? 0) & 0x01) return
   coordinates[index].flags = (coordinates[index].flags || 0) | 0x10
 }

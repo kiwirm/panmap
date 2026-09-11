@@ -8,7 +8,7 @@ import { runDiff } from './diff.js'
 // message and exits non-zero — every subcommand gets the same treatment
 // instead of each one inventing its own console.error / process.exit dance.
 function run<A extends unknown[]>(
-  fn: (...args: A) => Promise<void>
+  fn: (...args: A) => Promise<void>,
 ): (...args: A) => Promise<void> {
   return async (...args) => {
     try {
@@ -24,11 +24,11 @@ function run<A extends unknown[]>(
 program
   .command('convert <input> <output>')
   .description(
-    'losslessly convert between native formats (ocad/ocd, xmap/omap, gitmap)'
+    'losslessly convert between native formats (ocad/ocd, xmap/omap, gitmap)',
   )
   .option(
     '-f, --format <string>',
-    'output format; otherwise guessed from output file extension'
+    'output format; otherwise guessed from output file extension',
   )
   .action(run(runConvert))
 
@@ -37,29 +37,25 @@ program
   .description('export to a lossy target (svg, geojson, mvt)')
   .option(
     '-f, --format <string>',
-    'output format; otherwise guessed from output file extension'
+    'output format; otherwise guessed from output file extension',
   )
   .option('--export-hidden', 'include hidden objects in the export', false)
   .option(
     '--crs <string>',
     'exported CRS for geojson: "source" (unmodified), "projection" (default), or "wgs84"',
-    'projection'
+    'projection',
   )
   .option(
     '--white-background',
     'render SVG exports with a white background',
-    false
+    false,
   )
   .action(run(runExport))
 
 program
   .command('diff <before> <after> <output>')
   .description('render a visual SVG diff between two maps')
-  .option(
-    '--white-background',
-    'render with a white background',
-    false,
-  )
+  .option('--white-background', 'render with a white background', false)
   .option(
     '--changes <path>',
     'also write a JSON list of per-feature changes (with bounds) to <path>',

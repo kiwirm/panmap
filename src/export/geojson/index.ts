@@ -9,7 +9,11 @@ import {
   DotElementType,
 } from '../../formats/ocad/native/symbol-element-types.js'
 import TdPoly from '../../formats/ocad/reader/decode/td-poly.js'
-import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../../panmap/coord.js'
+import {
+  isFirstBezier,
+  isSecondBezier,
+  isFirstHolePoint,
+} from '../../panmap/coord.js'
 
 const defaultOptions = {
   applyCrs: true,
@@ -98,7 +102,7 @@ function mapToGeoJson(map, options) {
     map,
     mapObjectToGeoJson,
     createElement,
-    options
+    options,
   )
   const result = featureCollection(features)
 
@@ -233,7 +237,7 @@ const createElement = (
   angle,
   options,
   object,
-  objectId
+  objectId,
 ) => {
   /** @type Geometry */
   let geometry
@@ -307,7 +311,6 @@ const coordinatesToRings = coordinates => {
 
   return rings
 }
-
 
 /**
  * GeoJSON properties for a map object. Panmap fields only —

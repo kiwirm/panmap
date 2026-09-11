@@ -1,9 +1,13 @@
 import type { OcadElement } from '../../../writer/encode/encode-symbol-element.js'
 
-export type OcadAnchor = { 0: number; 1: number; xFlags: number; yFlags: number }
+export type OcadAnchor = {
+  0: number
+  1: number
+  xFlags: number
+  yFlags: number
+}
 export type XmapCoordInput =
-  | { x?: number; y?: number; flags?: number }
-  | [number, number]
+  { x?: number; y?: number; flags?: number } | [number, number]
 
 export type XmapPointSymbolLike = {
   innerColor?: unknown
@@ -26,7 +30,9 @@ export type XmapElementInput = {
     areaSymbol?: XmapAreaSymbolLike
   }
   object?: {
-    coords?: Array<{ x?: number; y?: number; flags?: number } | [number, number]>
+    coords?: Array<
+      { x?: number; y?: number; flags?: number } | [number, number]
+    >
   }
 }
 

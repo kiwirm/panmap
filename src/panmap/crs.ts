@@ -37,9 +37,10 @@ export class CrsView {
     this.scale = params.scale
     this.grivation = (params.grivation / 180) * Math.PI
 
-    const grid = params.epsg !== undefined
-      ? crsGrids.find(g => g[1] === params.epsg && g[2] === 'EPSG')
-      : undefined
+    const grid =
+      params.epsg !== undefined
+        ? crsGrids.find(g => g[1] === params.epsg && g[2] === 'EPSG')
+        : undefined
     this.grid = grid
     this.gridId = grid?.[0] ?? params.epsg ?? 0
     this.code = grid?.[1] ?? params.epsg ?? 0

@@ -21,7 +21,7 @@ export interface ReadOcadOptions {
 
 export default async function readOcad(
   input: string | Buffer,
-  options: ReadOcadOptions = {}
+  options: ReadOcadOptions = {},
 ): Promise<OcadFile> {
   const buffer = Buffer.isBuffer(input) ? input : await fs.readFile(input)
   return parseOcadBuffer(buffer, options)
@@ -32,18 +32,22 @@ function parseOcadBuffer(buffer: Buffer, options: ReadOcadOptions): OcadFile {
   const header = new FileHeader(reader)
   if (!header.isValid()) {
     throw new Error(
-      `Not an OCAD file (invalid header ${header.ocadMark} !== ${0x0cad})`
+      `Not an OCAD file (invalid header ${header.ocadMark} !== ${0x0cad})`,
     )
   }
   if (header.version < 10 && !options.bypassVersionCheck) {
     throw new Error(
-      `Unsupported OCAD file version (${header.version}), only >= 10 supported.`
+      `Unsupported OCAD file version (${header.version}), only >= 10 supported.`,
     )
   }
 
   const warnings: string[] = []
   const symbols = readSymbols(reader, header, options, warnings) as BaseSymbol[]
-  const objects = readObjects(reader, header, warnings) as OcadObjectWithBounds[]
+  const objects = readObjects(
+    reader,
+    header,
+    warnings,
+  ) as OcadObjectWithBounds[]
   const { grouped, ordered } = readParameterStrings(reader, header)
 
   if (!options.quietWarnings) warnings.forEach(w => console.warn(w))
@@ -58,14 +62,14 @@ function readSymbols(
   reader: BufferReader,
   header: FileHeader,
   options: ReadOcadOptions,
-  warnings: string[]
+  warnings: string[],
 ): unknown[] {
   const symbols: unknown[] = []
   let offset = header.symbolIndexBlock
   while (offset) {
     const symbolIndex = reader.withOffset(
       offset,
-      () => new SymbolIndex(reader, header.version, options)
+      () => new SymbolIndex(reader, header.version, options),
     )
     symbols.push(...symbolIndex.parseSymbols(reader))
     warnings.push(...symbolIndex.warnings)
@@ -77,7 +81,7 @@ function readSymbols(
 function readObjects(
   reader: BufferReader,
   header: FileHeader,
-  warnings: string[]
+  warnings: string[],
 ): unknown[] {
   const objects: unknown[] = []
   let offset = header.objectIndexBlock
@@ -103,7 +107,7 @@ function readObjects(
 
 function readParameterStrings(
   reader: BufferReader,
-  header: FileHeader
+  header: FileHeader,
 ): {
   grouped: Record<number | string, ParameterStringValues[]>
   ordered: ParameterString[]

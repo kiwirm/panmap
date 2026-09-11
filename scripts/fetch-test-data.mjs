@@ -25,7 +25,8 @@ const BUILD = path.join(ROOT, 'build')
 async function sha256(p) {
   return await new Promise((resolve, reject) => {
     const h = createHash('sha256')
-    createReadStream(p).on('data', c => h.update(c))
+    createReadStream(p)
+      .on('data', c => h.update(c))
       .on('end', () => resolve(h.digest('hex')))
       .on('error', reject)
   })
@@ -34,7 +35,9 @@ async function sha256(p) {
 function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { stdio: 'inherit', ...opts })
-    p.on('exit', code => code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}`)))
+    p.on('exit', code =>
+      code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}`)),
+    )
     p.on('error', reject)
   })
 }
@@ -45,10 +48,16 @@ function entriesOf(manifest) {
 }
 
 async function verify(entries) {
-  const missing = [], drifted = []
+  const missing = [],
+    drifted = []
   for (const e of entries) {
     const p = path.join(FIX, e.file)
-    try { await access(p) } catch { missing.push(e.file); continue }
+    try {
+      await access(p)
+    } catch {
+      missing.push(e.file)
+      continue
+    }
     const got = await sha256(p)
     if (got !== e.sha256) drifted.push({ file: e.file, want: e.sha256, got })
   }
@@ -57,23 +66,33 @@ async function verify(entries) {
 
 async function fetchAndExtract(manifest) {
   await mkdir(BUILD, { recursive: true })
-  const url = process.env.PANMAP_FIXTURES_URL || `${manifest.release}/${manifest.asset}`
+  const url =
+    process.env.PANMAP_FIXTURES_URL || `${manifest.release}/${manifest.asset}`
   const tmp = path.join(BUILD, `${manifest.asset}.download`)
   console.log(`→ downloading ${url}`)
   await run('curl', ['-fL', '--retry', '3', '-o', tmp, url])
   const gotSha = await sha256(tmp)
   if (gotSha !== manifest.asset_sha256) {
     await rm(tmp, { force: true })
-    throw new Error(`tarball sha mismatch: got ${gotSha}, want ${manifest.asset_sha256}`)
+    throw new Error(
+      `tarball sha mismatch: got ${gotSha}, want ${manifest.asset_sha256}`,
+    )
   }
-  console.log(`✔ tarball sha ok (${(manifest.asset_bytes / 1024 / 1024).toFixed(1)} MiB)`)
+  console.log(
+    `✔ tarball sha ok (${(manifest.asset_bytes / 1024 / 1024).toFixed(1)} MiB)`,
+  )
   await mkdir(FIX, { recursive: true })
   console.log(`→ extracting to ${path.relative(ROOT, FIX)}/`)
   // GNU tar (git-for-Windows) misreads a "C:\…" archive path as a remote host
   // ("Cannot connect to C:"); Windows' bundled bsdtar handles drive paths.
-  const tarCmd = process.platform === 'win32'
-    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
-    : 'tar'
+  const tarCmd =
+    process.platform === 'win32'
+      ? path.join(
+          process.env.SystemRoot || 'C:\\Windows',
+          'System32',
+          'tar.exe',
+        )
+      : 'tar'
   // Exclude macOS AppleDouble sidecars (._*) that leak into tarballs built on a
   // Mac — they aren't in the manifest and confuse fixture discovery.
   await run(tarCmd, ['-xzf', tmp, '-C', FIX, '--exclude', '._*'])
@@ -89,14 +108,19 @@ if (first.missing.length === 0 && first.drifted.length === 0) {
   process.exit(0)
 }
 
-console.log(`→ ${first.missing.length} missing, ${first.drifted.length} drifted — fetching`)
+console.log(
+  `→ ${first.missing.length} missing, ${first.drifted.length} drifted — fetching`,
+)
 await fetchAndExtract(manifest)
 
 const second = await verify(entries)
 if (second.missing.length || second.drifted.length) {
-  console.error(`! after fetch: ${second.missing.length} missing, ${second.drifted.length} drifted`)
+  console.error(
+    `! after fetch: ${second.missing.length} missing, ${second.drifted.length} drifted`,
+  )
   for (const f of second.missing) console.error(`  missing: ${f}`)
-  for (const d of second.drifted) console.error(`  drifted: ${d.file} (want ${d.want}, got ${d.got})`)
+  for (const d of second.drifted)
+    console.error(`  drifted: ${d.file} (want ${d.want}, got ${d.got})`)
   process.exit(1)
 }
 

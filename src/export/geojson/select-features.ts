@@ -26,7 +26,7 @@ function selectFeatures(map, createObjects, _createElement, options) {
     .filter(
       s =>
         !options.includeSymbols ||
-        options.includeSymbols.find(symNum => symNum === getSymbolId(s))
+        options.includeSymbols.find(symNum => symNum === getSymbolId(s)),
     )
     .reduce((ss, s) => {
       ss[getSymbolId(s)] = s

@@ -10,12 +10,17 @@ import type { MapColor } from './model.js'
  * Each format wraps this with its own "missing color" sentinel via
  * `colorNumberLookup` (0 for OCAD) or `colorRefLookup` (-1 for xmap).
  */
-export function buildColorIdMap(colors: MapColor[]): Map<string | number, number> {
+export function buildColorIdMap(
+  colors: MapColor[],
+): Map<string | number, number> {
   const map = new Map<string | number, number>()
   colors.forEach((c, i) => {
-    const num = typeof c.sourceId === 'number'
-      ? c.sourceId
-      : typeof c.id === 'number' ? c.id : i
+    const num =
+      typeof c.sourceId === 'number'
+        ? c.sourceId
+        : typeof c.id === 'number'
+          ? c.id
+          : i
     map.set(c.id, num)
   })
   return map
@@ -28,7 +33,7 @@ export function buildColorIdMap(colors: MapColor[]): Map<string | number, number
  */
 export function colorNumberLookup(colors: MapColor[]): (id: unknown) => number {
   const byId = buildColorIdMap(colors)
-  return (id) => {
+  return id => {
     if (id === undefined || id === null) return 0
     if (typeof id === 'number') return id < 0 ? 0 : id
     const looked = byId.get(id as string | number)

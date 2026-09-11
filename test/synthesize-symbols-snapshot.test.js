@@ -8,12 +8,14 @@ import test from 'ava'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readOmap } from "./helpers/omap.js"
+import { readOmap } from './helpers/omap.js'
 import omapFileToMap from '../src/formats/omap/reader/to-panmap.ts'
 import { synthesizeSymbols } from '../src/formats/ocad/writer/from-panmap/symbols.ts'
 
 import { fixtureFile } from './helpers/fixtures.js'
-const SNAPSHOTS_DIR = fileURLToPath(new URL('./snapshots/synthesize/', import.meta.url))
+const SNAPSHOTS_DIR = fileURLToPath(
+  new URL('./snapshots/synthesize/', import.meta.url),
+)
 const UPDATE = process.env.UPDATE_SYNTH_SNAPSHOTS === '1'
 
 async function ensureDir(dir) {

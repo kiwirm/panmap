@@ -14,7 +14,7 @@ import { write, type WriteOptions } from './write.js'
 export async function convert(
   input: ReadInput,
   outputPath: string,
-  options: WriteOptions = {}
+  options: WriteOptions = {},
 ): Promise<void> {
   const map = await read(input)
   await write(map, outputPath, options)

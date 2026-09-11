@@ -16,7 +16,7 @@ export interface SymbolRecord {
  */
 export function writeSymbolRecords(
   writer: BufferWriter,
-  symbols: SymbolRecord[]
+  symbols: SymbolRecord[],
 ): number[] {
   const offsets: number[] = new Array(symbols.length)
   for (let i = 0; i < symbols.length; i++) {
@@ -38,14 +38,17 @@ export function writeSymbolRecords(
  */
 export function writeSymbolIndexBlocks(
   writer: BufferWriter,
-  symbolOffsets: number[]
+  symbolOffsets: number[],
 ): number {
   if (!symbolOffsets.length) return 0
 
   // Reserve block storage in one contiguous run so we can patch
   // nextBlock pointers as we go.
   const filledOffsets = symbolOffsets.filter(o => o > 0)
-  const blockCount = Math.max(1, Math.ceil(filledOffsets.length / BLOCK_ENTRIES))
+  const blockCount = Math.max(
+    1,
+    Math.ceil(filledOffsets.length / BLOCK_ENTRIES),
+  )
   const blockOffsets: number[] = []
   for (let b = 0; b < blockCount; b++) {
     blockOffsets.push(writer.offset)

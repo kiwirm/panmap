@@ -22,18 +22,26 @@ export interface DerivedGeographic {
  */
 export function deriveGeographic(
   epsg: string | number | undefined,
-  refPoint: { x: number; y: number } | undefined
+  refPoint: { x: number; y: number } | undefined,
 ): DerivedGeographic | undefined {
   const def = proj4ForEpsg(epsg)
   if (!def || !refPoint) return undefined
   try {
-    const [lon, lat] = proj4(def, WGS84, [refPoint.x, refPoint.y]) as [number, number]
+    const [lon, lat] = proj4(def, WGS84, [refPoint.x, refPoint.y]) as [
+      number,
+      number,
+    ]
     // Numeric meridian convergence: the grid bearing of a small step due true
     // north at the ref point (projection-agnostic, needs no projection formula).
     const p0 = proj4(WGS84, def, [lon, lat]) as [number, number]
     const pN = proj4(WGS84, def, [lon, lat + 1e-4]) as [number, number]
-    const convergenceDeg = (-Math.atan2(pN[0] - p0[0], pN[1] - p0[1]) * 180) / Math.PI
-    if (!Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(convergenceDeg)) {
+    const convergenceDeg =
+      (-Math.atan2(pN[0] - p0[0], pN[1] - p0[1]) * 180) / Math.PI
+    if (
+      !Number.isFinite(lon) ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(convergenceDeg)
+    ) {
       return undefined
     }
     return { refPointDeg: { lat, lon }, convergenceDeg }

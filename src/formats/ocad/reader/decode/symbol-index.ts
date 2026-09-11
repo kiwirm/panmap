@@ -14,7 +14,10 @@ import type BufferReader from './buffer-reader.js'
 import type BaseSymbol from './symbol.js'
 import type { ReadOcadOptions } from './index.js'
 
-type SymbolConstructor = new (reader: BufferReader, version: number) => BaseSymbol
+type SymbolConstructor = new (
+  reader: BufferReader,
+  version: number,
+) => BaseSymbol
 
 const symbolByType: Record<number, SymbolConstructor | undefined> = {
   [PointSymbolType]: PointSymbol,
@@ -38,7 +41,7 @@ export default class SymbolIndexBlock {
   constructor(
     reader: BufferReader,
     version: number,
-    options: ReadOcadOptions = {}
+    options: ReadOcadOptions = {},
   ) {
     this.version = version
     this.options = options

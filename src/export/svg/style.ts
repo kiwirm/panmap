@@ -55,20 +55,25 @@ export function dashToSvg(dash: DashPattern | null | undefined): string | null {
 // each source expose their native shape verbatim — one helper handles
 // both by accepting the layer and preferring the explicit OMAP fields
 // when present, falling back to the OCAD packed style.
-type LineStyleInput = {
-  lineStyle?: number
-  capStyle?: number
-  joinStyle?: number
-} | undefined
+type LineStyleInput =
+  | {
+      lineStyle?: number
+      capStyle?: number
+      joinStyle?: number
+    }
+  | undefined
 
 export function lineJoinToSvg(input: number | LineStyleInput = 0): string {
   if (typeof input === 'object' && input !== null) {
     if (input.joinStyle !== undefined) {
       // OMAP: 0 bevel, 1 miter, 2 round
       switch (input.joinStyle) {
-        case 1: return 'miter'
-        case 2: return 'round'
-        default: return 'bevel'
+        case 1:
+          return 'miter'
+        case 2:
+          return 'round'
+        default:
+          return 'bevel'
       }
     }
     return lineJoinToSvg(input.lineStyle ?? 0)
@@ -94,7 +99,8 @@ export function lineCapToSvg(input: number | LineStyleInput = 0): string {
           return 'round'
         case 2:
           return 'square'
-        default: return 'butt'
+        default:
+          return 'butt'
       }
     }
     return lineCapToSvg(input.lineStyle ?? 0)

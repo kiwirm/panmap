@@ -21,7 +21,7 @@ export function textBody(symbol: MapSymbol, colorNumber: ColorNumber) {
     _fontNameBytes: undefined as Uint8Array | undefined,
     fontColor: colorNumber(textLayer?.colorId),
     fontSize,
-    weight: ((text.fontWeight as number) ?? 400),
+    weight: (text.fontWeight as number) ?? 400,
     italic: !!text.italic,
     res1: 0,
     charSpace: Math.round(((text.charSpace as number) ?? 0) * 100),

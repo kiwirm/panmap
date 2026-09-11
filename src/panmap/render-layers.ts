@@ -27,20 +27,32 @@ import type { BaseRenderLayer, MapSymbol } from './model.js'
  * 'X'` won't rule out the BaseRenderLayer fallback.
  */
 export type RenderLayer =
-  | FillLayer | StrokeLayer | HatchLayer | StructureLayer
-  | PointPatternLayer | BorderSymbolLayer | DoubleLineLayer
-  | LineElementsLayer | LineSymbolsLayer
-  | PointFillLayer | PointStrokeLayer | PointElementsLayer
+  | FillLayer
+  | StrokeLayer
+  | HatchLayer
+  | StructureLayer
+  | PointPatternLayer
+  | BorderSymbolLayer
+  | DoubleLineLayer
+  | LineElementsLayer
+  | LineSymbolsLayer
+  | PointFillLayer
+  | PointStrokeLayer
+  | PointElementsLayer
   | TextLayer
   | BaseRenderLayer
 
 /** True when `layer` carries a `pattern` field (structure-fill /
  *  point-pattern-fill). Narrows callers to the union of both types. */
-export function isPatternLayer(layer: RenderLayer): layer is StructureLayer | PointPatternLayer {
+export function isPatternLayer(
+  layer: RenderLayer,
+): layer is StructureLayer | PointPatternLayer {
   return layer.type === 'structure-fill' || layer.type === 'point-pattern-fill'
 }
 
-export interface FillLayer extends BaseRenderLayer { type: 'fill' }
+export interface FillLayer extends BaseRenderLayer {
+  type: 'fill'
+}
 
 export interface DashSpec {
   dashLength?: number
@@ -76,7 +88,9 @@ export interface StrokeLayer extends BaseRenderLayer {
   endOffset?: number
 }
 
-export interface HatchLayer extends BaseRenderLayer { type: 'hatch-fill' }
+export interface HatchLayer extends BaseRenderLayer {
+  type: 'hatch-fill'
+}
 
 export interface PatternSpec {
   /** Row-to-row spacing (xmap `line_spacing`). */
@@ -147,10 +161,18 @@ export interface LineSymbolsLayer extends BaseRenderLayer {
   lineSymbol?: LineSymbolsSpec
 }
 
-export interface PointFillLayer extends BaseRenderLayer { type: 'point-fill' }
-export interface PointStrokeLayer extends BaseRenderLayer { type: 'point-stroke' }
-export interface PointElementsLayer extends BaseRenderLayer { type: 'point-elements' }
-export interface TextLayer extends BaseRenderLayer { type: 'text' }
+export interface PointFillLayer extends BaseRenderLayer {
+  type: 'point-fill'
+}
+export interface PointStrokeLayer extends BaseRenderLayer {
+  type: 'point-stroke'
+}
+export interface PointElementsLayer extends BaseRenderLayer {
+  type: 'point-elements'
+}
+export interface TextLayer extends BaseRenderLayer {
+  type: 'text'
+}
 
 export interface AreaLayers {
   /** First `fill` layer, or undefined. Most areas have at most one. */
@@ -179,17 +201,35 @@ export function classifyAreaLayers(symbol: MapSymbol): AreaLayers {
   let border: BorderSymbolLayer | undefined
   for (const l of layers) {
     switch (l.type) {
-      case 'fill': fills.push(l as FillLayer); break
-      case 'stroke': strokes.push(l as StrokeLayer); break
-      case 'hatch-fill': hatches.push(l as HatchLayer); break
-      case 'structure-fill': structures.push(l as StructureLayer); break
-      case 'point-pattern-fill': pointPatterns.push(l as PointPatternLayer); break
+      case 'fill':
+        fills.push(l as FillLayer)
+        break
+      case 'stroke':
+        strokes.push(l as StrokeLayer)
+        break
+      case 'hatch-fill':
+        hatches.push(l as HatchLayer)
+        break
+      case 'structure-fill':
+        structures.push(l as StructureLayer)
+        break
+      case 'point-pattern-fill':
+        pointPatterns.push(l as PointPatternLayer)
+        break
       case 'border-symbol':
         if (!border) border = l as BorderSymbolLayer
         break
     }
   }
-  return { fill: fills[0], fills, strokes, hatches, structures, pointPatterns, border }
+  return {
+    fill: fills[0],
+    fills,
+    strokes,
+    hatches,
+    structures,
+    pointPatterns,
+    border,
+  }
 }
 
 export interface PointLayers {
@@ -243,7 +283,9 @@ export function classifyLineLayers(symbol: MapSymbol): LineLayers {
   let lineSymbols: LineSymbolsLayer | undefined
   for (const l of symbol.layers ?? []) {
     switch (l.type) {
-      case 'stroke': strokes.push(l as StrokeLayer); break
+      case 'stroke':
+        strokes.push(l as StrokeLayer)
+        break
       case 'double-line':
         if (!doubleLine) doubleLine = l as DoubleLineLayer
         break

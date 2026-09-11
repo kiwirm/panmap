@@ -22,7 +22,7 @@ interface ParameterStringLike {
 export function writeParameterString(
   writer: BufferWriter,
   ps: ParameterStringLike & { _indexRecord?: { len: number } },
-  paddedLength?: number
+  paddedLength?: number,
 ): number {
   const start = writer.offset
   const parts: string[] = [ps.values._first || '']

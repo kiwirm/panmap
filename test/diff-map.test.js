@@ -107,14 +107,14 @@ test('diffMaps emits line segment-level additions and removals', (/** @type {Exe
     [
       [10, 0],
       [20, 0],
-    ]
+    ],
   )
   t.deepEqual(
     diff.objects.find(object => object.diffKind === 'added').coordinates,
     [
       [10, 0],
       [10, 10],
-    ]
+    ],
   )
 })
 
@@ -396,7 +396,7 @@ test('diffMaps matches symbols across OMap/OCAD code formats (101 vs 101.0)', (/
 })
 
 test('diffChanges reports per-feature changes and pairs modified across code formats', (/** @type {ExecutionContext} */ t) => {
-  const lineSym = (code) => ({
+  const lineSym = code => ({
     id: `sym_${code}`,
     sourceId: `sym_${code}`,
     code,
@@ -421,8 +421,14 @@ test('diffChanges reports per-feature changes and pairs modified across code for
     coordinates: coords,
     hidden: false,
     bounds: {
-      min: [Math.min(...coords.map(c => c[0])), Math.min(...coords.map(c => c[1]))],
-      max: [Math.max(...coords.map(c => c[0])), Math.max(...coords.map(c => c[1]))],
+      min: [
+        Math.min(...coords.map(c => c[0])),
+        Math.min(...coords.map(c => c[1])),
+      ],
+      max: [
+        Math.max(...coords.map(c => c[0])),
+        Math.max(...coords.map(c => c[1])),
+      ],
     },
   })
   const point = (code, xy) => ({
@@ -441,7 +447,11 @@ test('diffChanges reports per-feature changes and pairs modified across code for
     colors: [],
     symbols: [lineSym('101'), ptSym('301', 'Boulder')],
     objects: [
-      line('101', [[0, 0], [10, 0], [20, 0]]),
+      line('101', [
+        [0, 0],
+        [10, 0],
+        [20, 0],
+      ]),
       point('301', [100, 100]),
     ],
   })
@@ -450,13 +460,20 @@ test('diffChanges reports per-feature changes and pairs modified across code for
     colors: [],
     symbols: [lineSym('101.0'), ptSym('201', 'Pit')],
     objects: [
-      line('101.0', [[0, 0], [10, 0], [20, 5]]),
+      line('101.0', [
+        [0, 0],
+        [10, 0],
+        [20, 5],
+      ]),
       point('201', [-100, -100]),
     ],
   })
 
   const { changes } = diffChanges(before, after)
-  const byKind = changes.reduce((m, c) => ({ ...m, [c.kind]: (m[c.kind] || 0) + 1 }), {})
+  const byKind = changes.reduce(
+    (m, c) => ({ ...m, [c.kind]: (m[c.kind] || 0) + 1 }),
+    {},
+  )
 
   t.is(changes.length, 3)
   t.is(byKind.modified, 1)
@@ -469,30 +486,66 @@ test('diffChanges reports per-feature changes and pairs modified across code for
 
 test('diffChanges distinguishes symbol changes from geometry changes', (/** @type {ExecutionContext} */ t) => {
   const lineSym = code => ({
-    id: `sym_${code}`, sourceId: `sym_${code}`, code, name: `Sym ${code}`,
-    type: 'line', hidden: false,
+    id: `sym_${code}`,
+    sourceId: `sym_${code}`,
+    code,
+    name: `Sym ${code}`,
+    type: 'line',
+    hidden: false,
     layers: [{ type: 'stroke', colorId: 'black', width: 10 }],
   })
   const line = (code, id, coords) => ({
-    id, symbolId: `sym_${code}`, type: 'line', coordinates: coords, hidden: false,
+    id,
+    symbolId: `sym_${code}`,
+    type: 'line',
+    coordinates: coords,
+    hidden: false,
     bounds: {
-      min: [Math.min(...coords.map(c => c[0])), Math.min(...coords.map(c => c[1]))],
-      max: [Math.max(...coords.map(c => c[0])), Math.max(...coords.map(c => c[1]))],
+      min: [
+        Math.min(...coords.map(c => c[0])),
+        Math.min(...coords.map(c => c[1])),
+      ],
+      max: [
+        Math.max(...coords.map(c => c[0])),
+        Math.max(...coords.map(c => c[1])),
+      ],
     },
   })
-  const coords = [[0, 0], [10, 0], [20, 0]]
+  const coords = [
+    [0, 0],
+    [10, 0],
+    [20, 0],
+  ]
   // Same geometry, different symbol → a symbol change.
   const before = new Map({
-    sourceFormat: 'test', colors: [],
+    sourceFormat: 'test',
+    colors: [],
     symbols: [lineSym('505'), lineSym('507')],
-    objects: [line('505', 'a', coords), line('507', 'b', [[100, 0], [110, 0], [120, 0], [130, 0]])],
+    objects: [
+      line('505', 'a', coords),
+      line('507', 'b', [
+        [100, 0],
+        [110, 0],
+        [120, 0],
+        [130, 0],
+      ]),
+    ],
   })
   const after = new Map({
-    sourceFormat: 'test', colors: [],
+    sourceFormat: 'test',
+    colors: [],
     symbols: [lineSym('506'), lineSym('507')],
     // 'a' re-symbolised 505→506 (same coords); 'b' edited but keeps a
     // majority of its vertices (same symbol 507) → a geometry change.
-    objects: [line('506', 'a2', coords), line('507', 'b2', [[100, 0], [110, 0], [120, 0], [130, 40]])],
+    objects: [
+      line('506', 'a2', coords),
+      line('507', 'b2', [
+        [100, 0],
+        [110, 0],
+        [120, 0],
+        [130, 40],
+      ]),
+    ],
   })
 
   const { changes } = diffChanges(before, after)
@@ -507,21 +560,59 @@ test('diffChanges distinguishes symbol changes from geometry changes', (/** @typ
 
 test('diffChanges reports a reclassified + reshaped line as a "both" change', (/** @type {ExecutionContext} */ t) => {
   const lineSym = code => ({
-    id: `sym_${code}`, sourceId: `sym_${code}`, code, name: `Sym ${code}`,
-    type: 'line', hidden: false,
+    id: `sym_${code}`,
+    sourceId: `sym_${code}`,
+    code,
+    name: `Sym ${code}`,
+    type: 'line',
+    hidden: false,
     layers: [{ type: 'stroke', colorId: 'black', width: 10 }],
   })
   const line = (code, id, coords) => ({
-    id, symbolId: `sym_${code}`, type: 'line', coordinates: coords, hidden: false,
+    id,
+    symbolId: `sym_${code}`,
+    type: 'line',
+    coordinates: coords,
+    hidden: false,
     bounds: {
-      min: [Math.min(...coords.map(c => c[0])), Math.min(...coords.map(c => c[1]))],
-      max: [Math.max(...coords.map(c => c[0])), Math.max(...coords.map(c => c[1]))],
+      min: [
+        Math.min(...coords.map(c => c[0])),
+        Math.min(...coords.map(c => c[1])),
+      ],
+      max: [
+        Math.max(...coords.map(c => c[0])),
+        Math.max(...coords.map(c => c[1])),
+      ],
     },
   })
   // Same feature: symbol 505→507 AND the last vertex moved (majority of
   // vertices shared → coverage matches; symbol differs).
-  const before = new Map({ sourceFormat: 'test', colors: [], symbols: [lineSym('505')], objects: [line('505', 'a', [[0, 0], [10, 0], [20, 0], [30, 0]])] })
-  const after = new Map({ sourceFormat: 'test', colors: [], symbols: [lineSym('507')], objects: [line('507', 'b', [[0, 0], [10, 0], [20, 0], [30, 30]])] })
+  const before = new Map({
+    sourceFormat: 'test',
+    colors: [],
+    symbols: [lineSym('505')],
+    objects: [
+      line('505', 'a', [
+        [0, 0],
+        [10, 0],
+        [20, 0],
+        [30, 0],
+      ]),
+    ],
+  })
+  const after = new Map({
+    sourceFormat: 'test',
+    colors: [],
+    symbols: [lineSym('507')],
+    objects: [
+      line('507', 'b', [
+        [0, 0],
+        [10, 0],
+        [20, 0],
+        [30, 30],
+      ]),
+    ],
+  })
 
   const { changes } = diffChanges(before, after)
   t.is(changes.length, 1)
@@ -532,23 +623,48 @@ test('diffChanges reports a reclassified + reshaped line as a "both" change', (/
 
 test('diffChanges renders an edited area with a hole without crossing rings', (/** @type {ExecutionContext} */ t) => {
   const areaSym = code => ({
-    id: `sym_${code}`, sourceId: `sym_${code}`, code, name: 'Forest',
-    type: 'area', hidden: false,
+    id: `sym_${code}`,
+    sourceId: `sym_${code}`,
+    code,
+    name: 'Forest',
+    type: 'area',
+    hidden: false,
     layers: [{ type: 'fill', colorId: 'green' }],
   })
   // Outer ring (last coord flags the hole) + hole ring. Edit one outer
   // vertex between before/after; the hole is unchanged. Array coords with
   // flag props, matching real gitmap-read geometry.
-  const holePt = () => { const c = [0, 100]; c.yFlags = 2; return c }
+  const holePt = () => {
+    const c = [0, 100]
+    c.yFlags = 2
+    return c
+  }
   const outer = extra => [[0, 0], [100, 0], extra, holePt()]
-  const hole = [[30, 30], [60, 30], [45, 60]]
+  const hole = [
+    [30, 30],
+    [60, 30],
+    [45, 60],
+  ]
   const area = extra => ({
-    id: `a-${extra[0]}`, symbolId: 'sym_406', type: 'area',
-    coordinates: [...outer(extra), ...hole], hidden: false,
+    id: `a-${extra[0]}`,
+    symbolId: 'sym_406',
+    type: 'area',
+    coordinates: [...outer(extra), ...hole],
+    hidden: false,
     bounds: { min: [0, 0], max: [120, 120] },
   })
-  const before = new Map({ sourceFormat: 'test', colors: [], symbols: [areaSym('406')], objects: [area([100, 100])] })
-  const after = new Map({ sourceFormat: 'test', colors: [], symbols: [areaSym('406')], objects: [area([120, 120])] })
+  const before = new Map({
+    sourceFormat: 'test',
+    colors: [],
+    symbols: [areaSym('406')],
+    objects: [area([100, 100])],
+  })
+  const after = new Map({
+    sourceFormat: 'test',
+    colors: [],
+    symbols: [areaSym('406')],
+    objects: [area([120, 120])],
+  })
 
   const { changes } = diffChanges(before, after, {}, { renderSvg: true })
   t.is(changes.length, 1)

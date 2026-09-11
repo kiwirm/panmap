@@ -23,7 +23,7 @@ export function strokeVisible(stroke: RenderLayer): boolean {
   const c = stroke.colorId
   if (c === undefined || c === null) return false
   if (typeof c === 'number') {
-    return c >= 0 && (stroke.width as number | undefined ?? 0) > 0
+    return c >= 0 && ((stroke.width as number | undefined) ?? 0) > 0
   }
   return typeof c === 'string' && c.length > 0
 }
@@ -46,10 +46,13 @@ function hasBorders(s: StrokeLayer): boolean {
  *      borders, we still need one — but this case is rare).
  *   4. First stroke (falls through to `deriveDoubleLine` for shape).
  */
-export function pickMainStroke(strokes: StrokeLayer[]): StrokeLayer | undefined {
+export function pickMainStroke(
+  strokes: StrokeLayer[],
+): StrokeLayer | undefined {
   if (!strokes.length) return undefined
   const isDashed = (s: StrokeLayer): boolean => !!s.dash
-  const isFrame = (s: StrokeLayer): boolean => !!(s as { frame?: boolean }).frame
+  const isFrame = (s: StrokeLayer): boolean =>
+    !!(s as { frame?: boolean }).frame
   const visible = (s: StrokeLayer): boolean =>
     strokeColorValid(s) && !hasBorders(s) && !isFrame(s)
   for (const s of strokes) if (isDashed(s) && visible(s)) return s
@@ -73,13 +76,13 @@ export function mainStrokeVisible(
   if (!stroke) return false
   if (!strokeColorValid(stroke)) return false
   if (!hasBorders(stroke)) return true
-  const invisiblePlaceholder = allStrokes.some((s) => {
+  const invisiblePlaceholder = allStrokes.some(s => {
     if (s === stroke) return false
     const sc = s.colorId
     const invisible = sc === -1 || sc === undefined || sc === null
     return invisible && !hasBorders(s)
   })
-  const borderlessAlternative = allStrokes.some((s) => {
+  const borderlessAlternative = allStrokes.some(s => {
     if (s === stroke) return false
     if (!strokeColorValid(s)) return false
     return !hasBorders(s)

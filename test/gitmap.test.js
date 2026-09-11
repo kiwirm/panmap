@@ -5,11 +5,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'ava'
-import {
-  read as readMap,
-  gitmap,
-  mapToSvg,
-} from '../src/index.ts'
+import { read as readMap, gitmap, mapToSvg } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
 import { readOcad, ocadFileToMap } from './helpers/raw.js'
 const readGitmap = gitmap.read
@@ -25,12 +21,17 @@ test('can write and read a GitMap package deterministically', async (/** @type {
   await writeGitmap(map, first)
   await writeGitmap(map, second)
 
-  const files = ['manifest.json', 'colors.ndjson', 'symbols.ndjson', 'objects.ndjson']
+  const files = [
+    'manifest.json',
+    'colors.ndjson',
+    'symbols.ndjson',
+    'objects.ndjson',
+  ]
   for (const file of files) {
     t.is(
       await fs.readFile(path.join(first, file), 'utf-8'),
       await fs.readFile(path.join(second, file), 'utf-8'),
-      `${file} should be deterministic`
+      `${file} should be deterministic`,
     )
   }
 
@@ -87,10 +88,16 @@ test('GitMap preserves Mapper source symbols and coordinate flags', async (/** @
 
   await writeGitmap(map, directory)
 
-  const symbolsText = await fs.readFile(path.join(directory, 'symbols.ndjson'), 'utf-8')
-  const symbols = symbolsText.trim().split('\n').map(line => JSON.parse(line))
+  const symbolsText = await fs.readFile(
+    path.join(directory, 'symbols.ndjson'),
+    'utf-8',
+  )
+  const symbols = symbolsText
+    .trim()
+    .split('\n')
+    .map(line => JSON.parse(line))
   const object = JSON.parse(
-    (await fs.readFile(path.join(directory, 'objects.ndjson'), 'utf-8')).trim()
+    (await fs.readFile(path.join(directory, 'objects.ndjson'), 'utf-8')).trim(),
   )
   const roundTrip = await readGitmap(directory)
 
@@ -103,7 +110,11 @@ test('GitMap preserves Mapper source symbols and coordinate flags', async (/** @
   t.deepEqual(object.coordinates[0], [0, 0])
   t.deepEqual(object.coordinates[1][2], { control: true })
   t.deepEqual(object.coordinates[2][2], { control: true })
-  t.true(object.coordinates.every(c => c.length === 2 || (c[2] && c[2].omapFlags === undefined)))
+  t.true(
+    object.coordinates.every(
+      c => c.length === 2 || (c[2] && c[2].omapFlags === undefined),
+    ),
+  )
   // The semantic flags reconstruct to OCAD's cp1/cp2 xFlags on read (control
   // points come in pairs: first is cp1 = 0x01, second is cp2 = 0x02).
   t.is(roundTrip.objects[0].coordinates[1].xFlags, 1)

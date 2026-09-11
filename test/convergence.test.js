@@ -52,35 +52,42 @@ const BASELINES = {
   // the eventual goal is 100% on all three but for now this ratchet is
   // the drift budget. Any regression here means a canonicalisation
   // change lost ground; investigate before lowering.
-  'ara':                          { colors:  8, objects:  1116, symbols: 164 },
-  'basic-1':                      { colors:  0, objects:     0, symbols:   0 },
-  'bottle-lake':                  { colors: 44, objects: 14221, symbols: 209 },
-  'butlers-bush':                 { colors: 10, objects:  5387, symbols: 179 },
-  'castle-hill-village':          { colors:  8, objects:  1311, symbols: 164 },
-  'double-line':                  { colors:  0, objects:     0, symbols:   0 },
-  'hillmorton':                   { colors:  4, objects:  1340, symbols: 185 },
-  'jarnvag':                      { colors:  0, objects:     0, symbols:   0 },
-  'kura-tawhiti':                 { colors: 12, objects:  4201, symbols: 151 },
-  'laidmore':                     { colors: 10, objects:  6715, symbols: 178 },
-  'leithfield':                   { colors: 39, objects:  4393, symbols: 188 },
-  'lincoln-university':           { colors: 15, objects:  1744, symbols: 173 },
-  'myggfritt':                    { colors:  0, objects:     0, symbols:   0 },
-  'nga-puna-wai-canterbury-park': { colors:  8, objects:  3232, symbols: 167 },
-  'orua-paeroa':                  { colors:  8, objects:  1293, symbols: 148 },
-  'port-hills':                   { colors: 50, objects:     1, symbols: 251 },
-  'rangiora':                     { colors:  8, objects:   998, symbols: 164 },
-  'tahunanui':                    { colors:  0, objects:     0, symbols:   0 },
-  'university-of-canterbury':     { colors:  9, objects:  5173, symbols: 173 },
-  'woodend':                      { colors: 11, objects:  9933, symbols: 204 },
+  ara: { colors: 8, objects: 1116, symbols: 164 },
+  'basic-1': { colors: 0, objects: 0, symbols: 0 },
+  'bottle-lake': { colors: 44, objects: 14221, symbols: 209 },
+  'butlers-bush': { colors: 10, objects: 5387, symbols: 179 },
+  'castle-hill-village': { colors: 8, objects: 1311, symbols: 164 },
+  'double-line': { colors: 0, objects: 0, symbols: 0 },
+  hillmorton: { colors: 4, objects: 1340, symbols: 185 },
+  jarnvag: { colors: 0, objects: 0, symbols: 0 },
+  'kura-tawhiti': { colors: 12, objects: 4201, symbols: 151 },
+  laidmore: { colors: 10, objects: 6715, symbols: 178 },
+  leithfield: { colors: 39, objects: 4393, symbols: 188 },
+  'lincoln-university': { colors: 15, objects: 1744, symbols: 173 },
+  myggfritt: { colors: 0, objects: 0, symbols: 0 },
+  'nga-puna-wai-canterbury-park': { colors: 8, objects: 3232, symbols: 167 },
+  'orua-paeroa': { colors: 8, objects: 1293, symbols: 148 },
+  'port-hills': { colors: 50, objects: 1, symbols: 251 },
+  rangiora: { colors: 8, objects: 998, symbols: 164 },
+  tahunanui: { colors: 0, objects: 0, symbols: 0 },
+  'university-of-canterbury': { colors: 9, objects: 5173, symbols: 173 },
+  woodend: { colors: 11, objects: 9933, symbols: 204 },
 }
 const METRICS = ['colors', 'objects', 'symbols']
 
 function discover() {
   if (!fs.existsSync(FIX)) return []
-  const maps = fs.readdirSync(FIX).filter(name => {
-    if (name.startsWith('.')) return false // skip dotfiles / macOS ._ AppleDouble
-    try { return fs.statSync(path.join(FIX, name)).isDirectory() } catch { return false }
-  }).sort()
+  const maps = fs
+    .readdirSync(FIX)
+    .filter(name => {
+      if (name.startsWith('.')) return false // skip dotfiles / macOS ._ AppleDouble
+      try {
+        return fs.statSync(path.join(FIX, name)).isDirectory()
+      } catch {
+        return false
+      }
+    })
+    .sort()
   const out = []
   for (const map of maps) {
     const files = fs.readdirSync(path.join(FIX, map))
@@ -108,7 +115,10 @@ function discover() {
 async function toCanonicalGitmap(map) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'conv-'))
   try {
-    await write(map, path.join(dir, 'g.gitmap'), { format: 'gitmap', overwrite: true })
+    await write(map, path.join(dir, 'g.gitmap'), {
+      format: 'gitmap',
+      overwrite: true,
+    })
     const out = {}
     for (const name of ['colors', 'objects', 'symbols']) {
       const p = path.join(dir, 'g.gitmap', `${name}.ndjson`)
@@ -179,7 +189,7 @@ if (cases.length === 0) {
 
 // Per-map best-across-revisions measurement, populated by the per-case
 // tests and inspected by the ratchet summary test at the end.
-const perMapBest = new Map()  // map → { colors, objects, symbols } (identical counts)
+const perMapBest = new Map() // map → { colors, objects, symbols } (identical counts)
 
 function updateBest(map, metric, identical) {
   const cur = perMapBest.get(map) ?? { colors: 0, objects: 0, symbols: 0 }
@@ -215,24 +225,33 @@ for (const c of cases) {
 // regardless of concurrency (ava runs tests in a file concurrently by
 // default). `test.after` guarantees perMapBest is fully populated.
 test.after('convergence: ratchet summary', t => {
-  if (cases.length === 0) { t.pass('no fixtures'); return }
+  if (cases.length === 0) {
+    t.pass('no fixtures')
+    return
+  }
   const maps = [...new Set(cases.map(c => c.map))].sort()
   const rows = [
     `  ${'map'.padEnd(40)}  ${METRICS.map(m => m.padStart(9)).join(' ')}`,
     `  ${'-'.repeat(40)}  ${METRICS.map(() => '-'.repeat(9)).join(' ')}`,
   ]
-  const missing = [], regressed = [], improved = []
+  const missing = [],
+    regressed = [],
+    improved = []
   for (const map of maps) {
     const best = perMapBest.get(map) ?? {}
     const baseline = BASELINES[map]
     const cells = METRICS.map(metric => {
       const got = best[metric] ?? 0
       const base = baseline?.[metric]
-      const mark = base === undefined ? '?' : got < base ? '↓' : got > base ? '↑' : '='
+      const mark =
+        base === undefined ? '?' : got < base ? '↓' : got > base ? '↑' : '='
       return `${mark}${String(got).padStart(8)}`
     })
     rows.push(`  ${map.padEnd(40)}  ${cells.join(' ')}`)
-    if (baseline === undefined) { missing.push({ map, best }); continue }
+    if (baseline === undefined) {
+      missing.push({ map, best })
+      continue
+    }
     for (const metric of METRICS) {
       const got = best[metric] ?? 0
       const base = baseline[metric] ?? 0
@@ -245,13 +264,21 @@ test.after('convergence: ratchet summary', t => {
     t.log(`IMPROVEMENT: ${map}.${metric} ${base} → ${got} — bump BASELINES.`)
   }
   if (regressed.length) {
-    t.fail('convergence ratchet regressed:\n' + regressed.map(r =>
-      `  ${r.map}.${r.metric}: expected ≥ ${r.base}, got ${r.got}`).join('\n'))
+    t.fail(
+      'convergence ratchet regressed:\n' +
+        regressed
+          .map(
+            r => `  ${r.map}.${r.metric}: expected ≥ ${r.base}, got ${r.got}`,
+          )
+          .join('\n'),
+    )
     return
   }
   if (missing.length) {
-    const stanzas = missing.map(({ map, best }) =>
-      `  '${map}': { colors: ${best.colors ?? 0}, objects: ${best.objects ?? 0}, symbols: ${best.symbols ?? 0} },`)
+    const stanzas = missing.map(
+      ({ map, best }) =>
+        `  '${map}': { colors: ${best.colors ?? 0}, objects: ${best.objects ?? 0}, symbols: ${best.symbols ?? 0} },`,
+    )
     t.fail('missing BASELINES entries — add:\n' + stanzas.join('\n'))
     return
   }

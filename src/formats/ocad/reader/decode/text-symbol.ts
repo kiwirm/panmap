@@ -93,7 +93,7 @@ export default class TextSymbol extends BaseSymbol implements TextSymbolProps {
     for (let i = 1; i < 32 - fontLength; i++) reader.readByte()
     this.fontName = fontName
     this._fontNameBytes = new Uint8Array(
-      reader.buffer.subarray(fontNameStart, fontNameStart + 32)
+      reader.buffer.subarray(fontNameStart, fontNameStart + 32),
     )
 
     this.fontColor = reader.readSmallInt()

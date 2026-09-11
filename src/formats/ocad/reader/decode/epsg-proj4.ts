@@ -11,12 +11,18 @@ const require = createRequire(import.meta.url)
  * per code loaded lazily). Returns undefined for codes not in the index, in
  * which case the reader skips geographic derivation rather than fabricate one.
  */
-export function proj4ForEpsg(epsg: string | number | undefined): string | undefined {
+export function proj4ForEpsg(
+  epsg: string | number | undefined,
+): string | undefined {
   if (epsg === undefined) return undefined
   try {
-    const entry = require(`epsg-index/s/${String(epsg)}.json`) as { proj4?: string }
+    const entry = require(`epsg-index/s/${String(epsg)}.json`) as {
+      proj4?: string
+    }
     // Drop the `+type=crs` suffix — redundant for a bare projection transform.
-    return entry?.proj4 ? entry.proj4.replace(' +type=crs', '').trim() : undefined
+    return entry?.proj4
+      ? entry.proj4.replace(' +type=crs', '').trim()
+      : undefined
   } catch {
     return undefined
   }

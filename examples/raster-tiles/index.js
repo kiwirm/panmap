@@ -11,7 +11,7 @@ const OcadSource = require('./ocad-source')
 
 proj4.defs(
   'EPSG:3006',
-  '+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+  '+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 )
 olProj.setProj4(proj4)
 
@@ -25,8 +25,8 @@ fetch('example.ocd')
         toBuffer(blob, (err, buffer) => {
           if (err) reject(err)
           resolve(buffer)
-        })
-      )
+        }),
+      ),
   )
   .then(buffer => readOcad(buffer))
   .then(ocadFile => {

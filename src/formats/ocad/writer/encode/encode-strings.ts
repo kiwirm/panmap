@@ -20,7 +20,7 @@ export interface RawParameterString {
  */
 export function writeParameterStringRecords(
   writer: BufferWriter,
-  strings: RawParameterString[]
+  strings: RawParameterString[],
 ): { offsets: number[]; lengths: number[] } {
   const offsets: number[] = []
   const lengths: number[] = []
@@ -33,7 +33,7 @@ export function writeParameterStringRecords(
     const start = writer.offset
     const len = writeParameterString(
       writer,
-      ps as Parameters<typeof writeParameterString>[1]
+      ps as Parameters<typeof writeParameterString>[1],
     )
     offsets.push(start)
     lengths.push(len)
@@ -45,7 +45,7 @@ export function writeStringIndexBlocks(
   writer: BufferWriter,
   strings: RawParameterString[],
   offsets: number[],
-  lengths: number[]
+  lengths: number[],
 ): number {
   if (!strings.length) return 0
 
@@ -60,12 +60,7 @@ export function writeStringIndexBlocks(
         writer.writeZeros(STRING_INDEX_ENTRY_SIZE)
         continue
       }
-      writeStringIndexEntry(
-        writer,
-        offsets[flat],
-        lengths[flat],
-        strings[flat]
-      )
+      writeStringIndexEntry(writer, offsets[flat], lengths[flat], strings[flat])
     }
   }
 
@@ -80,7 +75,7 @@ function writeStringIndexEntry(
   writer: BufferWriter,
   pos: number,
   len: number,
-  ps: RawParameterString
+  ps: RawParameterString,
 ): void {
   writer.writeInteger(pos)
   writer.writeInteger(len)

@@ -26,13 +26,24 @@ export function synthesizeOcadFile(
   // stamps `version = 12` on OCAD-2018 files (bumping `subVersion` to
   // signal the format flavour) and downstream consumers may care which
   // major version they see. Otherwise synth defaults to 2018.
-  const sourceHeader = (map.metadata as { version?: number; subVersion?: number; subSubVersion?: number; currentFileVersion?: number } | undefined)
+  const sourceHeader = map.metadata as
+    | {
+        version?: number
+        subVersion?: number
+        subSubVersion?: number
+        currentFileVersion?: number
+      }
+    | undefined
   const version = options.version ?? 2018
   const header = FileHeader.createFor(version)
-  if (typeof sourceHeader?.version === 'number') header.version = sourceHeader.version
-  if (typeof sourceHeader?.subVersion === 'number') header.subVersion = sourceHeader.subVersion
-  if (typeof sourceHeader?.subSubVersion === 'number') header.subSubVersion = sourceHeader.subSubVersion
-  if (typeof sourceHeader?.currentFileVersion === 'number') header.currentFileVersion = sourceHeader.currentFileVersion
+  if (typeof sourceHeader?.version === 'number')
+    header.version = sourceHeader.version
+  if (typeof sourceHeader?.subVersion === 'number')
+    header.subVersion = sourceHeader.subVersion
+  if (typeof sourceHeader?.subSubVersion === 'number')
+    header.subSubVersion = sourceHeader.subSubVersion
+  if (typeof sourceHeader?.currentFileVersion === 'number')
+    header.currentFileVersion = sourceHeader.currentFileVersion
 
   const symNums = assignSymNums(map.symbols ?? [])
   // OCAD text alignment is a symbol-level property, but OMAP-sourced
@@ -42,10 +53,14 @@ export function synthesizeOcadFile(
   // read it. Assumes each text symbol is used with one consistent
   // alignment — mapper conventions match this.
   const symbolsForSynth = hoistTextAlignmentIntoSymbols(
-    map.symbols ?? [], map.objects ?? [],
+    map.symbols ?? [],
+    map.objects ?? [],
   )
   const symbols = synthesizeSymbols(
-    symbolsForSynth, map.colors ?? [], map.sourceFormat, symNums,
+    symbolsForSynth,
+    map.colors ?? [],
+    map.sourceFormat,
+    symNums,
   )
   const objects = synthesizeObjects(
     map.objects ?? [],
@@ -60,7 +75,7 @@ export function synthesizeOcadFile(
     grouped,
     objects as never[],
     symbols as never[],
-    [],                          // warnings
+    [], // warnings
   )
   ocad.rawParameterStrings = rawParamStrings
   return ocad
@@ -70,14 +85,16 @@ function hoistTextAlignmentIntoSymbols(
   symbols: Panmap['symbols'],
   objects: Panmap['objects'],
 ) {
-  const byId = new Map<string | number, {h?: number; v?: number}>()
+  const byId = new Map<string | number, { h?: number; v?: number }>()
   for (const o of objects) {
     if (o.type !== 'text') continue
     const anyO = o as any
     if (anyO.hAlign === undefined && anyO.vAlign === undefined) continue
-    if (!byId.has(o.symbolId)) byId.set(o.symbolId, {
-      h: anyO.hAlign, v: anyO.vAlign,
-    })
+    if (!byId.has(o.symbolId))
+      byId.set(o.symbolId, {
+        h: anyO.hAlign,
+        v: anyO.vAlign,
+      })
   }
   if (!byId.size) return symbols
   // Mapper's <object v_align="…"> uses 0=baseline, 1=top, 2=middle,
@@ -87,10 +104,14 @@ function hoistTextAlignmentIntoSymbols(
   const mapperVToOcad = (v: number | undefined): number | undefined => {
     if (v === undefined) return undefined
     switch (v) {
-      case 1: return 2 // Mapper top → OCAD top
-      case 2: return 1 // Mapper middle → OCAD middle
-      case 3: return 0 // Mapper bottom → OCAD bottom
-      default: return 0 // baseline ≈ bottom for OCAD's coarser enum
+      case 1:
+        return 2 // Mapper top → OCAD top
+      case 2:
+        return 1 // Mapper middle → OCAD middle
+      case 3:
+        return 0 // Mapper bottom → OCAD bottom
+      default:
+        return 0 // baseline ≈ bottom for OCAD's coarser enum
     }
   }
   return symbols.map(symbol => {
@@ -101,7 +122,8 @@ function hoistTextAlignmentIntoSymbols(
     const newLayers = layers.map(layer => {
       if (!layer || layer.type !== 'text') return layer
       const text = { ...(layer.text ?? {}) }
-      if (align.h !== undefined && text.alignment === undefined) text.alignment = align.h
+      if (align.h !== undefined && text.alignment === undefined)
+        text.alignment = align.h
       if (align.v !== undefined && text.verticalAlignment === undefined) {
         text.verticalAlignment = mapperVToOcad(align.v)
       }

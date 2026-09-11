@@ -1,6 +1,9 @@
 import type { MapSymbol } from '../../../../../panmap/model.js'
 import { classifyAreaLayers } from '../../../../../panmap/render-layers.js'
-import type { HatchLayer, PointPatternLayer } from '../../../../../panmap/render-layers.js'
+import type {
+  HatchLayer,
+  PointPatternLayer,
+} from '../../../../../panmap/render-layers.js'
 import { DotElementType } from '../../../native/symbol-element-types.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
@@ -51,7 +54,9 @@ function encodeHatchMode(
     hatchLineWidth: normUnits(hatch?.lineWidth),
     hatchDist: normUnits(hatch?.spacing),
     hatchAngle1: Math.round((hatch?.angle ?? 0) * 10) % 3600,
-    hatchAngle2: hatchAnglesDiffer ? Math.round((hatch2!.angle ?? 0) * 10) % 3600 : 0,
+    hatchAngle2: hatchAnglesDiffer
+      ? Math.round((hatch2!.angle ?? 0) * 10) % 3600
+      : 0,
   }
 }
 
@@ -83,9 +88,15 @@ function encodePatternStructure(
   const patternElements = pattern
     ? extractPatternElements(pattern, colorNumber, flipY, null)
     : []
-  const secondPatternElements = (!shiftedRows && patterns[1])
-    ? extractPatternElements(patterns[1], colorNumber, flipY, patternOffset(patterns[0], patterns[1]))
-    : []
+  const secondPatternElements =
+    !shiftedRows && patterns[1]
+      ? extractPatternElements(
+          patterns[1],
+          colorNumber,
+          flipY,
+          patternOffset(patterns[0], patterns[1]),
+        )
+      : []
   const structHeight = patternElements.length
     ? shiftedRows
       ? normUnits(patterns[1]?.pattern?.lineOffset ?? 0)
@@ -99,28 +110,40 @@ function encodePatternStructure(
       : 0,
     structHeight,
     structAngle: Math.round((pattern?.angle ?? 0) * 10) % 3600,
-    structIrregularVarX: 0, structIrregularVarY: 0, structIrregularMinDist: 0,
+    structIrregularVarX: 0,
+    structIrregularVarY: 0,
+    structIrregularMinDist: 0,
     structRes: 0,
     elements: [...patternElements, ...secondPatternElements],
   }
 }
 
-function isShiftedRows(a: PointPatternLayer | undefined, b: PointPatternLayer | undefined): boolean {
+function isShiftedRows(
+  a: PointPatternLayer | undefined,
+  b: PointPatternLayer | undefined,
+): boolean {
   if (!a || !b) return false
   const pa = a.pattern
   const pb = b.pattern
   if (!pa || !pb) return false
-  const ls = pa.lineSpacing; const pd = pa.pointDistance
+  const ls = pa.lineSpacing
+  const pd = pa.pointDistance
   if (!ls || !pd) return false
   if (pa.lineSpacing !== pb.lineSpacing) return false
   if (pa.pointDistance !== pb.pointDistance) return false
-  const dLine = Math.abs((((pa.lineOffset ?? 0) - (pb.lineOffset ?? 0) + ls) % ls) - ls / 2)
-  const dAlong = Math.abs((((pa.offsetAlongLine ?? 0) - (pb.offsetAlongLine ?? 0) + pd) % pd) - pd / 2)
+  const dLine = Math.abs(
+    (((pa.lineOffset ?? 0) - (pb.lineOffset ?? 0) + ls) % ls) - ls / 2,
+  )
+  const dAlong = Math.abs(
+    (((pa.offsetAlongLine ?? 0) - (pb.offsetAlongLine ?? 0) + pd) % pd) -
+      pd / 2,
+  )
   return dLine <= 1 && dAlong <= 1
 }
 
 function patternOffset(
-  a: PointPatternLayer | undefined, b: PointPatternLayer | undefined,
+  a: PointPatternLayer | undefined,
+  b: PointPatternLayer | undefined,
 ): { dx: number; dy: number } | null {
   if (!a || !b) return null
   const pa = a.pattern
@@ -164,15 +187,21 @@ function extractPatternElements(
   const anchor = {
     0: normUnits(offset?.dx ?? 0),
     1: normUnits((offset?.dy ?? 0) * yScale),
-    xFlags: 0, yFlags: 0,
+    xFlags: 0,
+    yFlags: 0,
   }
   const inner = normUnits(ps.innerRadius)
   if (inner > 0 && ps.innerColor !== undefined && ps.innerColor !== null) {
     const c = colorNumber(ps.innerColor)
     if (c > 0) {
       out.push({
-        type: DotElementType, flags: 0, color: c, lineWidth: 0, diameter: inner * 2,
-        numberCoords: 1, coords: [anchor],
+        type: DotElementType,
+        flags: 0,
+        color: c,
+        lineWidth: 0,
+        diameter: inner * 2,
+        numberCoords: 1,
+        coords: [anchor],
       })
     }
   }

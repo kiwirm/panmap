@@ -41,7 +41,8 @@ test('fenced block yields extensions and preserves surrounding text', t => {
 test('unknown fence version is preserved verbatim, not an error', t => {
   // A reader that doesn't know the block version leaves the notes field intact
   // (the block rides through as user text) rather than dropping it or aborting.
-  const text = '--- gitmap-extensions v99 ---\n{}\n--- end gitmap-extensions ---'
+  const text =
+    '--- gitmap-extensions v99 ---\n{}\n--- end gitmap-extensions ---'
   t.deepEqual(parseNotes(text), { userText: text, extensions: {} })
 })
 
@@ -101,7 +102,7 @@ test('formatNotes emits only the block when user text is empty', t => {
   const out = formatNotes('', { k: 1 })
   t.is(
     out,
-    '--- gitmap-extensions v1 ---\n{\n  "k": 1\n}\n--- end gitmap-extensions ---'
+    '--- gitmap-extensions v1 ---\n{\n  "k": 1\n}\n--- end gitmap-extensions ---',
   )
 })
 

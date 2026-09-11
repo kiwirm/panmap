@@ -6,9 +6,9 @@
 import test from 'ava'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { readOmap } from "./helpers/omap.js"
+import { readOmap } from './helpers/omap.js'
 import omapFileToMap from '../src/formats/omap/reader/to-panmap.ts'
-import { mapToOmapXml } from "./helpers/omap.js"
+import { mapToOmapXml } from './helpers/omap.js'
 import { fixtureFile } from './helpers/fixtures.js'
 
 async function roundTrip(fixture) {
@@ -27,42 +27,63 @@ async function roundTrip(fixture) {
 }
 
 function summariseSymbolIds(map) {
-  return map.symbols.map((s) => String(s.id)).sort()
+  return map.symbols.map(s => String(s.id)).sort()
 }
 function summariseObjectSymbols(map) {
-  return map.objects.map((o) => String(o.symbolId)).sort()
+  return map.objects.map(o => String(o.symbolId)).sort()
 }
 function summariseColourNames(map) {
-  return map.colors.filter(Boolean).map((c) => c.name).sort()
+  return map.colors
+    .filter(Boolean)
+    .map(c => c.name)
+    .sort()
 }
 
-const FIXTURES = [
-  'ara-c122f2d.xmap',
-  'butlers-bush-bdc004d.xmap',
-]
+const FIXTURES = ['ara-c122f2d.xmap', 'butlers-bush-bdc004d.xmap']
 
 for (const fixture of FIXTURES) {
   test(`xmap round-trip preserves counts and identities: ${fixture}`, async t => {
     const { originalMap, rewrittenMap } = await roundTrip(fixture)
 
-    t.is(rewrittenMap.colors.filter(Boolean).length,
+    t.is(
+      rewrittenMap.colors.filter(Boolean).length,
       originalMap.colors.filter(Boolean).length,
       'colour count',
     )
-    t.is(rewrittenMap.symbols.length, originalMap.symbols.length, 'symbol count')
-    t.is(rewrittenMap.objects.length, originalMap.objects.length, 'object count')
+    t.is(
+      rewrittenMap.symbols.length,
+      originalMap.symbols.length,
+      'symbol count',
+    )
+    t.is(
+      rewrittenMap.objects.length,
+      originalMap.objects.length,
+      'object count',
+    )
 
-    t.deepEqual(summariseColourNames(rewrittenMap), summariseColourNames(originalMap),
-      'colour names preserved')
-    t.deepEqual(summariseSymbolIds(rewrittenMap), summariseSymbolIds(originalMap),
-      'symbol ids preserved')
-    t.deepEqual(summariseObjectSymbols(rewrittenMap), summariseObjectSymbols(originalMap),
-      'each object still points at the same symbol id')
+    t.deepEqual(
+      summariseColourNames(rewrittenMap),
+      summariseColourNames(originalMap),
+      'colour names preserved',
+    )
+    t.deepEqual(
+      summariseSymbolIds(rewrittenMap),
+      summariseSymbolIds(originalMap),
+      'symbol ids preserved',
+    )
+    t.deepEqual(
+      summariseObjectSymbols(rewrittenMap),
+      summariseObjectSymbols(originalMap),
+      'each object still points at the same symbol id',
+    )
   })
 
   test(`xmap writer is idempotent: ${fixture}`, async t => {
     const { rewrittenXml, twiceXml } = await roundTrip(fixture)
-    t.is(twiceXml, rewrittenXml,
-      'a second write of the same canonical Map produces the same XML')
+    t.is(
+      twiceXml,
+      rewrittenXml,
+      'a second write of the same canonical Map produces the same XML',
+    )
   })
 }

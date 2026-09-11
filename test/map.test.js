@@ -19,7 +19,10 @@ test('can normalize OCAD file to canonical Map', async (/** @type {ExecutionCont
   t.is(map.metadata.version, 12)
   t.is(map.objects.length, ocadFile.objects.length)
   t.is(map.symbols.length, ocadFile.symbols.length)
-  t.is(map.colors.filter(Boolean).length, ocadFile.colors.filter(Boolean).length)
+  t.is(
+    map.colors.filter(Boolean).length,
+    ocadFile.colors.filter(Boolean).length,
+  )
   t.deepEqual(map.getBounds(), ocadFile.getBounds())
 
   const object = map.objects[0]
@@ -66,10 +69,10 @@ test('writeMap structurally round-trips OCAD-backed maps', async (/** @type {Exe
 test('OCAD symbols expose shared render layers', async (/** @type {ExecutionContext} */ t) => {
   const map = await readMap(fixtureFile('basic-1.ocd'))
   const areaSymbol = map.symbols.find(symbol =>
-    symbol.layers.some(layer => layer.type === 'fill')
+    symbol.layers.some(layer => layer.type === 'fill'),
   )
   const lineSymbol = map.symbols.find(symbol =>
-    symbol.layers.some(layer => layer.type === 'stroke')
+    symbol.layers.some(layer => layer.type === 'stroke'),
   )
 
   t.truthy(areaSymbol)

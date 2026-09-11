@@ -14,10 +14,11 @@
  */
 export function parseSymbolCode(code: string): number {
   const parts = code.trim().split('.')
-  if (parts.length >= 1 && parts.every((p) => /^\d+$/.test(p))) {
+  if (parts.length >= 1 && parts.every(p => /^\d+$/.test(p))) {
     const main = parseInt(parts[0], 10)
     let sub = 0
-    for (let i = 1; i < parts.length; i++) sub = sub * 100 + parseInt(parts[i], 10)
+    for (let i = 1; i < parts.length; i++)
+      sub = sub * 100 + parseInt(parts[i], 10)
     return main * 1000 + sub
   }
   let hash = 0
@@ -39,14 +40,17 @@ export function parseSymbolCode(code: string): number {
  * distinct ones are preserved ("204.1.0" stays, since it parses differently).
  * Non-numeric codes are returned unchanged.
  */
-export function canonicalSymbolCode(code: string | number | null | undefined): string {
+export function canonicalSymbolCode(
+  code: string | number | null | undefined,
+): string {
   if (code === null || code === undefined) return ''
   const s = String(code).trim()
   const parts = s.split('.')
-  if (!(parts.length >= 1 && parts.every((p) => /^\d+$/.test(p)))) return s
+  if (!(parts.length >= 1 && parts.every(p => /^\d+$/.test(p)))) return s
   const main = parseInt(parts[0], 10)
   let sub = 0
-  for (let i = 1; i < parts.length; i++) sub = sub * 100 + parseInt(parts[i], 10)
+  for (let i = 1; i < parts.length; i++)
+    sub = sub * 100 + parseInt(parts[i], 10)
   if (sub === 0) return String(main)
   const subParts: number[] = []
   for (let x = sub; x > 0; x = Math.floor(x / 100)) subParts.unshift(x % 100)

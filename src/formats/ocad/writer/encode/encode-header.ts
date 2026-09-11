@@ -20,7 +20,7 @@ export interface HeaderOffsets {
 export function writeHeader(
   writer: BufferWriter,
   header: FileHeader,
-  offsets: HeaderOffsets
+  offsets: HeaderOffsets,
 ): void {
   writer.writeSmallInt(header.ocadMark) // 0x0CAD
   writer.writeByte(header.fileType)
@@ -41,7 +41,7 @@ export function writeHeader(
   writer.writeCardinal(0) // Res1
   writer.writeCardinal(0) // Res2
   writer.writeCardinal(
-    offsets.mrStartBlockPosition ?? header.mrStartBlockPosition ?? 0
+    offsets.mrStartBlockPosition ?? header.mrStartBlockPosition ?? 0,
   )
 }
 

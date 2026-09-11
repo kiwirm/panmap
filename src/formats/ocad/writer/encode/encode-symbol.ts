@@ -141,10 +141,7 @@ interface TextSymbol11Like extends Symbol11Like {
 }
 
 type AnySymbol =
-  | PointSymbolLike
-  | LineSymbolLike
-  | AreaSymbol12Like
-  | TextSymbol11Like
+  PointSymbolLike | LineSymbolLike | AreaSymbol12Like | TextSymbol11Like
 
 /**
  * Encode a Symbol11-family symbol record (v12 / v2018). Patches the
@@ -194,7 +191,9 @@ export function writeSymbol(writer: BufferWriter, symbol: AnySymbol): void {
       writeTextBody(writer, symbol as TextSymbol11Like)
       break
     default:
-      throw new Error(`Unsupported symbol type: ${(symbol as { type: number }).type}`)
+      throw new Error(
+        `Unsupported symbol type: ${(symbol as { type: number }).type}`,
+      )
   }
 
   // Emit any unparsed trailing bytes captured by the reader (e.g. text
@@ -210,7 +209,7 @@ export function writeSymbol(writer: BufferWriter, symbol: AnySymbol): void {
 
 function writeSymbol11Description(
   writer: BufferWriter,
-  symbol: Symbol11Like
+  symbol: Symbol11Like,
 ): void {
   // 64 words = 128 bytes UTF-16 (Mapper's Utf16PascalString<64>).
   // Prefer `descriptionWords` (captured raw) so trailing / embedded
@@ -232,13 +231,16 @@ function writeSymbol11Description(
   }
 }
 
-function writeIconBits(writer: BufferWriter, iconBits: number[] | undefined): void {
+function writeIconBits(
+  writer: BufferWriter,
+  iconBits: number[] | undefined,
+): void {
   for (let i = 0; i < 484; i++) writer.writeByte(iconBits?.[i] ?? 0)
 }
 
 function writeMystery64(
   writer: BufferWriter,
-  mystery64: Uint8Array | undefined
+  mystery64: Uint8Array | undefined,
 ): void {
   // Historical: this used to emit 64 bytes of "mystery" data that
   // was actually the second half of the description field, misread
@@ -331,7 +333,7 @@ function writeLineBody(writer: BufferWriter, symbol: LineSymbolLike): void {
 
 function encodeElementList(
   writer: BufferWriter,
-  elements: Parameters<typeof writeSymbolElement>[1][] | undefined
+  elements: Parameters<typeof writeSymbolElement>[1][] | undefined,
 ): number {
   let total = 0
   for (const el of elements || []) total += writeSymbolElement(writer, el)
@@ -391,7 +393,8 @@ function writeTextBody(writer: BufferWriter, symbol: TextSymbol11Like): void {
   writer.writeSmallInt(symbol.indentFirst)
   writer.writeSmallInt(symbol.indentOther)
   writer.writeSmallInt(symbol.nTabs)
-  for (let i = 0; i < 32; i++) writer.writeCardinal((symbol.tabs?.[i] ?? 0) >>> 0)
+  for (let i = 0; i < 32; i++)
+    writer.writeCardinal((symbol.tabs?.[i] ?? 0) >>> 0)
   writer.writeWord(symbol.lbOn ? 1 : 0)
   writer.writeSmallInt(symbol.lbColor)
   writer.writeSmallInt(symbol.lbWidth)
@@ -409,4 +412,3 @@ function writeFontName(writer: BufferWriter, fontName: string): void {
   writer.writeBytes(bytes)
   for (let i = bytes.length; i < 31; i++) writer.writeByte(0)
 }
-

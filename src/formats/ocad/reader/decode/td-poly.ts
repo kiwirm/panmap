@@ -20,7 +20,7 @@ class TdPoly extends Array<number> {
   constructor(ocadX: number, ocadY: number, xFlags?: number, yFlags?: number) {
     super(
       xFlags === undefined ? unpackOcadValue(ocadX) : ocadX,
-      yFlags === undefined ? unpackOcadValue(ocadY) : ocadY
+      yFlags === undefined ? unpackOcadValue(ocadY) : ocadY,
     )
     this.xFlags = xFlags === undefined ? unpackOcadFlags(ocadX) : xFlags
     this.yFlags = yFlags === undefined ? unpackOcadFlags(ocadY) : yFlags
@@ -67,7 +67,7 @@ class TdPoly extends Array<number> {
       this[0] + c1[0],
       this[1] + c1[1],
       this.xFlags,
-      this.yFlags
+      this.yFlags,
     )
   }
 
@@ -76,7 +76,7 @@ class TdPoly extends Array<number> {
       this[0] - c1[0],
       this[1] - c1[1],
       this.xFlags,
-      this.yFlags
+      this.yFlags,
     )
   }
 
@@ -94,7 +94,7 @@ class TdPoly extends Array<number> {
       this[0] * Math.cos(theta) - this[1] * Math.sin(theta),
       this[0] * Math.sin(theta) + this[1] * Math.cos(theta),
       this.xFlags,
-      this.yFlags
+      this.yFlags,
     )
   }
 

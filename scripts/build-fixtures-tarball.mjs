@@ -30,7 +30,8 @@ const SMOKE = new Set(['basic-1', 'double-line', 'ara'])
 async function sha256File(p) {
   return await new Promise((resolve, reject) => {
     const h = createHash('sha256')
-    createReadStream(p).on('data', c => h.update(c))
+    createReadStream(p)
+      .on('data', c => h.update(c))
       .on('end', () => resolve(h.digest('hex')))
       .on('error', reject)
   })
@@ -40,7 +41,11 @@ function listMaps() {
   return readdirSync(FIX)
     .filter(name => !SMOKE.has(name))
     .filter(name => {
-      try { return statSync(path.join(FIX, name)).isDirectory() } catch { return false }
+      try {
+        return statSync(path.join(FIX, name)).isDirectory()
+      } catch {
+        return false
+      }
     })
     .sort()
 }
@@ -53,7 +58,9 @@ function listFiles(mapDir) {
 
 mkdirSync(BUILD, { recursive: true })
 const maps = listMaps()
-console.log(`bundling ${maps.length} maps (excluding smoke: ${[...SMOKE].join(', ')})`)
+console.log(
+  `bundling ${maps.length} maps (excluding smoke: ${[...SMOKE].join(', ')})`,
+)
 
 // -- tar --
 const tarPath = path.join(BUILD, ASSET)
@@ -61,7 +68,9 @@ const includes = maps.join(' ')
 execSync(`tar -czf "${tarPath}" -C "${FIX}" ${includes}`, { stdio: 'inherit' })
 const tarSha = await sha256File(tarPath)
 const tarBytes = statSync(tarPath).size
-console.log(`\ntarball ${(tarBytes / 1024 / 1024).toFixed(1)} MiB  sha256=${tarSha}`)
+console.log(
+  `\ntarball ${(tarBytes / 1024 / 1024).toFixed(1)} MiB  sha256=${tarSha}`,
+)
 
 // -- per-file manifest --
 const manifest = {
@@ -87,4 +96,6 @@ for (const map of maps) {
 }
 
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n')
-console.log(`wrote ${path.relative(ROOT, MANIFEST)} (${maps.length} maps, ${fileCount} files)`)
+console.log(
+  `wrote ${path.relative(ROOT, MANIFEST)} (${maps.length} maps, ${fileCount} files)`,
+)

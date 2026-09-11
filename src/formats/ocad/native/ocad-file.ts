@@ -27,7 +27,6 @@ export interface RawParameterStringRecord {
   _indexRecord?: { pos: number; len: number; recType: number; objIndex: number }
 }
 
-
 export interface Color {
   number: number
   cmyk: [number, number, number, number]
@@ -58,7 +57,7 @@ export default class OcadFile {
     parameterStrings: ParameterStringMap,
     objects: OcadObjectWithBounds[],
     symbols: BaseSymbol[],
-    warnings: string[]
+    warnings: string[],
   ) {
     this.header = header
     this.parameterStrings = parameterStrings
@@ -106,7 +105,7 @@ export default class OcadFile {
     ]
 
     for (const [[x1, y1], [x2, y2]] of this.objects.map(o =>
-      Object.values(o.objIndex.rc).map(projection)
+      Object.values(o.objIndex.rc).map(projection),
     )) {
       bounds[0] = Math.min(x1, x2, bounds[0])
       bounds[1] = Math.min(y1, y2, bounds[1])

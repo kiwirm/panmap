@@ -17,7 +17,7 @@ export type ReadInput = string | Buffer
  */
 export async function read(
   input: ReadInput,
-  options?: ReadOcadOptions
+  options?: ReadOcadOptions,
 ): Promise<Panmap> {
   if (looksLikeXml(input)) return omapFileToMap(parseOmap(input))
 
@@ -38,7 +38,7 @@ function looksLikeXml(input: ReadInput): boolean {
     : input.slice(0, 256)
   // Strip a UTF-8 BOM if present before checking, so BOM-prefixed XML files
   // aren't misidentified as OCAD binary.
-  const stripped = head.charCodeAt(0) === 0xFEFF ? head.slice(1) : head
+  const stripped = head.charCodeAt(0) === 0xfeff ? head.slice(1) : head
   return stripped.trimStart().startsWith('<')
 }
 

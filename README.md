@@ -20,10 +20,18 @@ npm install panmap
 
 ```js
 import {
-  read, write, convert, exportMap,
-  ocad, omap, gitmap,
-  diff, diffMapsToSvg,
-  mapToGeoJson, mapToSvg, getMapSvgRenderSupport,
+  read,
+  write,
+  convert,
+  exportMap,
+  ocad,
+  omap,
+  gitmap,
+  diff,
+  diffMapsToSvg,
+  mapToGeoJson,
+  mapToSvg,
+  getMapSvgRenderSupport,
 } from 'panmap'
 ```
 

@@ -31,7 +31,10 @@ export function assignSymNums(
       const main = Math.floor(preferred / 1000)
       for (let sub = 1; sub < 1000; sub++) {
         const cand = main * 1000 + sub
-        if (!taken.has(cand)) { n = cand; break }
+        if (!taken.has(cand)) {
+          n = cand
+          break
+        }
       }
     }
     taken.add(n)

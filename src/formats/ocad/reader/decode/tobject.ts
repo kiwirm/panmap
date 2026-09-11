@@ -1,16 +1,25 @@
 import TdPoly from './td-poly.js'
 import type BufferReader from './buffer-reader.js'
 import type { ObjectIndex } from './object-index.js'
-import { TOBJECT_V12_HEADER, type FieldType } from '../../native/tobject-schema.js'
+import {
+  TOBJECT_V12_HEADER,
+  type FieldType,
+} from '../../native/tobject-schema.js'
 
 function readField(reader: BufferReader, type: FieldType): number {
   switch (type) {
-    case 'i32': return reader.readInteger()
-    case 'u32': return reader.readCardinal()
-    case 'i16': return reader.readSmallInt()
-    case 'u16': return reader.readWord()
-    case 'i8':  return reader.readByte()
-    case 'f64': return reader.readDouble()
+    case 'i32':
+      return reader.readInteger()
+    case 'u32':
+      return reader.readCardinal()
+    case 'i16':
+      return reader.readSmallInt()
+    case 'u16':
+      return reader.readWord()
+    case 'i8':
+      return reader.readByte()
+    case 'f64':
+      return reader.readDouble()
   }
 }
 
@@ -78,7 +87,7 @@ class TObject10 extends BaseTObject {
     for (let i = 0; i < this.nItem; i++) {
       this.coordinates[i] = new TdPoly(
         reader.readInteger(),
-        reader.readInteger()
+        reader.readInteger(),
       )
     }
 
@@ -112,7 +121,7 @@ class TObject11 extends BaseTObject {
     for (let i = 0; i < this.nItem; i++) {
       this.coordinates[i] = new TdPoly(
         reader.readInteger(),
-        reader.readInteger()
+        reader.readInteger(),
       )
     }
 
@@ -131,14 +140,15 @@ class TObject12 extends BaseTObject {
     // with the writer in encode-tobject.ts.
     const self = this as unknown as Record<string, number | boolean>
     for (const [name, type] of TOBJECT_V12_HEADER) {
-      self[name] = name === 'unicode' ? !!readField(reader, type) : readField(reader, type)
+      self[name] =
+        name === 'unicode' ? !!readField(reader, type) : readField(reader, type)
     }
     this.coordinates = new Array(this.nItem)
 
     for (let i = 0; i < this.nItem; i++) {
       this.coordinates[i] = new TdPoly(
         reader.readInteger(),
-        reader.readInteger()
+        reader.readInteger(),
       )
     }
 
@@ -146,7 +156,7 @@ class TObject12 extends BaseTObject {
     this.objectString = reader.readWideString(this.unicode, this.nObjectString)
     this.databaseString = reader.readWideString(
       this.unicode,
-      this.nDatabaseString
+      this.nDatabaseString,
     )
   }
 }

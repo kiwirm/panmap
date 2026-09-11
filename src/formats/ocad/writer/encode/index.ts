@@ -1,17 +1,7 @@
 import BufferWriter from './buffer-writer.js'
-import {
-  HEADER_SIZE,
-  writeHeader,
-  reserveHeader,
-} from './encode-header.js'
-import {
-  writeSymbolRecords,
-  writeSymbolIndexBlocks,
-} from './encode-symbols.js'
-import {
-  writeObjectRecords,
-  writeObjectIndexBlocks,
-} from './encode-objects.js'
+import { HEADER_SIZE, writeHeader, reserveHeader } from './encode-header.js'
+import { writeSymbolRecords, writeSymbolIndexBlocks } from './encode-symbols.js'
+import { writeObjectRecords, writeObjectIndexBlocks } from './encode-objects.js'
 import {
   writeParameterStringRecords,
   writeStringIndexBlocks,
@@ -44,7 +34,7 @@ export function encodeOcadFile(ocadFile: OcadFile): Buffer {
   const supported = new Set([12, 2018])
   if (!supported.has(ocadFile.header.version)) {
     throw new Error(
-      `OCAD writer currently only supports versions 12 and 2018 (got ${ocadFile.header.version}).`
+      `OCAD writer currently only supports versions 12 and 2018 (got ${ocadFile.header.version}).`,
     )
   }
 
@@ -63,18 +53,18 @@ export function encodeOcadFile(ocadFile: OcadFile): Buffer {
     writer,
     objects,
     objectResult.offsets,
-    objectResult.lengths
+    objectResult.lengths,
   )
 
   const stringResult = writeParameterStringRecords(
     writer,
-    ocadFile.rawParameterStrings
+    ocadFile.rawParameterStrings,
   )
   const stringIndexBlock = writeStringIndexBlocks(
     writer,
     ocadFile.rawParameterStrings,
     stringResult.offsets,
-    stringResult.lengths
+    stringResult.lengths,
   )
 
   // Now lay down the header at offset 0 by writing into a fresh writer

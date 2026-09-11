@@ -22,18 +22,20 @@ export interface DiffMapsOptions {
 }
 
 type DiffKind = 'removed' | 'added' | 'unchanged'
-type CoordinateTransform = (coord: number[], object: MapObject, map: Panmap) => number[]
+type CoordinateTransform = (
+  coord: number[],
+  object: MapObject,
+  map: Panmap,
+) => number[]
 type ResolvedDiffMapsOptions = Required<
   Omit<
     DiffMapsOptions,
-    | 'beforeCoordinateTransform'
-    | 'afterCoordinateTransform'
+    'beforeCoordinateTransform' | 'afterCoordinateTransform'
   >
 > &
   Pick<
     DiffMapsOptions,
-    | 'beforeCoordinateTransform'
-    | 'afterCoordinateTransform'
+    'beforeCoordinateTransform' | 'afterCoordinateTransform'
   >
 
 interface DiffSymbol extends MapSymbol {
@@ -67,7 +69,7 @@ const defaultOptions = {
 function diffMaps(
   before: Panmap,
   after: Panmap,
-  options: DiffMapsOptions = {}
+  options: DiffMapsOptions = {},
 ): Panmap {
   const opts = { ...defaultOptions, ...options }
   const beforeSymbols = symbolsById(before)
@@ -75,12 +77,12 @@ function diffMaps(
   const beforeObjects = transformObjects(
     before.objects,
     before,
-    opts.beforeCoordinateTransform
+    opts.beforeCoordinateTransform,
   )
   const afterObjects = transformObjects(
     after.objects,
     after,
-    opts.afterCoordinateTransform
+    opts.afterCoordinateTransform,
   )
   const objects: DiffObject[] = []
   let id = 1
@@ -91,24 +93,27 @@ function diffMaps(
   // forced to the diff colour. Clones are memoised per (colour, source
   // symbol); objects with no resolvable symbol fall back to the generic
   // diff symbols below.
-  const symbolClones = new Map<string, MapSymbol>();
+  const symbolClones = new Map<string, MapSymbol>()
   const symbolFor = (
-    object: MapObject, symbolsFor: Record<string | number, MapSymbol>,
+    object: MapObject,
+    symbolsFor: Record<string | number, MapSymbol>,
   ): MapSymbol | undefined =>
-    symbolsFor[String(object.symbolId)] ?? symbolsFor[object.symbolId as never];
+    symbolsFor[String(object.symbolId)] ?? symbolsFor[object.symbolId as never]
   const diffSymbolIdFor = (
-    orig: MapSymbol | undefined, kind: DiffKind, type: string,
+    orig: MapSymbol | undefined,
+    kind: DiffKind,
+    type: string,
   ): string => {
     // Areas render as a coloured outline + hatched fill (see
     // diffAreaSymbols), not their real solid fill.
-    if (type === 'area') return `diff-area-${kind}`;
-    if (!orig) return `${kind}-${type === 'line-text' ? 'text' : type}`;
-    const key = `${kind}::${orig.id}`;
+    if (type === 'area') return `diff-area-${kind}`
+    if (!orig) return `${kind}-${type === 'line-text' ? 'text' : type}`
+    const key = `${kind}::${orig.id}`
     if (!symbolClones.has(key)) {
-      symbolClones.set(key, recolorSymbol(orig, kind, opts.unchangedOpacity));
+      symbolClones.set(key, recolorSymbol(orig, kind, opts.unchangedOpacity))
     }
-    return String(symbolClones.get(key)!.id);
-  };
+    return String(symbolClones.get(key)!.id)
+  }
 
   let beforeLines = beforeObjects.filter(object => object.type === 'line')
   let afterLines = afterObjects.filter(object => object.type === 'line')
@@ -121,7 +126,11 @@ function diffMaps(
   // Skipped under includeUnchanged, which needs unchanged geometry rendered.
   if (!opts.includeUnchanged) {
     const changed = cancelIdenticalLines(
-      beforeLines, afterLines, beforeSymbols, afterSymbols, opts,
+      beforeLines,
+      afterLines,
+      beforeSymbols,
+      afterSymbols,
+      opts,
     )
     beforeLines = changed.before
     afterLines = changed.after
@@ -138,8 +147,8 @@ function diffMaps(
         'removed',
         opts,
         () => id++,
-        (k) => diffSymbolIdFor(symbolFor(object, beforeSymbols), k, object.type),
-      )
+        k => diffSymbolIdFor(symbolFor(object, beforeSymbols), k, object.type),
+      ),
     )
   }
 
@@ -152,8 +161,8 @@ function diffMaps(
         'added',
         opts,
         () => id++,
-        (k) => diffSymbolIdFor(symbolFor(object, afterSymbols), k, object.type),
-      )
+        k => diffSymbolIdFor(symbolFor(object, afterSymbols), k, object.type),
+      ),
     )
   }
 
@@ -165,19 +174,49 @@ function diffMaps(
   for (const object of beforeOther) {
     const key = objectKey(object, beforeSymbols, opts)
     if (!consume(afterOtherCounts, key)) {
-      objects.push(diffObject(object, 'removed', () => id++,
-        diffSymbolIdFor(symbolFor(object, beforeSymbols), 'removed', object.type)))
+      objects.push(
+        diffObject(
+          object,
+          'removed',
+          () => id++,
+          diffSymbolIdFor(
+            symbolFor(object, beforeSymbols),
+            'removed',
+            object.type,
+          ),
+        ),
+      )
     } else if (opts.includeUnchanged) {
-      objects.push(diffObject(object, 'unchanged', () => id++,
-        diffSymbolIdFor(symbolFor(object, beforeSymbols), 'unchanged', object.type)))
+      objects.push(
+        diffObject(
+          object,
+          'unchanged',
+          () => id++,
+          diffSymbolIdFor(
+            symbolFor(object, beforeSymbols),
+            'unchanged',
+            object.type,
+          ),
+        ),
+      )
     }
   }
 
   for (const object of afterOther) {
     const key = objectKey(object, afterSymbols, opts)
     if (!consume(beforeOtherCounts, key)) {
-      objects.push(diffObject(object, 'added', () => id++,
-        diffSymbolIdFor(symbolFor(object, afterSymbols), 'added', object.type)))
+      objects.push(
+        diffObject(
+          object,
+          'added',
+          () => id++,
+          diffSymbolIdFor(
+            symbolFor(object, afterSymbols),
+            'added',
+            object.type,
+          ),
+        ),
+      )
     }
   }
 
@@ -191,7 +230,11 @@ function diffMaps(
     },
     georeferencing: after.georeferencing ?? before.georeferencing,
     colors: diffColors(opts),
-    symbols: [...diffSymbols(opts), ...diffAreaSymbols(), ...symbolClones.values()],
+    symbols: [
+      ...diffSymbols(opts),
+      ...diffAreaSymbols(),
+      ...symbolClones.values(),
+    ],
     objects,
     warnings: [...before.warnings, ...after.warnings],
   })
@@ -200,7 +243,7 @@ function diffMaps(
 function diffMapsToSvg(
   before: Panmap,
   after: Panmap,
-  options?: DiffMapsOptions
+  options?: DiffMapsOptions,
 ): unknown {
   return mapToSvg(diffMaps(before, after, options))
 }
@@ -241,21 +284,23 @@ function cancelIdenticalLines(
 function transformObjects(
   objects: MapObject[],
   map: Panmap,
-  transform?: CoordinateTransform
+  transform?: CoordinateTransform,
 ): MapObject[] {
   if (!transform) return objects
 
   return objects.map(object => {
     const coordinates = Array.isArray(object.coordinates)
       ? (object.coordinates as number[][]).map(coord =>
-          transform(coord, object, map)
+          transform(coord, object, map),
         )
       : object.coordinates
 
     return {
       ...object,
       coordinates,
-      bounds: Array.isArray(coordinates) ? boundsForCoords(coordinates) : object.bounds,
+      bounds: Array.isArray(coordinates)
+        ? boundsForCoords(coordinates)
+        : object.bounds,
       sourceObject: object,
     }
   })
@@ -359,17 +404,29 @@ export function diffAreaSymbols(
   const out: MapSymbol[] = []
   for (const kind of kinds) {
     out.push({
-      id: `diff-border-${kind}`, sourceId: `diff-border-${kind}`,
-      code: `diff-border-${kind}`, name: `diff-border-${kind}`,
-      type: 'line', hidden: false,
+      id: `diff-border-${kind}`,
+      sourceId: `diff-border-${kind}`,
+      code: `diff-border-${kind}`,
+      name: `diff-border-${kind}`,
+      type: 'line',
+      hidden: false,
       layers: [{ type: 'stroke', colorId: kind, width: DIFF_OUTLINE_WIDTH }],
     } as unknown as MapSymbol)
     out.push({
-      id: `diff-area-${kind}`, sourceId: `diff-area-${kind}`,
-      code: `diff-area-${kind}`, name: `diff-area-${kind}`,
-      type: 'area', hidden: false,
+      id: `diff-area-${kind}`,
+      sourceId: `diff-area-${kind}`,
+      code: `diff-area-${kind}`,
+      name: `diff-area-${kind}`,
+      type: 'area',
+      hidden: false,
       layers: [
-        { type: 'hatch-fill', colorId: kind, spacing: 120, lineWidth: 14, angle: 45 },
+        {
+          type: 'hatch-fill',
+          colorId: kind,
+          spacing: 120,
+          lineWidth: 14,
+          angle: 45,
+        },
         { type: 'border-symbol', symbolId: `diff-border-${kind}` },
       ],
     } as unknown as MapSymbol)
@@ -381,7 +438,7 @@ function diffSymbol(
   id: string,
   type: string,
   diffKind: DiffKind,
-  layers: RenderLayer[]
+  layers: RenderLayer[],
 ): DiffSymbol {
   return {
     id,
@@ -401,7 +458,7 @@ function symbolsById(map: Panmap): Record<number | string, MapSymbol> {
       symbols[symbol.id] = symbol
       return symbols
     },
-    {}
+    {},
   )
 }
 
@@ -437,7 +494,9 @@ function lineSegmentDiffObjects(
     const key = segmentKeyOf(groupPrefix, previous, coord, options)
     if (consume(oppositeSegments, key)) {
       if (current.length > 1) {
-        result.push(lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)))
+        result.push(
+          lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)),
+        )
       }
       current = []
       if (options.includeUnchanged && kind === 'removed') {
@@ -448,7 +507,15 @@ function lineSegmentDiffObjects(
     }
 
     if (unchanged.length > 1) {
-      result.push(lineDiffObject(object, unchanged, 'unchanged', nextId, symbolIdFor('unchanged')))
+      result.push(
+        lineDiffObject(
+          object,
+          unchanged,
+          'unchanged',
+          nextId,
+          symbolIdFor('unchanged'),
+        ),
+      )
       unchanged = []
     }
 
@@ -462,10 +529,20 @@ function lineSegmentDiffObjects(
   }
 
   if (current.length > 1) {
-    result.push(lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)))
+    result.push(
+      lineDiffObject(object, current, kind, nextId, symbolIdFor(kind)),
+    )
   }
   if (unchanged.length > 1) {
-    result.push(lineDiffObject(object, unchanged, 'unchanged', nextId, symbolIdFor('unchanged')))
+    result.push(
+      lineDiffObject(
+        object,
+        unchanged,
+        'unchanged',
+        nextId,
+        symbolIdFor('unchanged'),
+      ),
+    )
   }
 
   return result
@@ -474,7 +551,7 @@ function lineSegmentDiffObjects(
 function segmentCounts(
   objects: MapObject[],
   symbols: Record<number | string, MapSymbol>,
-  options: ResolvedDiffMapsOptions
+  options: ResolvedDiffMapsOptions,
 ): Map<string, number> {
   const counts = new Map<string, number>()
   for (const object of objects) {
@@ -485,7 +562,10 @@ function segmentCounts(
     }
     const groupPrefix = groupPrefixOf(object, symbols)
     for (let i = 1; i < coords.length; i++) {
-      increment(counts, segmentKeyOf(groupPrefix, coords[i - 1], coords[i], options))
+      increment(
+        counts,
+        segmentKeyOf(groupPrefix, coords[i - 1], coords[i], options),
+      )
     }
   }
   return counts
@@ -494,7 +574,7 @@ function segmentCounts(
 function objectCounts(
   objects: MapObject[],
   symbols: Record<number | string, MapSymbol>,
-  options: ResolvedDiffMapsOptions
+  options: ResolvedDiffMapsOptions,
 ): Map<string, number> {
   const counts = new Map<string, number>()
   for (const object of objects) {
@@ -506,7 +586,7 @@ function objectCounts(
 function objectKey(
   object: MapObject,
   symbols: Record<number | string, MapSymbol>,
-  options: ResolvedDiffMapsOptions
+  options: ResolvedDiffMapsOptions,
 ): string {
   const coords = object.coordinates as number[][]
   const coordKey = objectGeometryKey(object, coords, options)
@@ -521,7 +601,7 @@ function objectKey(
 function objectGeometryKey(
   object: MapObject,
   coords: number[][],
-  options: ResolvedDiffMapsOptions
+  options: ResolvedDiffMapsOptions,
 ): string {
   if (!Array.isArray(coords)) return ''
 
@@ -536,7 +616,8 @@ function objectGeometryKey(
 // Hoisted out of the per-segment loop so symbolKey (a regex test +
 // parseSymbolCode) runs once per object instead of once per segment.
 function groupPrefixOf(
-  object: MapObject, symbols: Record<number | string, MapSymbol>,
+  object: MapObject,
+  symbols: Record<number | string, MapSymbol>,
 ): string {
   return `${symbolKey(symbols[object.symbolId])}:${object.type}:`
 }
@@ -545,7 +626,9 @@ function groupPrefixOf(
 // group prefix. Reproduces the original `<symbolKey>:<type>:ca|cb` exactly —
 // only the symbolKey computation moved out of the loop.
 function segmentKeyOf(
-  groupPrefix: string, a: number[], b: number[],
+  groupPrefix: string,
+  a: number[],
+  b: number[],
   options: ResolvedDiffMapsOptions,
 ): string {
   const ca = coordString(a, options)
@@ -568,11 +651,14 @@ function symbolKey(symbol?: MapSymbol): string {
   return code || symbol.name || String(symbol.id)
 }
 
-function coordString(coord: number[], options: ResolvedDiffMapsOptions): string {
+function coordString(
+  coord: number[],
+  options: ResolvedDiffMapsOptions,
+): string {
   if (options.coordinateTolerance > 0) {
     return `${roundTo(coord[0], options.coordinateTolerance)},${roundTo(
       coord[1],
-      options.coordinateTolerance
+      options.coordinateTolerance,
     )}`
   }
 
@@ -607,7 +693,8 @@ function diffObject(
   return {
     ...object,
     id: nextId(),
-    symbolId: overrideSymbolId ??
+    symbolId:
+      overrideSymbolId ??
       `${kind}-${object.type === 'line-text' ? 'text' : object.type}`,
     hidden: false,
     diffKind: kind,
@@ -635,7 +722,10 @@ function lineDiffObject(
   }
 }
 
-function boundsForCoords(coordinates: number[][]): { min: number[]; max: number[] } {
+function boundsForCoords(coordinates: number[][]): {
+  min: number[]
+  max: number[]
+} {
   return sharedBoundsForCoords(coordinates) ?? { min: [0, 0], max: [0, 0] }
 }
 
@@ -644,7 +734,9 @@ function boundsForCoords(coordinates: number[][]): { min: number[]; max: number[
 // icons, line dashes/mid-symbols, area fills). Invalid ids (e.g. -1 "no
 // colour") are left untouched so invisible layers stay invisible.
 export function recolorSymbol(
-  orig: MapSymbol, kind: string, unchangedOpacity = 0.18,
+  orig: MapSymbol,
+  kind: string,
+  unchangedOpacity = 0.18,
 ): MapSymbol {
   const clone = remapColorRefs(orig, kind) as MapSymbol
   clone.id = `diff-${kind}-${orig.id}`
@@ -662,7 +754,8 @@ function remapColorRefs(value: unknown, colorId: string): unknown {
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = isColorKey(k) && isColorRef(v) ? colorId : remapColorRefs(v, colorId)
+      out[k] =
+        isColorKey(k) && isColorRef(v) ? colorId : remapColorRefs(v, colorId)
     }
     return out
   }
@@ -676,7 +769,9 @@ function isColorKey(key: string): boolean {
   return /colou?r(id)?$/i.test(key)
 }
 function isColorRef(v: unknown): boolean {
-  return (typeof v === 'number' && v >= 0) || (typeof v === 'string' && v.length > 0)
+  return (
+    (typeof v === 'number' && v >= 0) || (typeof v === 'string' && v.length > 0)
+  )
 }
 
 export { diffMapsToSvg }

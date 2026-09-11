@@ -12,8 +12,8 @@ fetch('example.ocd')
         toBuffer(blob, (err, buffer) => {
           if (err) reject(err)
           resolve(buffer)
-        })
-      )
+        }),
+      ),
   )
   .then(buffer => readOcad(buffer))
   .then(ocadFile => {
@@ -39,7 +39,7 @@ fetch('example.ocd')
               c &&
               c.rgbArray[0] === x[0][0] &&
               c.rgbArray[1] === x[0][1] &&
-              c.rgbArray[2] === x[0][2]
+              c.rgbArray[2] === x[0][2],
           )
         return (color && color.cmyk && [color.cmyk, x[1]]) || x
       },

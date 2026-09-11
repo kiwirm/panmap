@@ -39,7 +39,7 @@ export default class ObjectIndexBlock {
       throw new InvalidObjectIndexBlockError(
         `Invalid object index block pointer ${this.nextObjectIndexBlock} > ${
           reader.buffer.length - (256 * 40 + 4)
-        }.`
+        }.`,
       )
     }
 

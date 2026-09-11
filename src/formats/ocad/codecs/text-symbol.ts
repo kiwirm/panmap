@@ -24,7 +24,10 @@ export function unpackOcadTextAlign(alignment: number): OcadTextAlign {
 }
 
 /** Pack horizontal + vertical alignment (each 0-3) into OCAD's alignment byte. */
-export function packOcadTextAlign(horizontal: number, vertical: number): number {
+export function packOcadTextAlign(
+  horizontal: number,
+  vertical: number,
+): number {
   return (horizontal & 0x03) | ((vertical & 0x03) << 2)
 }
 

@@ -156,7 +156,11 @@ function readDoubleLine(reader: BufferReader, version: number): DoubleLine {
     dblRes: [],
   }
   if (version === 10) {
-    dl.dblRes = [reader.readSmallInt(), reader.readSmallInt(), reader.readSmallInt()]
+    dl.dblRes = [
+      reader.readSmallInt(),
+      reader.readSmallInt(),
+      reader.readSmallInt(),
+    ]
   } else {
     dl.dblBackgroundColor = reader.readSmallInt()
     dl.dblRes = [reader.readSmallInt(), reader.readSmallInt()]

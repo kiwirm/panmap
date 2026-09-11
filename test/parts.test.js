@@ -21,7 +21,7 @@ const HEAD = `<?xml version="1.0" encoding="UTF-8"?>
       <symbol type="2" id="10" code="501.0" name="Path"><line_symbol color="0" line_width="100" /></symbol>
     </symbols>`
 
-const lineObject = (y) =>
+const lineObject = y =>
   `<object type="1" symbol="10"><coords><coord x="0" y="${y}"/><coord x="1000" y="${y}"/></coords></object>`
 
 const MULTIPART = `${HEAD}
@@ -42,10 +42,19 @@ const SINGLE = `${HEAD}
 test('multi-part OMap → model exposes parts + per-object partId', async (/** @type {ExecutionContext} */ t) => {
   const map = await read(MULTIPART)
   t.is(map.parts?.length, 2)
-  t.deepEqual(map.parts.map(p => p.name), ['Alpha', 'Beta'])
-  t.deepEqual(map.parts.map(p => p.id), ['part_main', 'part_1'])
+  t.deepEqual(
+    map.parts.map(p => p.name),
+    ['Alpha', 'Beta'],
+  )
+  t.deepEqual(
+    map.parts.map(p => p.id),
+    ['part_main', 'part_1'],
+  )
   t.is(map.objects.length, 2)
-  t.deepEqual(new Set(map.objects.map(o => o.partId)), new Set(['part_main', 'part_1']))
+  t.deepEqual(
+    new Set(map.objects.map(o => o.partId)),
+    new Set(['part_main', 'part_1']),
+  )
 })
 
 test('single-part OMap keeps parts/partId undefined (behaviour unchanged)', async (/** @type {ExecutionContext} */ t) => {
@@ -62,11 +71,16 @@ test('parts survive an OMap → OMap round-trip', async (/** @type {ExecutionCon
   await writeMap(map, out)
   const xml = await fs.readFile(out, 'utf-8')
   t.true(xml.includes('<parts count="2"'), 'emits two parts')
-  t.true(xml.includes('<part name="Alpha">') && xml.includes('<part name="Beta">'))
+  t.true(
+    xml.includes('<part name="Alpha">') && xml.includes('<part name="Beta">'),
+  )
 
   const rt = await read(out)
   t.is(rt.parts?.length, 2)
-  t.deepEqual(rt.parts.map(p => p.name), ['Alpha', 'Beta'])
+  t.deepEqual(
+    rt.parts.map(p => p.name),
+    ['Alpha', 'Beta'],
+  )
   t.is(rt.objects.filter(o => o.partId === 'part_main').length, 1)
   t.is(rt.objects.filter(o => o.partId === 'part_1').length, 1)
 })
@@ -77,11 +91,23 @@ test('parts survive an OMap → gitmap → model round-trip', async (/** @type {
   const pkg = path.join(tmp, 'm.gitmap')
   await gitmap.write(map, pkg, { overwrite: true })
 
-  const objectsNdjson = await fs.readFile(path.join(pkg, 'objects.ndjson'), 'utf-8')
-  t.true(objectsNdjson.includes('"partId":"part_1"'), 'objects.ndjson carries the real partId')
+  const objectsNdjson = await fs.readFile(
+    path.join(pkg, 'objects.ndjson'),
+    'utf-8',
+  )
+  t.true(
+    objectsNdjson.includes('"partId":"part_1"'),
+    'objects.ndjson carries the real partId',
+  )
 
   const back = await read(pkg)
   t.is(back.parts?.length, 2)
-  t.deepEqual(back.parts.map(p => p.name), ['Alpha', 'Beta'])
-  t.deepEqual(new Set(back.objects.map(o => o.partId)), new Set(['part_main', 'part_1']))
+  t.deepEqual(
+    back.parts.map(p => p.name),
+    ['Alpha', 'Beta'],
+  )
+  t.deepEqual(
+    new Set(back.objects.map(o => o.partId)),
+    new Set(['part_main', 'part_1']),
+  )
 })

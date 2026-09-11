@@ -368,7 +368,9 @@ export default class Panmap {
     })
   }
 
-  getBounds(projection: Projection = identity): [number, number, number, number] {
+  getBounds(
+    projection: Projection = identity,
+  ): [number, number, number, number] {
     const bounds: [number, number, number, number] = [
       Number.MAX_VALUE,
       Number.MAX_VALUE,

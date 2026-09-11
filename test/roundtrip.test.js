@@ -53,7 +53,11 @@ async function roundTrip(file, format) {
 
 const FIXTURES = [
   { name: 'basic-1', file: fixtureFile('basic-1.ocd'), format: 'ocd' },
-  { name: 'bottle-lake', file: fixtureFile('bottle-lake-5c6c8e6.xmap'), format: 'xmap' },
+  {
+    name: 'bottle-lake',
+    file: fixtureFile('bottle-lake-5c6c8e6.xmap'),
+    format: 'xmap',
+  },
 ]
 
 // Residual symbol round-trip drift per fixture (differing symbols.ndjson lines).
@@ -77,7 +81,8 @@ for (const { name, file, format } of FIXTURES) {
     const b = before.symbols.split('\n')
     const a = after.symbols.split('\n')
     let drift = 0
-    for (let i = 0; i < Math.max(a.length, b.length); i++) if (a[i] !== b[i]) drift++
+    for (let i = 0; i < Math.max(a.length, b.length); i++)
+      if (a[i] !== b[i]) drift++
     t.true(
       drift <= SYMBOL_DRIFT[name],
       `${name} symbol drift ${drift} exceeds baseline ${SYMBOL_DRIFT[name]} (regression)`,
@@ -98,9 +103,10 @@ test('OCD write→read preserves every area hole-flag position (bottle-lake)', a
   await write(m0, ocd)
   const m1 = await read(ocd)
 
-  const holeIdx = obj => (obj.coordinates || [])
-    .map((c, i) => ((c.yFlags ?? 0) & HOLE) ? i : -1)
-    .filter(i => i >= 0)
+  const holeIdx = obj =>
+    (obj.coordinates || [])
+      .map((c, i) => ((c.yFlags ?? 0) & HOLE ? i : -1))
+      .filter(i => i >= 0)
 
   let interiorHoles = 0
   const n = Math.min(m0.objects.length, m1.objects.length)
@@ -114,5 +120,8 @@ test('OCD write→read preserves every area hole-flag position (bottle-lake)', a
   }
   // Guard against the assertion passing vacuously — the fixture must actually
   // contain interior holes for this to be meaningful.
-  t.true(interiorHoles > 100, `expected many interior holes, saw ${interiorHoles}`)
+  t.true(
+    interiorHoles > 100,
+    `expected many interior holes, saw ${interiorHoles}`,
+  )
 })

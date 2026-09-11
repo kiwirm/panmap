@@ -49,8 +49,20 @@ test('a last-coord hole flag (closed-line ClosePoint) is left untouched by both'
   // last-coord flag (it is only ever a shift target), so the reader must not
   // move it either, or closed lines corrupt.
   const closedLine = coords(0, 0, 0, 0, HOLE)
-  t.deepEqual(flags(shiftHoleFlagsToOcad(closedLine.map(c => ({ ...c })))), [0, 0, 0, 0, HOLE])
-  t.deepEqual(flags(shiftHoleFlagsFromOcad(closedLine.map(c => ({ ...c })))), [0, 0, 0, 0, HOLE])
+  t.deepEqual(flags(shiftHoleFlagsToOcad(closedLine.map(c => ({ ...c })))), [
+    0,
+    0,
+    0,
+    0,
+    HOLE,
+  ])
+  t.deepEqual(flags(shiftHoleFlagsFromOcad(closedLine.map(c => ({ ...c })))), [
+    0,
+    0,
+    0,
+    0,
+    HOLE,
+  ])
 })
 
 test('inverse holds across randomised interior-hole layouts', t => {

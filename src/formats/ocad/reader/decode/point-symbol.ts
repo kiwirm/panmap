@@ -12,7 +12,10 @@ export interface PointSymbolProps {
 
 export type PointSymbolDef = BaseSymbolProps & PointSymbolProps
 
-export default class PointSymbol extends BaseSymbol implements PointSymbolProps {
+export default class PointSymbol
+  extends BaseSymbol
+  implements PointSymbolProps
+{
   type: typeof PointSymbolType = PointSymbolType
   dataSize!: number
   elements!: SymbolElement[]
