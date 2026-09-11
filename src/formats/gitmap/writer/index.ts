@@ -17,7 +17,7 @@ interface WriteGitmapOptions {
 async function writeGitmap(
   map: Panmap,
   directory: string,
-  options: WriteGitmapOptions = {}
+  options: WriteGitmapOptions = {},
 ): Promise<void> {
   if (options.overwrite) {
     await fs.rm(directory, { recursive: true, force: true })
@@ -31,7 +31,7 @@ async function writeGitmap(
     .sort((a, b) => a.renderOrder - b.renderOrder || a.id.localeCompare(b.id))
 
   const colorIds = new Map(
-    map.colors.filter(Boolean).map(color => [color.id, stableColorId(color)])
+    map.colors.filter(Boolean).map(color => [color.id, stableColorId(color)]),
   )
   // Build the `<input id> → <stable id>` map with collision handling.
   // Mapper allows two symbols to share the same numeric code (e.g. two
@@ -52,7 +52,7 @@ async function writeGitmap(
   }
   // `symbolsById` lets canonicalisers dereference cross-symbol references
   // (e.g. `border-symbol.symbolId` → the referenced line symbol's stroke).
-  const symbolsById = new Map<string | number, typeof map.symbols[number]>()
+  const symbolsById = new Map<string | number, (typeof map.symbols)[number]>()
   for (const s of map.symbols) {
     symbolsById.set(s.id, s)
     if (s.sourceId !== undefined && s.sourceId !== s.id) {
@@ -67,7 +67,7 @@ async function writeGitmap(
     .sort(
       (a, b) =>
         String(a.code || '').localeCompare(String(b.code || '')) ||
-        a.id.localeCompare(b.id)
+        a.id.localeCompare(b.id),
     )
   // No stored `order`: a symbol's rank was just its index in this code-sorted
   // list — derivable from line position, and it DIVERGED cross-format whenever
@@ -75,12 +75,6 @@ async function writeGitmap(
   // the index of every later symbol. Dropping it converges those otherwise-
   // identical symbols; the reader re-derives the same value from the read index.
 
-  // OCAD stores coordinates y-up; every other format (omap, gitmap) is
-  // y-down "visual" space. Flip an ocad-sourced map's object coordinates on
-  // the way into gitmap so the package is canonically y-down — otherwise an
-  // ocd→gitmap conversion lands upside-down relative to omap-sourced gitmaps
-  // and any diff between them reports the whole map as changed.
-  const flipY = false // model is already canonical y-down
   // `map.objects` is in render (z-) order; the object's index is its canonical
   // z-rank, written as `order` so the same map serialises identically across
   // source formats (which assign different raw object ids but the same order).
@@ -95,7 +89,7 @@ async function writeGitmap(
   // cross-format, which would reintroduce the identity gap this sort closes.
   const objects = map.objects
     .map((object, i) =>
-      toGitmapObject(object, symbolIds, object.partId ?? 'part_main', flipY, i)
+      toGitmapObject(object, symbolIds, object.partId ?? 'part_main', i),
     )
     .sort(compareObjects)
 
@@ -127,7 +121,7 @@ async function writeGitmap(
   await writeNdjson(directory, 'symbols.ndjson', symbols)
   await fs.writeFile(
     path.join(directory, 'objects.ndjson'),
-    `${objects.map(stableJson).join('\n')}\n`
+    `${objects.map(stableJson).join('\n')}\n`,
   )
 
   // Editor viewport / print state is deliberately NOT written. A gitmap
@@ -153,12 +147,12 @@ interface SortableObject {
 
 function compareObjects(a: SortableObject, b: SortableObject): number {
   return (
-    a.partId.localeCompare(b.partId)
-    || String(a.symbolId ?? '').localeCompare(String(b.symbolId ?? ''))
-    || compareRing(a.coordinates, b.coordinates)
-    || compareRings(a.holes, b.holes)
-    || (a.text ?? '').localeCompare(b.text ?? '')
-    || (a.rotation ?? 0) - (b.rotation ?? 0)
+    a.partId.localeCompare(b.partId) ||
+    String(a.symbolId ?? '').localeCompare(String(b.symbolId ?? '')) ||
+    compareRing(a.coordinates, b.coordinates) ||
+    compareRings(a.holes, b.holes) ||
+    (a.text ?? '').localeCompare(b.text ?? '') ||
+    (a.rotation ?? 0) - (b.rotation ?? 0)
   )
 }
 
@@ -172,7 +166,7 @@ function compareRing(a: unknown[] = [], b: unknown[] = []): number {
   for (let i = 0; i < n; i++) {
     const va = a[i] as number[]
     const vb = b[i] as number[]
-    const d = (va[0] - vb[0]) || (va[1] - vb[1])
+    const d = va[0] - vb[0] || va[1] - vb[1]
     if (d) return d
   }
   return a.length - b.length
@@ -192,10 +186,14 @@ async function writeJson(directory: string, filename: string, value: unknown) {
   await fs.writeFile(path.join(directory, filename), stableJsonPretty(value))
 }
 
-async function writeNdjson(directory: string, filename: string, records: unknown[]) {
+async function writeNdjson(
+  directory: string,
+  filename: string,
+  records: unknown[],
+) {
   await fs.writeFile(
     path.join(directory, filename),
-    `${records.map(stableJson).join('\n')}\n`
+    `${records.map(stableJson).join('\n')}\n`,
   )
 }
 

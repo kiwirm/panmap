@@ -3,11 +3,11 @@ import { packOcadOrdinate } from '../../codecs/index.js'
 
 /**
  * On-disk OCAD symbol-element record. Shared by the writer (this file
- * consumes it), the synth path (`synthesize-symbols.ts` builds it),
- * and the reader (`to-map.ts` translates it into Panmap render
- * layers). Element `type` is one of `LineElementType` /
+ * consumes it), the synth path (`from-panmap/symbols.ts` builds it),
+ * and the reader (`reader/to-panmap.ts` translates it into Panmap
+ * render layers). Element `type` is one of `LineElementType` /
  * `AreaElementType` / `CircleElementType` / `DotElementType`
- * (see `../read/symbol-element-types.ts`).
+ * (see `../../native/symbol-element-types.ts`).
  */
 export interface OcadElement {
   type: number
@@ -17,13 +17,10 @@ export interface OcadElement {
   diameter: number
   numberCoords: number
   coords: Array<
-    [number, number]
+    | [number, number]
     | { xFlags?: number; yFlags?: number; 0?: number; 1?: number }
   >
 }
-
-/** @deprecated use `OcadElement`. Preserved for existing importers. */
-export type SymbolElementLike = OcadElement
 
 /**
  * Inverse of `SymbolElement` reader: 16-byte header (type/flags/color/
@@ -35,7 +32,7 @@ export type SymbolElementLike = OcadElement
  */
 export function writeSymbolElement(
   writer: BufferWriter,
-  element: OcadElement
+  element: OcadElement,
 ): number {
   writer.writeSmallInt(element.type)
   writer.writeWord(element.flags)
@@ -65,7 +62,14 @@ export function writeSymbolElement(
 export type OcadCoordInput =
   | [number, number]
   | ArrayLike<number>
-  | { x?: number; y?: number; 0?: number; 1?: number; xFlags?: number; yFlags?: number }
+  | {
+      x?: number
+      y?: number
+      0?: number
+      1?: number
+      xFlags?: number
+      yFlags?: number
+    }
 
 /** Canonical OCAD coord: raw x/y in map units plus per-axis flag bytes. */
 export interface OcadCoord {
@@ -77,7 +81,12 @@ export interface OcadCoord {
 
 export function toOcadCoord(coord: OcadCoordInput): OcadCoord {
   const arr = coord as ArrayLike<number>
-  const obj = coord as { x?: number; y?: number; xFlags?: number; yFlags?: number }
+  const obj = coord as {
+    x?: number
+    y?: number
+    xFlags?: number
+    yFlags?: number
+  }
   const hasIndex0 = (coord as { 0?: number })[0] !== undefined
   return {
     x: hasIndex0 || Array.isArray(coord) ? arr[0] : (obj.x ?? 0),

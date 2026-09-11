@@ -5,7 +5,6 @@ import test from 'ava'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import {
   omap,
   read as readMap,
@@ -13,15 +12,8 @@ import {
   mapToGeoJson,
   Map,
 } from '../src/index.ts'
-import {
-  readOcad,
-  ocadFileToMap,
-  omapFileToMap,
-  readXmap,
-} from './helpers/raw.js'
+import { omapFileToMap, readXmap } from './helpers/raw.js'
 const writeOmap = omap.write
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const xmapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <map>
@@ -152,16 +144,24 @@ test('can write XMap and read it back', async (/** @type {ExecutionContext} */ t
   await writeMap(map, dispatched)
 
   const xml = await fs.readFile(direct, 'utf-8')
-  t.true(xml.includes('<map xmlns="http://openorienteering.org/apps/mapper/xml/v2" version="9">'))
+  t.true(
+    xml.includes(
+      '<map xmlns="http://openorienteering.org/apps/mapper/xml/v2" version="9">',
+    ),
+  )
   t.true(xml.includes('<colors count="2">'))
   t.true(xml.includes('<barrier version="6" required="0.6.0">'))
   t.true(xml.includes('<symbols count="3" id="panmap">'))
   t.true(xml.includes('<parts count="1" current="0">'))
   t.true(xml.includes('<part name="default part">'))
   t.true(xml.includes('<objects count="3">'))
-  t.true(xml.includes('<symbol type="4" id="20" code="401.0" name="Open land">'))
+  t.true(
+    xml.includes('<symbol type="4" id="20" code="401.0" name="Open land">'),
+  )
   t.true(xml.includes('<symbol type="8" id="30" code="801.0" name="Label">'))
-  t.true(xml.includes('<area_symbol inner_color="2" min_area="0" patterns="0"/>'))
+  t.true(
+    xml.includes('<area_symbol inner_color="2" min_area="0" patterns="0"/>'),
+  )
 
   const roundTrip = await readMap(direct)
   const dispatchedRoundTrip = await readMap(dispatched)
@@ -238,7 +238,6 @@ test('XMap writer preserves composite line symbol borders', async (/** @type {Ex
   t.regex(xml, /<border color="19" width="140" shift="70"/)
 })
 
-
 test('XMap round-trips templates, georeferencing, notes, view, print', async (/** @type {ExecutionContext} */ t) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <map xmlns="http://openorienteering.org/apps/mapper/xml/v2" version="9">
@@ -296,4 +295,3 @@ test('XMap round-trips templates, georeferencing, notes, view, print', async (/*
   t.is(map2.colors.length, map.colors.length)
   t.is(map2.symbols.length, map.symbols.length)
 })
-

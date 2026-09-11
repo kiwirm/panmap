@@ -1,9 +1,13 @@
 import type { MapColor, MapSymbol } from '../../../../panmap/model.js'
-import { classifyAreaLayers , isPatternLayer } from '../../../../panmap/render-layers.js'
+import {
+  classifyAreaLayers,
+  isPatternLayer,
+} from '../../../../panmap/render-layers.js'
 import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
 import { colorNumberLookup } from '../../../../panmap/color.js'
 import { strokeColorValid } from '../../../../panmap/stroke-classifier.js'
 import { collectSymbolColors } from './collect-symbol-colors.js'
+import { otpForType } from './object-type.js'
 import {
   PointSymbolType,
   LineSymbolType,
@@ -63,8 +67,7 @@ export function synthesizeSymbols(
   const flipY = sourceFormat !== 'ocad'
   const out: SynthesizedOcadSymbol[] = []
   const symNumFor = (s: MapSymbol): number =>
-    symNums?.get(s.id)
-    ?? parseSymbolCode(s.code || String(s.sourceId ?? s.id))
+    symNums?.get(s.id) ?? parseSymbolCode(s.code || String(s.sourceId ?? s.id))
   // Areas with a `stroke` render layer are drawn in OCAD as an area
   // symbol whose `borderSym` points at a paired line symbol. Mapper
   // synthesises the paired line symbol on export (see 301.0 →
@@ -95,7 +98,9 @@ export function synthesizeSymbols(
     const { border: borderLayer, strokes } = classifyAreaLayers(symbol)
     if (borderLayer) {
       const refId = borderLayer.symbolId
-      const referenced = symbols.find(s => s.id === refId || s.sourceId === refId)
+      const referenced = symbols.find(
+        s => s.id === refId || s.sourceId === refId,
+      )
       if (referenced) {
         const referencedNum = symNumFor(referenced)
         if (referencedNum) {
@@ -116,8 +121,16 @@ export function synthesizeSymbols(
     borderRegistry.set(symbol, nextBorderNum())
   }
   for (const symbol of symbols) {
-    const borderSymNum = borderRegistry.get(symbol) ?? existingBorderRef.get(symbol)
-    const s = synthesizeSymbol(symbol, colorNumber, colors, flipY, borderSymNum, symNumFor(symbol))
+    const borderSymNum =
+      borderRegistry.get(symbol) ?? existingBorderRef.get(symbol)
+    const s = synthesizeSymbol(
+      symbol,
+      colorNumber,
+      colors,
+      flipY,
+      borderSymNum,
+      symNumFor(symbol),
+    )
     if (s) {
       // Merge the border line's colors into the area's colorSet so
       // Mapper's rendering + palette count agree with what it writes
@@ -143,7 +156,12 @@ export function synthesizeSymbols(
     // synthetic id; existing references already resolve to a real
     // symbol emitted elsewhere in this loop.
     if (borderRegistry.has(symbol)) {
-      const border = synthesizeBorderLine(symbol, colorNumber, colors, borderRegistry.get(symbol)!)
+      const border = synthesizeBorderLine(
+        symbol,
+        colorNumber,
+        colors,
+        borderRegistry.get(symbol)!,
+      )
       if (border) out.push(border)
     }
   }
@@ -174,7 +192,14 @@ function synthesizeBorderLine(
     hidden: false,
     layers: [stroke],
   }
-  return synthesizeSymbol(fake, colorNumber, colors, false, undefined, /* forcedSymNum */ symNum)
+  return synthesizeSymbol(
+    fake,
+    colorNumber,
+    colors,
+    false,
+    undefined,
+    /* forcedSymNum */ symNum,
+  )
 }
 
 function synthesizeSymbol(
@@ -185,36 +210,56 @@ function synthesizeSymbol(
   borderSymNum?: number,
   forcedSymNum?: number,
 ): SynthesizedOcadSymbol | null {
-  const symNum = forcedSymNum
-    ?? parseSymbolCode(symbol.code || String(symbol.sourceId ?? symbol.id))
+  const symNum =
+    forcedSymNum ??
+    parseSymbolCode(symbol.code || String(symbol.sourceId ?? symbol.id))
   // xmap's Panmap converter flattens `combined` symbols' component
   // layers into a single symbol; the composite type in OCAD is
   // whichever primitive geometry the layers describe. Infer that from
   // the flattened layer types.
-  const effectiveType = symbol.type === 'combined'
-    ? inferOcadTypeFromLayers(symbol)
-    : symbol.type
+  const effectiveType =
+    symbol.type === 'combined' ? inferOcadTypeFromLayers(symbol) : symbol.type
 
   // Compute type-body first so we can hand the resulting point
   // elements to the icon rasterizer, giving it real geometry to
   // draw instead of a stylised disc.
   let body: Record<string, unknown> | null = null
   switch (effectiveType) {
-    case 'point': body = pointBody(symbol, colorNumber, flipY); break
-    case 'line':  body = lineBody(symbol, colorNumber, flipY); break
-    case 'area':  body = areaBody(symbol, colorNumber, flipY, borderSymNum); break
-    case 'text':  body = textBody(symbol, colorNumber); break
-    default: return null
+    case 'point':
+      body = pointBody(symbol, colorNumber, flipY)
+      break
+    case 'line':
+      body = lineBody(symbol, colorNumber, flipY)
+      break
+    case 'area':
+      body = areaBody(symbol, colorNumber, flipY, borderSymNum)
+      break
+    case 'text':
+      body = textBody(symbol, colorNumber)
+      break
+    default:
+      return null
   }
 
-  const pointElements = effectiveType === 'point'
-    ? (body.elements as Array<{ type: number; color: number; lineWidth: number; diameter: number; coords: Array<{ 0: number; 1: number }> }>)
-    : undefined
+  const pointElements =
+    effectiveType === 'point'
+      ? (body.elements as Array<{
+          type: number
+          color: number
+          lineWidth: number
+          diameter: number
+          coords: Array<{ 0: number; 1: number }>
+        }>)
+      : undefined
 
   const extent = computeExtent(effectiveType, body, pointElements)
 
   const common = commonHeader(
-    symbol, colorNumber, symNum, effectiveType, colors,
+    symbol,
+    colorNumber,
+    symNum,
+    effectiveType,
+    colors,
     pointElements,
   )
   if (pointElements) {
@@ -241,7 +286,11 @@ function synthesizeSymbol(
 function computeExtent(
   effectiveType: string,
   body: Record<string, unknown>,
-  pointElements?: Array<{ lineWidth: number; diameter: number; coords: Array<{ 0: number; 1: number }> }>,
+  pointElements?: Array<{
+    lineWidth: number
+    diameter: number
+    coords: Array<{ 0: number; 1: number }>
+  }>,
 ): number {
   if (effectiveType === 'line') {
     // Mapper's `exportLineSymbolPrivate` builds extent as:
@@ -252,24 +301,37 @@ function computeExtent(
     // arrays on decoration elements are relative to the anchor, so
     // their extent is half-max(|x|,|y|) + halfWidth.
     const lineWidth = Number(body.lineWidth) || 0
-    const dbl = body.doubleLine as {
-      dblLeftWidth?: number; dblRightWidth?: number; dblWidth?: number
-    } | undefined
+    const dbl = body.doubleLine as
+      | {
+          dblLeftWidth?: number
+          dblRightWidth?: number
+          dblWidth?: number
+        }
+      | undefined
     let extent = lineWidth / 2
     if (dbl) {
-      const halfDbl = (dbl.dblWidth ?? 0) / 2
-        + Math.max(dbl.dblLeftWidth ?? 0, dbl.dblRightWidth ?? 0)
+      const halfDbl =
+        (dbl.dblWidth ?? 0) / 2 +
+        Math.max(dbl.dblLeftWidth ?? 0, dbl.dblRightWidth ?? 0)
       if (halfDbl > extent) extent = halfDbl
     }
-    for (const key of ['primSymElements', 'startSymElements', 'endSymElements', 'cornerSymElements']) {
-      const arr = body[key] as Array<{
-        lineWidth?: number; diameter?: number;
-        coords?: Array<{ 0: number; 1: number }>
-      }> | undefined
+    for (const key of [
+      'primSymElements',
+      'startSymElements',
+      'endSymElements',
+      'cornerSymElements',
+    ]) {
+      const arr = body[key] as
+        | Array<{
+            lineWidth?: number
+            diameter?: number
+            coords?: Array<{ 0: number; 1: number }>
+          }>
+        | undefined
       if (!arr?.length) continue
       for (const el of arr) {
         const halfW = Math.max((el.diameter ?? 0) / 2, (el.lineWidth ?? 0) / 2)
-        for (const c of (el.coords ?? [])) {
+        for (const c of el.coords ?? []) {
           const d = Math.max(Math.abs(c[0]), Math.abs(c[1])) + halfW
           if (d > extent) extent = d
         }
@@ -283,7 +345,10 @@ function computeExtent(
     // width. NOT the Euclidean distance from origin (which our old
     // impl used and consistently over-counted, e.g. sym 601005
     // arrowhead computed 612 instead of Mapper's 306).
-    let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
     for (const el of pointElements) {
       const halfW = Math.max(el.diameter / 2, el.lineWidth / 2)
       for (const c of el.coords) {
@@ -308,15 +373,20 @@ function computeExtent(
  */
 function inferOcadTypeFromLayers(symbol: MapSymbol): string {
   const types = new Set((symbol.layers ?? []).map(l => l.type))
-  if (types.has('fill') || types.has('hatch-fill') || types.has('point-pattern-fill')) {
+  if (
+    types.has('fill') ||
+    types.has('hatch-fill') ||
+    types.has('point-pattern-fill')
+  ) {
     return 'area'
   }
   if (types.has('stroke') || types.has('line-symbols')) return 'line'
   if (
-    types.has('point-fill')
-    || types.has('point-stroke')
-    || types.has('point-elements')
-  ) return 'point'
+    types.has('point-fill') ||
+    types.has('point-stroke') ||
+    types.has('point-elements')
+  )
+    return 'point'
   if (types.has('text')) return 'text'
   return 'point'
 }
@@ -328,7 +398,10 @@ function commonHeader(
   effectiveType: string,
   colors: MapColor[],
   pointElements?: Array<{
-    type: number; color: number; lineWidth: number; diameter: number;
+    type: number
+    color: number
+    lineWidth: number
+    diameter: number
     coords: Array<{ 0: number; 1: number }>
   }>,
 ) {
@@ -385,7 +458,7 @@ function isRotatable(symbol: MapSymbol): boolean {
     if (isPatternLayer(layer) && layer.pattern?.rotatable) return true
     for (const key of ['pointSymbol', 'symbol'] as const) {
       const inner = (layer as Record<string, unknown>)[key] as
-        | { rotatable?: boolean } | undefined
+        { rotatable?: boolean } | undefined
       if (inner?.rotatable) return true
     }
   }
@@ -394,11 +467,16 @@ function isRotatable(symbol: MapSymbol): boolean {
 
 function ocadType(t: string): number {
   switch (t) {
-    case 'point': return PointSymbolType
-    case 'line':  return LineSymbolType
-    case 'area':  return AreaSymbolType
-    case 'text':  return TextSymbolType
-    default:      return PointSymbolType
+    case 'point':
+      return PointSymbolType
+    case 'line':
+      return LineSymbolType
+    case 'area':
+      return AreaSymbolType
+    case 'text':
+      return TextSymbolType
+    default:
+      return PointSymbolType
   }
 }
 
@@ -406,13 +484,3 @@ function ocadType(t: string): number {
  * Object Type Primitive — how OCAD categorises the geometry the symbol
  * can be applied to. Values from Mapper's `ocd_types.h`.
  */
-function otpForType(t: string): number {
-  switch (t) {
-    case 'point': return 1
-    case 'line':  return 2
-    case 'area':  return 3
-    case 'text':  return 4
-    default:      return 1
-  }
-}
-

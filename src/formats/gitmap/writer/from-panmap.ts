@@ -1,7 +1,16 @@
-import type { MapColor, MapObject, MapSymbol, RenderLayer } from '../../../panmap/model.js'
+import type {
+  MapColor,
+  MapObject,
+  MapSymbol,
+  RenderLayer,
+} from '../../../panmap/model.js'
+import { cleanNumber } from '../../../util/number.js'
 import {
-  capStyleToGitmap, joinStyleToGitmap,
-  hAlignToGitmap, vAlignToGitmap, rotationToGitmap,
+  capStyleToGitmap,
+  joinStyleToGitmap,
+  hAlignToGitmap,
+  vAlignToGitmap,
+  rotationToGitmap,
 } from '../codecs/index.js'
 import { canonicalSymbolCode } from '../../../panmap/symbol-code.js'
 
@@ -36,12 +45,20 @@ function rgbToArray(rgb: unknown): [number, number, number] | undefined {
   if (typeof rgb === 'string') {
     const m = rgb.match(/-?\d+(?:\.\d+)?/g)
     if (!m || m.length < 3) return undefined
-    return m.slice(0, 3).map(n => Math.round(Number(n))) as [number, number, number]
+    return m.slice(0, 3).map(n => Math.round(Number(n))) as [
+      number,
+      number,
+      number,
+    ]
   }
   if (Array.isArray(rgb) && rgb.length >= 3) {
     const max = Math.max(rgb[0], rgb[1], rgb[2])
     const scale = max <= 1 ? 255 : 1
-    return rgb.slice(0, 3).map(v => Math.round(Number(v) * scale)) as [number, number, number]
+    return rgb.slice(0, 3).map(v => Math.round(Number(v) * scale)) as [
+      number,
+      number,
+      number,
+    ]
   }
   return undefined
 }
@@ -64,18 +81,27 @@ function canonicalSymbolType(
 ): string | undefined {
   const hasBorder = canonLayers.some(l => l.type === 'border-symbol')
   const hasFill = canonLayers.some(
-    l => l.type === 'fill' || l.type === 'hatch-fill'
-      || l.type === 'point-pattern-fill' || l.type === 'structure-fill',
+    l =>
+      l.type === 'fill' ||
+      l.type === 'hatch-fill' ||
+      l.type === 'point-pattern-fill' ||
+      l.type === 'structure-fill',
   )
   const hasStroke = canonLayers.some(l => l.type === 'stroke')
   const hasLineGeometry = canonLayers.some(
-    l => l.type === 'stroke' || l.type === 'line-elements' || l.type === 'line-symbols',
+    l =>
+      l.type === 'stroke' ||
+      l.type === 'line-elements' ||
+      l.type === 'line-symbols',
   )
   // Area-with-border (border-symbol reference OR its post-dereference `stroke`
   // form): both dialects should serialise as `combined` so the OMap writer's
   // `combined_symbol` path fires and preserves the borderSym on OCD round-trip.
-  if (hasFill && (hasBorder || hasStroke)
-      && (originalType === 'area' || originalType === 'combined')) {
+  if (
+    hasFill &&
+    (hasBorder || hasStroke) &&
+    (originalType === 'area' || originalType === 'combined')
+  ) {
     return 'combined'
   }
   // `combined` labelled but its layers infer to a plain line — downgrade.
@@ -91,8 +117,12 @@ function canonicalSymbolType(
 // OMap's `radius` for a ring is the INNER radius `(diameter - lineWidth) / 2`.
 function pointElementToLayer(el: unknown): RenderLayer | null {
   const e = el as {
-    type?: number; color?: unknown; lineWidth?: number; diameter?: number;
-    coords?: unknown[]; flags?: number;
+    type?: number
+    color?: unknown
+    lineWidth?: number
+    diameter?: number
+    coords?: unknown[]
+    flags?: number
   }
   const coords = e.coords
   if (!Array.isArray(coords) || coords.length !== 1) return null
@@ -107,12 +137,18 @@ function pointElementToLayer(el: unknown): RenderLayer | null {
   const diameter = Number(e.diameter ?? 0)
   const lineWidth = Number(e.lineWidth ?? 0)
   if (e.type === 4 && lineWidth === 0 && diameter > 0) {
-    return { type: 'point-fill', colorId: e.color, radius: diameter / 2 } as unknown as RenderLayer
+    return {
+      type: 'point-fill',
+      colorId: e.color,
+      radius: diameter / 2,
+    } as unknown as RenderLayer
   }
   if (e.type === 3 && lineWidth > 0 && diameter > 0) {
     return {
-      type: 'point-stroke', colorId: e.color,
-      radius: (diameter - lineWidth) / 2, width: lineWidth,
+      type: 'point-stroke',
+      colorId: e.color,
+      radius: (diameter - lineWidth) / 2,
+      width: lineWidth,
     } as unknown as RenderLayer
   }
   return null
@@ -165,7 +201,8 @@ function canonicalisePointElementsLayer(layer: RenderLayer): RenderLayer[] {
     extras.push(ex)
     splitIndex++
   }
-  if (extras.length === 0) return [{ ...layer, elements: canonical } as RenderLayer]
+  if (extras.length === 0)
+    return [{ ...layer, elements: canonical } as RenderLayer]
   const residual = canonical.slice(splitIndex)
   return residual.length > 0
     ? [...extras, { ...layer, elements: residual } as RenderLayer]
@@ -194,8 +231,17 @@ function stripPointElementXyFlags(el: unknown): unknown {
     }
     const {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      xFlags, yFlags, x, y, ...rest
-    } = c as { xFlags?: unknown; yFlags?: unknown; x?: number; y?: number } & Record<string, unknown>
+      xFlags,
+      yFlags,
+      x,
+      y,
+      ...rest
+    } = c as {
+      xFlags?: unknown
+      yFlags?: unknown
+      x?: number
+      y?: number
+    } & Record<string, unknown>
     return { ...rest, x: snapSymCoord(x ?? 0), y: snapSymCoord(y ?? 0) }
   })
   return { ...e, coords: cleanedCoords }
@@ -226,24 +272,32 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
   const e = el as {
     symbol?: {
       pointSymbol?: {
-        innerColor?: unknown; innerRadius?: number;
-        outerColor?: unknown; outerWidth?: number;
-        elements?: unknown[];
-      };
+        innerColor?: unknown
+        innerRadius?: number
+        outerColor?: unknown
+        outerWidth?: number
+        elements?: unknown[]
+      }
       lineSymbol?: {
-        color?: unknown; lineWidth?: number;
-        capStyle?: number; joinStyle?: number;
-      };
-      areaSymbol?: { color?: unknown; innerColor?: unknown };
-    };
-    object?: { coords?: Array<{ x?: number; y?: number } | [number?, number?]> };
+        color?: unknown
+        lineWidth?: number
+        capStyle?: number
+        joinStyle?: number
+      }
+      areaSymbol?: { color?: unknown; innerColor?: unknown }
+    }
+    object?: { coords?: Array<{ x?: number; y?: number } | [number?, number?]> }
   }
   const sym = e.symbol
   if (!sym) return []
   const rawCoords = e.object?.coords ?? []
   const anchor = rawCoords[0]
-  const anchorX = snapSymCoord(Array.isArray(anchor) ? (anchor[0] ?? 0) : (anchor?.x ?? 0))
-  const anchorYSrc = snapSymCoord(Array.isArray(anchor) ? (anchor[1] ?? 0) : (anchor?.y ?? 0))
+  const anchorX = snapSymCoord(
+    Array.isArray(anchor) ? (anchor[0] ?? 0) : (anchor?.x ?? 0),
+  )
+  const anchorYSrc = snapSymCoord(
+    Array.isArray(anchor) ? (anchor[1] ?? 0) : (anchor?.y ?? 0),
+  )
   const anchorY = -anchorYSrc
 
   const out: unknown[] = []
@@ -252,20 +306,29 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
     const innerRadius = Number(ps.innerRadius ?? 0)
     if (innerRadius > 0 && isRealColor(ps.innerColor)) {
       out.push({
-        type: 4, flags: 0, color: ps.innerColor,
-        lineWidth: 0, diameter: innerRadius * 2,
-        numberCoords: 1, coords: [{ x: anchorX, y: anchorY }],
+        type: 4,
+        flags: 0,
+        color: ps.innerColor,
+        lineWidth: 0,
+        diameter: innerRadius * 2,
+        numberCoords: 1,
+        coords: [{ x: anchorX, y: anchorY }],
       })
     }
     const outerWidth = Number(ps.outerWidth ?? 0)
     if (outerWidth > 0 && isRealColor(ps.outerColor)) {
       out.push({
-        type: 3, flags: 0, color: ps.outerColor,
-        lineWidth: outerWidth, diameter: innerRadius * 2 + outerWidth,
-        numberCoords: 1, coords: [{ x: anchorX, y: anchorY }],
+        type: 3,
+        flags: 0,
+        color: ps.outerColor,
+        lineWidth: outerWidth,
+        diameter: innerRadius * 2 + outerWidth,
+        numberCoords: 1,
+        coords: [{ x: anchorX, y: anchorY }],
       })
     }
-    for (const sub of ps.elements ?? []) out.push(...flattenXmapLineDecorElement(sub))
+    for (const sub of ps.elements ?? [])
+      out.push(...flattenXmapLineDecorElement(sub))
     return out
   }
   if (sym.lineSymbol) {
@@ -273,20 +336,31 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
     const cap = sym.lineSymbol.capStyle ?? 0
     const join = sym.lineSymbol.joinStyle ?? 0
     const flags = (cap === 1 ? 0x01 : 0) | (join === 1 ? 0x04 : 0)
-    return [{
-      type: 1, flags, color: sym.lineSymbol.color,
-      lineWidth: sym.lineSymbol.lineWidth ?? 0, diameter: 0,
-      numberCoords: coords.length, coords,
-    }]
+    return [
+      {
+        type: 1,
+        flags,
+        color: sym.lineSymbol.color,
+        lineWidth: sym.lineSymbol.lineWidth ?? 0,
+        diameter: 0,
+        numberCoords: coords.length,
+        coords,
+      },
+    ]
   }
   if (sym.areaSymbol) {
     const coords = rawCoords.map(mapAndRoundYFlippedCoord)
-    return [{
-      type: 2, flags: 0,
-      color: sym.areaSymbol.color ?? sym.areaSymbol.innerColor,
-      lineWidth: 0, diameter: 0,
-      numberCoords: coords.length, coords,
-    }]
+    return [
+      {
+        type: 2,
+        flags: 0,
+        color: sym.areaSymbol.color ?? sym.areaSymbol.innerColor,
+        lineWidth: 0,
+        diameter: 0,
+        numberCoords: coords.length,
+        coords,
+      },
+    ]
   }
   return []
 }
@@ -345,8 +419,12 @@ function flattenXmapDecorSymbol(sub: unknown): unknown[] {
 function nestOcadPatternElement(el: unknown): unknown {
   if (!el || typeof el !== 'object') return null
   const e = el as {
-    type?: number; flags?: number; color?: unknown; lineWidth?: number;
-    diameter?: number; coords?: Array<{ x?: number; y?: number } | [number?, number?]>;
+    type?: number
+    flags?: number
+    color?: unknown
+    lineWidth?: number
+    diameter?: number
+    coords?: Array<{ x?: number; y?: number } | [number?, number?]>
   }
   const coords = (e.coords ?? []).map(c => {
     const x = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
@@ -356,10 +434,16 @@ function nestOcadPatternElement(el: unknown): unknown {
   const objectBase = { type: 0, symbol: 0, text: null, textBox: null, coords }
   if (e.type === 4) {
     return {
-      symbol: { code: '', type: 1, isHidden: false,
+      symbol: {
+        code: '',
+        type: 1,
+        isHidden: false,
         pointSymbol: {
-          innerColor: e.color, innerRadius: (e.diameter ?? 0) / 2,
-          outerColor: -1, outerWidth: 0, rotatable: false,
+          innerColor: e.color,
+          innerRadius: (e.diameter ?? 0) / 2,
+          outerColor: -1,
+          outerWidth: 0,
+          rotatable: false,
         },
       },
       object: objectBase,
@@ -368,10 +452,16 @@ function nestOcadPatternElement(el: unknown): unknown {
   if (e.type === 3) {
     const lw = e.lineWidth ?? 0
     return {
-      symbol: { code: '', type: 1, isHidden: false,
+      symbol: {
+        code: '',
+        type: 1,
+        isHidden: false,
         pointSymbol: {
-          innerColor: -1, innerRadius: ((e.diameter ?? 0) - lw) / 2,
-          outerColor: e.color, outerWidth: lw, rotatable: false,
+          innerColor: -1,
+          innerRadius: ((e.diameter ?? 0) - lw) / 2,
+          outerColor: e.color,
+          outerWidth: lw,
+          rotatable: false,
         },
       },
       object: objectBase,
@@ -380,11 +470,15 @@ function nestOcadPatternElement(el: unknown): unknown {
   if (e.type === 1) {
     const flags = e.flags ?? 0
     return {
-      symbol: { code: '', type: 2, isHidden: false,
+      symbol: {
+        code: '',
+        type: 2,
+        isHidden: false,
         lineSymbol: {
-          color: e.color, lineWidth: e.lineWidth ?? 0,
-          capStyle: (flags & 0x01) ? 1 : 0,
-          joinStyle: (flags & 0x04) ? 1 : 0,
+          color: e.color,
+          lineWidth: e.lineWidth ?? 0,
+          capStyle: flags & 0x01 ? 1 : 0,
+          joinStyle: flags & 0x04 ? 1 : 0,
         },
       },
       object: { ...objectBase, type: 1 },
@@ -392,7 +486,10 @@ function nestOcadPatternElement(el: unknown): unknown {
   }
   if (e.type === 2) {
     return {
-      symbol: { code: '', type: 4, isHidden: false,
+      symbol: {
+        code: '',
+        type: 4,
+        isHidden: false,
         // OMap-native elements emit only `innerColor` on the areaSymbol; the
         // `color` field is OCAD-writer-facing and OMap side omits it.
         areaSymbol: { innerColor: e.color },
@@ -416,12 +513,12 @@ function canonicaliseInnerElement(el: unknown): unknown {
   if (!el || typeof el !== 'object') return el
   const e = el as {
     symbol?: {
-      id?: unknown;
-      pointSymbol?: Record<string, unknown>;
-      lineSymbol?: Record<string, unknown>;
-      areaSymbol?: Record<string, unknown>;
-    } & Record<string, unknown>;
-    object?: { coords?: unknown[]; pattern?: unknown } & Record<string, unknown>;
+      id?: unknown
+      pointSymbol?: Record<string, unknown>
+      lineSymbol?: Record<string, unknown>
+      areaSymbol?: Record<string, unknown>
+    } & Record<string, unknown>
+    object?: { coords?: unknown[]; pattern?: unknown } & Record<string, unknown>
   }
   if (!e.symbol) return el
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -436,13 +533,17 @@ function canonicaliseInnerElement(el: unknown): unknown {
     const { pattern: _pat, coords, ...rest } = e.object
     const cleanedCoords = Array.isArray(coords)
       ? coords.map(c => {
-        if (!c || typeof c !== 'object' || Array.isArray(c)) return c
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { flags, ...crest } = c as { flags?: unknown } & Record<string, unknown>
-        return crest
-      })
+          if (!c || typeof c !== 'object' || Array.isArray(c)) return c
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { flags, ...crest } = c as { flags?: unknown } & Record<
+            string,
+            unknown
+          >
+          return crest
+        })
       : coords
-    restObj = cleanedCoords !== undefined ? { ...rest, coords: cleanedCoords } : rest
+    restObj =
+      cleanedCoords !== undefined ? { ...rest, coords: cleanedCoords } : rest
   }
   return { ...e, symbol: cleanSym, object: restObj }
 }
@@ -451,7 +552,9 @@ function canonicaliseInnerElement(el: unknown): unknown {
 // emit. OMap's writer serialises ~20 default line-symbol fields verbatim
 // (`breakLength: 100`, `segmentLength: 400`, etc.) onto inner elements; the
 // OCD-side flattener emits only the fields it actually uses.
-function normaliseInnerLineSymbol(ls: Record<string, unknown>): Record<string, unknown> {
+function normaliseInnerLineSymbol(
+  ls: Record<string, unknown>,
+): Record<string, unknown> {
   return {
     color: ls.color,
     lineWidth: ls.lineWidth ?? 0,
@@ -459,10 +562,14 @@ function normaliseInnerLineSymbol(ls: Record<string, unknown>): Record<string, u
     joinStyle: ls.joinStyle ?? 0,
   }
 }
-function normaliseInnerAreaSymbol(as: Record<string, unknown>): Record<string, unknown> {
+function normaliseInnerAreaSymbol(
+  as: Record<string, unknown>,
+): Record<string, unknown> {
   return { innerColor: as.innerColor ?? as.color }
 }
-function normaliseInnerPointSymbol(ps: Record<string, unknown>): Record<string, unknown> {
+function normaliseInnerPointSymbol(
+  ps: Record<string, unknown>,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {
     innerColor: ps.innerColor ?? -1,
     innerRadius: ps.innerRadius ?? 0,
@@ -484,29 +591,37 @@ function normaliseInnerPointSymbol(ps: Record<string, unknown>): Record<string, 
 function canonicaliseOuterPatternSymbol(sym: unknown): unknown {
   if (!sym || typeof sym !== 'object') return sym
   const s = sym as {
-    id?: unknown; code?: unknown; type?: unknown; isHidden?: unknown;
+    id?: unknown
+    code?: unknown
+    type?: unknown
+    isHidden?: unknown
     pointSymbol?: {
-      innerColor?: unknown; innerRadius?: number;
-      outerColor?: unknown; outerWidth?: number;
-      rotatable?: unknown; elements?: unknown[];
-    };
+      innerColor?: unknown
+      innerRadius?: number
+      outerColor?: unknown
+      outerWidth?: number
+      rotatable?: unknown
+      elements?: unknown[]
+    }
   }
   const ps = s.pointSymbol
   const isMultiElement = Array.isArray(ps?.elements) && ps!.elements!.length > 0
-  const canonPs = ps ? {
-    ...ps,
-    // OMap always sets rotatable=true on the outer pattern point-symbol,
-    // independent of whether the pattern actually rotates (that lives on
-    // `pattern.rotatable`). Match the convention.
-    rotatable: true,
-    // Multi-element container pointSymbols get a Mapper-convention 100-unit
-    // innerRadius even though nothing paints — normalise both dialects.
-    innerRadius: isMultiElement ? 100 : (ps?.innerRadius ?? 0),
-    // Strip ephemeral Mapper counter ids off inner elements too.
-    elements: isMultiElement
-      ? (ps!.elements as unknown[]).map(canonicaliseInnerElement)
-      : ps?.elements,
-  } : ps
+  const canonPs = ps
+    ? {
+        ...ps,
+        // OMap always sets rotatable=true on the outer pattern point-symbol,
+        // independent of whether the pattern actually rotates (that lives on
+        // `pattern.rotatable`). Match the convention.
+        rotatable: true,
+        // Multi-element container pointSymbols get a Mapper-convention 100-unit
+        // innerRadius even though nothing paints — normalise both dialects.
+        innerRadius: isMultiElement ? 100 : (ps?.innerRadius ?? 0),
+        // Strip ephemeral Mapper counter ids off inner elements too.
+        elements: isMultiElement
+          ? (ps!.elements as unknown[]).map(canonicaliseInnerElement)
+          : ps?.elements,
+      }
+    : ps
   const out: Record<string, unknown> = {
     code: s.code ?? '',
     type: s.type ?? 1,
@@ -530,14 +645,20 @@ function canonicaliseOuterPatternSymbol(sym: unknown): unknown {
 // for that shape — the OCD writer's `extractPatternElements` reads either.
 function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
   const l = layer as {
-    type?: string;
-    colorId?: unknown;
-    width?: number; height?: number; angle?: number;
-    mode?: number; symbolWidth?: number; symbolHeight?: number;
-    elements?: unknown[];
-    noClipping?: number; structDraw?: number; rotatable?: boolean;
+    type?: string
+    colorId?: unknown
+    width?: number
+    height?: number
+    angle?: number
+    mode?: number
+    symbolWidth?: number
+    symbolHeight?: number
+    elements?: unknown[]
+    noClipping?: number
+    structDraw?: number
+    rotatable?: boolean
     // OMap-native pass-through (normaliser branch below).
-    pattern?: Record<string, unknown>;
+    pattern?: Record<string, unknown>
   }
   // OMap-native point-pattern-fill: strip the ephemeral symbol id and
   // normalise `pattern.symbol` to the canonical shape. Also strip the
@@ -547,13 +668,18 @@ function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
   // omap→gitmap→omap round-trips: source had no `pattern.color`, xmap write
   // added it as OMap's default, next gitmap read saw it.
   if (l.type === 'point-pattern-fill' && l.pattern) {
-    const p = l.pattern as { symbol?: unknown; color?: unknown } & Record<string, unknown>
+    const p = l.pattern as { symbol?: unknown; color?: unknown } & Record<
+      string,
+      unknown
+    >
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { color, symbol, ...rest } = p
-    return [{
-      ...l,
-      pattern: { ...rest, symbol: canonicaliseOuterPatternSymbol(symbol) },
-    } as unknown as RenderLayer]
+    return [
+      {
+        ...l,
+        pattern: { ...rest, symbol: canonicaliseOuterPatternSymbol(symbol) },
+      } as unknown as RenderLayer,
+    ]
   }
   if (l.type !== 'structure-fill') return [layer]
   const flatElements = l.elements ?? []
@@ -566,12 +692,16 @@ function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
   let outerInner: { color: unknown; radius: number } | undefined
   let nestedElements: unknown[] = []
   let topColorId: unknown = -1
-  const soleDisc = flatElements.length === 1
-    ? flatElements[0] as {
-        type?: number; color?: unknown; lineWidth?: number; diameter?: number;
-        coords?: Array<{ x?: number; y?: number } | [number?, number?]>;
-      }
-    : undefined
+  const soleDisc =
+    flatElements.length === 1
+      ? (flatElements[0] as {
+          type?: number
+          color?: unknown
+          lineWidth?: number
+          diameter?: number
+          coords?: Array<{ x?: number; y?: number } | [number?, number?]>
+        })
+      : undefined
   const atOrigin = (c: unknown): boolean => {
     if (!c) return false
     const cx = Array.isArray(c) ? (c[0] ?? 0) : ((c as { x?: number })?.x ?? 0)
@@ -579,11 +709,11 @@ function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
     return cx === 0 && cy === 0
   }
   if (
-    soleDisc?.type === 4
-    && (soleDisc.lineWidth ?? 0) === 0
-    && Array.isArray(soleDisc.coords)
-    && soleDisc.coords.length === 1
-    && atOrigin(soleDisc.coords[0])
+    soleDisc?.type === 4 &&
+    (soleDisc.lineWidth ?? 0) === 0 &&
+    Array.isArray(soleDisc.coords) &&
+    soleDisc.coords.length === 1 &&
+    atOrigin(soleDisc.coords[0])
   ) {
     outerInner = { color: soleDisc.color, radius: (soleDisc.diameter ?? 0) / 2 }
     topColorId = soleDisc.color
@@ -602,38 +732,52 @@ function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
   // tile info (e.g. 208 Boulder Field's 300×333 tile) lives in
   // `pattern.pointDistance` + `pattern.lineSpacing`. Match the convention.
   const layerSize = pointDistance
-  const makePattern = (
-    { lineOffset, offsetAlongLine }: { lineOffset: number; offsetAlongLine: number }
-  ): RenderLayer => ({
-    type: 'point-pattern-fill',
-    colorId: topColorId,
-    width: layerSize, height: layerSize,
-    angle: l.angle ?? 0,
-    pattern: {
-      type: 2,
-      angle: angleRad,
-      lineSpacing,
-      pointDistance,
-      lineOffset,
-      offsetAlongLine,
-      lineWidth: 0,
-      rotatable,
-      noClipping,
-      symbol: canonicaliseOuterPatternSymbol({
-        code: '', type: 1, isHidden: false,
-        pointSymbol: outerInner
-          ? {
-            innerColor: outerInner.color, innerRadius: outerInner.radius,
-            outerColor: -1, outerWidth: 0, rotatable,
-          }
-          : {
-            elements: nestedElements,
-            innerColor: -1, innerRadius: 0,
-            outerColor: -1, outerWidth: 0, rotatable,
-          },
-      }),
-    },
-  } as unknown as RenderLayer)
+  const makePattern = ({
+    lineOffset,
+    offsetAlongLine,
+  }: {
+    lineOffset: number
+    offsetAlongLine: number
+  }): RenderLayer =>
+    ({
+      type: 'point-pattern-fill',
+      colorId: topColorId,
+      width: layerSize,
+      height: layerSize,
+      angle: l.angle ?? 0,
+      pattern: {
+        type: 2,
+        angle: angleRad,
+        lineSpacing,
+        pointDistance,
+        lineOffset,
+        offsetAlongLine,
+        lineWidth: 0,
+        rotatable,
+        noClipping,
+        symbol: canonicaliseOuterPatternSymbol({
+          code: '',
+          type: 1,
+          isHidden: false,
+          pointSymbol: outerInner
+            ? {
+                innerColor: outerInner.color,
+                innerRadius: outerInner.radius,
+                outerColor: -1,
+                outerWidth: 0,
+                rotatable,
+              }
+            : {
+                elements: nestedElements,
+                innerColor: -1,
+                innerRadius: 0,
+                outerColor: -1,
+                outerWidth: 0,
+                rotatable,
+              },
+        }),
+      },
+    }) as unknown as RenderLayer
   const first = makePattern({ lineOffset: 0, offsetAlongLine: 0 })
   if (shifted) {
     const second = makePattern({
@@ -660,36 +804,50 @@ function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
 // diff (OCAD carries the actual mainLength; OMap emits its 400 default).
 function lineSymbolsToLineElements(layer: RenderLayer): RenderLayer[] {
   const l = layer as {
-    type?: string;
+    type?: string
     lineSymbol?: {
-      midSymbol?: unknown; startSymbol?: unknown; endSymbol?: unknown;
-      dashSymbol?: unknown;
-    };
+      midSymbol?: unknown
+      startSymbol?: unknown
+      endSymbol?: unknown
+      dashSymbol?: unknown
+    }
   }
   if (l.type !== 'line-symbols' || !l.lineSymbol) return [layer]
   const ls = l.lineSymbol
-  const primSymElements = ls.midSymbol ? flattenXmapDecorSymbol(ls.midSymbol) : []
-  const startSymElements = ls.startSymbol ? flattenXmapDecorSymbol(ls.startSymbol) : []
-  const endSymElements = ls.endSymbol ? flattenXmapDecorSymbol(ls.endSymbol) : []
-  const cornerSymElements = ls.dashSymbol ? flattenXmapDecorSymbol(ls.dashSymbol) : []
+  const primSymElements = ls.midSymbol
+    ? flattenXmapDecorSymbol(ls.midSymbol)
+    : []
+  const startSymElements = ls.startSymbol
+    ? flattenXmapDecorSymbol(ls.startSymbol)
+    : []
+  const endSymElements = ls.endSymbol
+    ? flattenXmapDecorSymbol(ls.endSymbol)
+    : []
+  const cornerSymElements = ls.dashSymbol
+    ? flattenXmapDecorSymbol(ls.dashSymbol)
+    : []
   // Drop entirely if no sub-symbol carries visible geometry — OMap emits
   // `line-symbols` on any line with a lineSymbol block (e.g. butlers-bush
   // 202.4 Cliff, where lineSymbol has only `minimumLength: 60`) but OCD
   // never emits a layer for that. The OCD writer's `useSymbolFlags` path
   // gates on the presence of sub-symbols, so dropping is safe.
   if (
-    primSymElements.length === 0 && startSymElements.length === 0
-    && endSymElements.length === 0 && cornerSymElements.length === 0
+    primSymElements.length === 0 &&
+    startSymElements.length === 0 &&
+    endSymElements.length === 0 &&
+    cornerSymElements.length === 0
   ) {
     return []
   }
-  return [{
-    type: 'line-elements',
-    primSymElements,
-    cornerSymElements,
-    startSymElements,
-    endSymElements,
-  } as unknown as RenderLayer]
+  return [
+    {
+      type: 'line-elements',
+      primSymElements,
+      cornerSymElements,
+      startSymElements,
+      endSymElements,
+    } as unknown as RenderLayer,
+  ]
 }
 
 // Strip redundant rhythm fields from any `line-elements` layer — see
@@ -706,12 +864,23 @@ function stripLineElementsRedundancy(layer: RenderLayer): RenderLayer {
   if (l.type !== 'line-elements') return layer
   const {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mainLength, endLength, primSymDist, nPrimSym,
+    mainLength,
+    endLength,
+    primSymDist,
+    nPrimSym,
     ...rest
   } = l as Record<string, unknown> & {
-    mainLength?: unknown; endLength?: unknown; primSymDist?: unknown; nPrimSym?: unknown;
+    mainLength?: unknown
+    endLength?: unknown
+    primSymDist?: unknown
+    nPrimSym?: unknown
   }
-  for (const key of ['primSymElements', 'startSymElements', 'endSymElements', 'cornerSymElements']) {
+  for (const key of [
+    'primSymElements',
+    'startSymElements',
+    'endSymElements',
+    'cornerSymElements',
+  ]) {
     const arr = rest[key]
     if (Array.isArray(arr)) rest[key] = arr.map(stripPointElementXyFlags)
   }
@@ -747,26 +916,37 @@ function isPhantomStroke(layer: RenderLayer): boolean {
 // borders[] entry suffices; asymmetric cases emit two entries.
 function doubleLineToStroke(layer: RenderLayer): RenderLayer {
   const l = layer as {
-    type?: string; flags?: number;
-    leftColorId?: unknown; rightColorId?: unknown;
-    fillColorId?: unknown; centerWidth?: number;
-    leftWidth?: number; rightWidth?: number;
-    dashLength?: number; breakLength?: number;
+    type?: string
+    flags?: number
+    leftColorId?: unknown
+    rightColorId?: unknown
+    fillColorId?: unknown
+    centerWidth?: number
+    leftWidth?: number
+    rightWidth?: number
+    dashLength?: number
+    breakLength?: number
   }
   if (l.type !== 'double-line') return layer
   const symmetric =
-    l.leftColorId === l.rightColorId && (l.leftWidth ?? 0) === (l.rightWidth ?? 0)
+    l.leftColorId === l.rightColorId &&
+    (l.leftWidth ?? 0) === (l.rightWidth ?? 0)
   const dashLength = l.dashLength ?? 0
   const breakLength = l.breakLength ?? 0
   const makeBorder = (color: unknown, width: number) => ({
-    color, width, shift: width / 2,
+    color,
+    width,
+    shift: width / 2,
     dashed: dashLength > 0,
     dashLength,
     breakLength,
   })
   const borders = symmetric
     ? [makeBorder(l.leftColorId, l.leftWidth ?? 0)]
-    : [makeBorder(l.leftColorId, l.leftWidth ?? 0), makeBorder(l.rightColorId, l.rightWidth ?? 0)]
+    : [
+        makeBorder(l.leftColorId, l.leftWidth ?? 0),
+        makeBorder(l.rightColorId, l.rightWidth ?? 0),
+      ]
   // OCAD gates the centre fill on `dblFlags & 1`: flags=0 means "no fill"
   // regardless of the `dblFillColor` value (index 0 is a real palette slot,
   // typically illustration-white). Preserve the flag semantic — a stroke with
@@ -791,7 +971,10 @@ function doubleLineToStroke(layer: RenderLayer): RenderLayer {
 // stroke border to borderWidth/2 so the two sources converge. Writer-only: the
 // in-memory model (and thus rendering) is untouched.
 function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
-  const l = layer as { type?: string; borders?: Array<{ width?: number; shift?: number }> }
+  const l = layer as {
+    type?: string
+    borders?: Array<{ width?: number; shift?: number }>
+  }
   if (l.type !== 'stroke' || !Array.isArray(l.borders)) return layer
   return {
     ...layer,
@@ -808,7 +991,10 @@ function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
 function canonicalisePointPatternGeometry(layer: RenderLayer): RenderLayer {
   const l = layer as { type?: string; pattern?: unknown }
   if (l.type !== 'point-pattern-fill' || !l.pattern) return layer
-  return { ...layer, pattern: roundGeometryToOcadGrid(l.pattern, '') } as RenderLayer
+  return {
+    ...layer,
+    pattern: roundGeometryToOcadGrid(l.pattern, ''),
+  } as RenderLayer
 }
 function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
   if (typeof node === 'number') {
@@ -833,14 +1019,18 @@ function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
 // from.)
 function canonicaliseStrokeWidth(layer: RenderLayer): RenderLayer {
   const l = layer as {
-    type?: string; width?: number; startOffset?: number; endOffset?: number
+    type?: string
+    width?: number
+    startOffset?: number
+    endOffset?: number
   }
   if (l.type !== 'stroke') return layer
   const out = { ...layer } as Record<string, unknown>
   if (typeof l.width === 'number') out.width = Math.round(l.width)
   // OCAD stores decoration offsets as whole units; OMap keeps sub-unit precision
   // (74.7 vs 75). Snap to the OCAD grid so both sources agree.
-  if (typeof l.startOffset === 'number') out.startOffset = Math.round(l.startOffset)
+  if (typeof l.startOffset === 'number')
+    out.startOffset = Math.round(l.startOffset)
   if (typeof l.endOffset === 'number') out.endOffset = Math.round(l.endOffset)
   return out as RenderLayer
 }
@@ -871,16 +1061,23 @@ function mergePrimaryStrokeWithBorders(layers: RenderLayer[]): RenderLayer[] {
   }
   if (strokeIdx.length !== 2) return layers
   const primary = layers[strokeIdx[0]] as {
-    type: string; colorId?: unknown; width?: number; borders?: unknown[];
+    type: string
+    colorId?: unknown
+    width?: number
+    borders?: unknown[]
   } & Record<string, unknown>
   const secondary = layers[strokeIdx[1]] as {
-    type: string; borders?: unknown[]; colorId?: unknown;
+    type: string
+    borders?: unknown[]
+    colorId?: unknown
   }
-  const primaryValid = primary.colorId !== undefined
-    && primary.colorId !== null
-    && primary.colorId !== -1
-    && !Array.isArray(primary.borders)
-  const secondaryHasBorders = Array.isArray(secondary.borders) && secondary.borders.length > 0
+  const primaryValid =
+    primary.colorId !== undefined &&
+    primary.colorId !== null &&
+    primary.colorId !== -1 &&
+    !Array.isArray(primary.borders)
+  const secondaryHasBorders =
+    Array.isArray(secondary.borders) && secondary.borders.length > 0
   if (!primaryValid || !secondaryHasBorders) return layers
   const merged = { ...primary, borders: secondary.borders }
   const out = layers.slice()
@@ -897,15 +1094,15 @@ function mergePrimaryStrokeWithBorders(layers: RenderLayer[]): RenderLayer[] {
 // Within a group, keep the original order so multi-stroke ordering (the
 // z-index that actually paints) is preserved.
 const LAYER_ORDER_GROUPS: Record<string, number> = {
-  'fill': 1,
+  fill: 1,
   'hatch-fill': 2,
   'point-pattern-fill': 3,
   'structure-fill': 3,
-  'stroke': 4,
+  stroke: 4,
   'point-fill': 5,
   'point-stroke': 6,
   'point-elements': 7,
-  'text': 8,
+  text: 8,
   'line-elements': 9,
   'line-symbols': 9,
   'border-symbol': 10,
@@ -923,7 +1120,10 @@ function canonicalLayerOrder(a: RenderLayer, b: RenderLayer): number {
 // {color:-1, width:15, shift:7}). Dropping them matches the OCD side
 // (which never emits phantoms) without losing visible geometry.
 function stripPhantomBorders(layer: RenderLayer): RenderLayer {
-  const l = layer as { type?: string; borders?: unknown[] } & Record<string, unknown>
+  const l = layer as { type?: string; borders?: unknown[] } & Record<
+    string,
+    unknown
+  >
   if (l.type !== 'stroke' || !Array.isArray(l.borders)) return layer
   const kept = l.borders.filter(b => {
     const c = (b as { color?: unknown })?.color
@@ -944,7 +1144,10 @@ function stripPhantomBorders(layer: RenderLayer): RenderLayer {
 // and fill in OMap's default `joinStyle: 1, capStyle: 0` so both dialects
 // agree.
 function canonicaliseFrameStroke(layer: RenderLayer): RenderLayer {
-  const l = layer as { type?: string; frame?: boolean } & Record<string, unknown>
+  const l = layer as { type?: string; frame?: boolean } & Record<
+    string,
+    unknown
+  >
   if (l.type !== 'stroke' || !l.frame) return layer
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { frame, ...rest } = l
@@ -996,7 +1199,14 @@ function dereferenceBorderSymbol(
   }
   const refStroke = (ref?.layers || []).find(
     (r): r is RenderLayer => (r as { type?: string }).type === 'stroke',
-  ) as { colorId?: unknown; width?: number; capStyle?: number; joinStyle?: number } | undefined
+  ) as
+    | {
+        colorId?: unknown
+        width?: number
+        capStyle?: number
+        joinStyle?: number
+      }
+    | undefined
   if (!refStroke) return layer
   return {
     type: 'stroke',
@@ -1059,7 +1269,9 @@ function toGitmapSymbol(
     // Text typography lives once, in the `text` render layer's `text` object
     // (no duplicate top-level fontSize / per-layer fontSize+fontFamily).
     textSymbol: toJsonSafe(symbol.textSymbol),
-    layers: canonLayers.map(layer => renderLayerToGitmap(layer, colorIds, symbolIds)),
+    layers: canonLayers.map(layer =>
+      renderLayerToGitmap(layer, colorIds, symbolIds),
+    ),
   }
 }
 
@@ -1067,14 +1279,6 @@ function toGitmapObject(
   object: MapObject,
   symbolIds: Map<string | number, string>,
   partId = 'part_main',
-  // Negate object-coordinate Y so an OCAD-sourced (y-up) map is stored in
-  // gitmap's canonical visual (y-down) space — matching omap output and the
-  // SVG exporter's `getVisualCoordinateTransform`. Only object coordinates
-  // are flipped, exactly as the omap writer's `flipY` does; symbol geometry
-  // is left untouched. Without this an ocd→gitmap conversion stores coords
-  // upside-down vs every omap-sourced gitmap, so a diff between them reports
-  // 100% of the map as changed.
-  flipY = false,
   // Canonical z-order rank (the object's index in the map's render order).
   // Replaces the raw source-file object id as `sourceId`, so the SAME map from
   // OCD vs OMAP serialises identically — the source formats number objects
@@ -1082,7 +1286,7 @@ function toGitmapObject(
   zRank?: number,
 ) {
   const symbolId = symbolIds.get(object.symbolId) || String(object.symbolId)
-  const rings = ringsToJson(object.coordinates || [], flipY)
+  const rings = ringsToJson(object.coordinates || [])
   return {
     // Render order, as a canonical dense rank rather than the format-specific
     // source id (falls back to the raw id when no rank is supplied). The symbol
@@ -1124,7 +1328,10 @@ function toGitmapObject(
 // OMap-sourced copy keeps full float precision.
 function cleanPattern(pattern: unknown): unknown {
   if (!pattern || typeof pattern !== 'object') return undefined
-  const p = pattern as { rotation?: number; origin?: { x?: number; y?: number } }
+  const p = pattern as {
+    rotation?: number
+    origin?: { x?: number; y?: number }
+  }
   const rotation = rotationToGitmap(p.rotation)
   const ox = p.origin?.x || 0
   const oy = p.origin?.y || 0
@@ -1155,13 +1362,15 @@ function strokeCanonicalDrops(layer: RenderLayer): ReadonlySet<string> {
   // (OCAD leaves segmentLength undefined or copies mainLength; OMap always
   // emits `400`). When no `primSymElements` array is present, drop them.
   const hasMidSymbols =
-    Array.isArray(l.primSymElements) && (l.primSymElements as unknown[]).length > 0
+    Array.isArray(l.primSymElements) &&
+    (l.primSymElements as unknown[]).length > 0
   // Top-level `endLength` is an OCAD-only slot for a special "last dash"
   // length; OMap doesn't emit it at all. Drop whenever a dash is present
   // (its vocab collapse in `canonicaliseDash` doesn't carry endLength
   // anyway) OR when it's an orphan (no dash and no mid-symbol; e.g. 509.2
   // Tramway where OMap emits `endLength: 150` as dead data).
-  const dashObj = l.dash as { mainLength?: number; mainGap?: number; secGap?: number } | undefined
+  const dashObj = l.dash as
+    { mainLength?: number; mainGap?: number; secGap?: number } | undefined
   const isOrphan = !dashObj && !hasMidSymbols
   if (!l.endLength || dashObj || isOrphan) {
     drop.add('endLength')
@@ -1306,8 +1515,14 @@ function renderLayerToGitmap(
       return
     }
     // OCAD/Mapper integer enums → semantic strings (see ./enums).
-    if (key === 'capStyle') { output[key] = capStyleToGitmap(value); return }
-    if (key === 'joinStyle') { output[key] = joinStyleToGitmap(value); return }
+    if (key === 'capStyle') {
+      output[key] = capStyleToGitmap(value)
+      return
+    }
+    if (key === 'joinStyle') {
+      output[key] = joinStyleToGitmap(value)
+      return
+    }
     if (key === 'borders' && Array.isArray(value)) {
       output[key] = value.map(b => borderToGitmap(b, colorIds))
       return
@@ -1321,7 +1536,10 @@ function renderLayerToGitmap(
       return
     }
     if (layerType === 'text' && key === 'text') {
-      output[key] = remapColors(toJsonSafe(canonicaliseTextBody(value)), colorIds)
+      output[key] = remapColors(
+        toJsonSafe(canonicaliseTextBody(value)),
+        colorIds,
+      )
       return
     }
     // Text typography is authoritative in the nested `text` object; drop the
@@ -1361,9 +1579,13 @@ function renderLayerToGitmap(
 
 // Keys that hold color-id references anywhere in the symbol tree.
 const COLOR_ID_KEYS = new Set([
-  'color', 'colorId',
-  'innerColor', 'outerColor',
-  'fillColor', 'leftColor', 'rightColor',
+  'color',
+  'colorId',
+  'innerColor',
+  'outerColor',
+  'fillColor',
+  'leftColor',
+  'rightColor',
   'hatchColor',
 ])
 
@@ -1377,7 +1599,10 @@ function remapColors(
   if (!node || typeof node !== 'object') return node
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-    if (COLOR_ID_KEYS.has(k) && (typeof v === 'number' || typeof v === 'string')) {
+    if (
+      COLOR_ID_KEYS.has(k) &&
+      (typeof v === 'number' || typeof v === 'string')
+    ) {
       out[k] = colorIds.get(v as string | number) ?? v
     } else {
       out[k] = remapColors(v, colorIds)
@@ -1389,13 +1614,19 @@ function remapColors(
 // A stroke casing line. Mirrors the layer rename: the source's bare `color`
 // becomes the canonical `colorId`.
 function borderToGitmap(
-  border: unknown, colorIds: Map<string | number, string>,
+  border: unknown,
+  colorIds: Map<string | number, string>,
 ): unknown {
   if (!border || typeof border !== 'object') return border
   const output: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(border as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(
+    border as Record<string, unknown>,
+  )) {
     if (value === undefined) continue
-    if (key === 'color') { output.colorId = colorIds.get(value as string | number) ?? value; continue }
+    if (key === 'color') {
+      output.colorId = colorIds.get(value as string | number) ?? value
+      continue
+    }
     output[key] = value
   }
   return output
@@ -1434,8 +1665,8 @@ function elementToGitmap(colorIds: Map<string | number, string>, element) {
   return output
 }
 
-function coordinatesToJson(coordinates: unknown[], flipY = false): unknown[] {
-  return coordinates.map(coord => coordToJson(coord, flipY))
+function coordinatesToJson(coordinates: unknown[]): unknown[] {
+  return coordinates.map(coord => coordToJson(coord))
 }
 
 // Split flat model coordinates into explicit rings. A multi-ring area marks its
@@ -1444,21 +1675,21 @@ function coordinatesToJson(coordinates: unknown[], flipY = false): unknown[] {
 // boundary and the rest as `holes`; the boundary is now structural, so the
 // `hole` flag is not written on any tuple. A single-ring object (line, simple
 // area, point, text) yields just `coordinates` with no `holes`.
-function ringsToJson(
-  coordinates: unknown[],
-  flipY = false,
-): { coordinates: unknown[]; holes?: unknown[][] } {
+function ringsToJson(coordinates: unknown[]): {
+  coordinates: unknown[]
+  holes?: unknown[][]
+} {
   const rings: unknown[][] = [[]]
   coordinates.forEach((coord, i) => {
     rings[rings.length - 1].push(coord)
     const yF = (coord as { yFlags?: number }).yFlags ?? 0
-    if ((yF & 0x02) && i < coordinates.length - 1) rings.push([])
+    if (yF & 0x02 && i < coordinates.length - 1) rings.push([])
   })
   const [outer, ...inner] = rings
   const out: { coordinates: unknown[]; holes?: unknown[][] } = {
-    coordinates: coordinatesToJson(outer, flipY),
+    coordinates: coordinatesToJson(outer),
   }
-  if (inner.length) out.holes = inner.map(ring => coordinatesToJson(ring, flipY))
+  if (inner.length) out.holes = inner.map(ring => coordinatesToJson(ring))
   return out
 }
 
@@ -1468,7 +1699,14 @@ function ringsToJson(
 // (an icon area primitive can carry a hole boundary). Element coords are
 // symbol-internal (y-up), so they are never Y-flipped.
 function elementCoordToJson(coord: unknown): unknown {
-  const src = coord as { 0?: number; 1?: number; x?: number; y?: number; xFlags?: number; yFlags?: number }
+  const src = coord as {
+    0?: number
+    1?: number
+    x?: number
+    y?: number
+    xFlags?: number
+    yFlags?: number
+  }
   const isTuple = Array.isArray(coord)
   const x = cleanNumber(isTuple ? src[0] : src.x)
   const y = cleanNumber(isTuple ? src[1] : src.y)
@@ -1485,16 +1723,18 @@ function elementCoordToJson(coord: unknown): unknown {
  * `ringsToJson`), not a coord flag. The OCAD-shaped xFlags/yFlags bytes are
  * translated to these on write and back on read; the raw OMap byte is not stored.
  */
-function coordToJson(coord: unknown, flipY = false): unknown {
+function coordToJson(coord: unknown): unknown {
   const src = coord as {
-    0?: number; 1?: number; x?: number; y?: number;
-    xFlags?: number; yFlags?: number;
+    0?: number
+    1?: number
+    x?: number
+    y?: number
+    xFlags?: number
+    yFlags?: number
   }
   const isTuple = Array.isArray(coord)
   const x = cleanNumber(isTuple ? src[0] : src.x)
-  const rawY = cleanNumber(isTuple ? src[1] : src.y)
-  // Negate for the visual (y-down) space; avoid -0 so serialisation is stable.
-  const y = flipY && rawY !== 0 ? -rawY : rawY
+  const y = cleanNumber(isTuple ? src[1] : src.y)
   const flags = semanticCoordFlags(src.xFlags ?? 0, src.yFlags ?? 0)
   return flags ? [x, y, flags] : [x, y]
 }
@@ -1505,12 +1745,14 @@ function coordToJson(coord: unknown, flipY = false): unknown {
 // `includeHole = false` — their hole rings are structural (outer `coordinates` +
 // `holes`); element (icon) coords pass `true`, since a primitive isn't ring-split.
 function semanticCoordFlags(
-  xF: number, yF: number, includeHole = false,
+  xF: number,
+  yF: number,
+  includeHole = false,
 ): Record<string, true> | undefined {
   const f: Record<string, true> = {}
   if (xF & 0x03) f.control = true
   if (yF & 0x01) f.corner = true
-  if (includeHole && (yF & 0x02)) f.hole = true
+  if (includeHole && yF & 0x02) f.hole = true
   if (yF & 0x08) f.dash = true
   return Object.keys(f).length ? f : undefined
 }
@@ -1547,7 +1789,8 @@ function stableColorId(color: MapColor): string {
 }
 
 function stableSymbolId(symbol: MapSymbol): string {
-  const code = canonicalSymbolCode(symbol.code) || String(symbol.sourceId ?? symbol.id)
+  const code =
+    canonicalSymbolCode(symbol.code) || String(symbol.sourceId ?? symbol.id)
   return `sym_${slug(code)}`
 }
 
@@ -1557,11 +1800,6 @@ function slug(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
-}
-
-function cleanNumber(value: unknown): number {
-  const number = Number(value)
-  return Number.isInteger(number) ? number : Number(number.toFixed(3))
 }
 
 export {

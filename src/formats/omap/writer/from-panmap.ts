@@ -5,14 +5,26 @@
  * The XML emission itself lives in `write.ts`. This file only builds
  * the record shape; nothing here formats XML.
  */
-import type { MapObject, MapSymbol, RenderLayer } from '../../../panmap/model.js'
+import type {
+  MapObject,
+  MapSymbol,
+  RenderLayer,
+} from '../../../panmap/model.js'
 import {
-  classifyAreaLayers, classifyLineLayers,
-  classifyPointLayers, classifyTextLayers,
+  classifyAreaLayers,
+  classifyLineLayers,
+  classifyPointLayers,
+  classifyTextLayers,
 } from '../../../panmap/render-layers.js'
 import type {
-  DoubleLineLayer, FillLayer, HatchLayer, LineElementsLayer,
-  LineSymbolsLayer, PointPatternLayer, StrokeLayer, StructureLayer,
+  DoubleLineLayer,
+  FillLayer,
+  HatchLayer,
+  LineElementsLayer,
+  LineSymbolsLayer,
+  PointPatternLayer,
+  StrokeLayer,
+  StructureLayer,
 } from '../../../panmap/render-layers.js'
 import type {
   OmapAreaPattern,
@@ -27,18 +39,23 @@ import type {
 import { coordX, coordY, coordFlags } from '../../../panmap/coord.js'
 import type { Coord } from '../../../panmap/coord.js'
 import { buildColorIdMap, colorRefLookup } from '../../../panmap/color.js'
-import { pickMainStroke, strokeVisible } from '../../../panmap/stroke-classifier.js'
+import {
+  pickMainStroke,
+  strokeVisible,
+} from '../../../panmap/stroke-classifier.js'
 import { decodeLineStyle as decodeLineStyleForXmap } from '../../ocad/codecs/line-style.js'
 
 /** XMap symbol shape accepted by `xmapSymbolToXml`. Wider than
  *  `OmapSymbol` because the Panmap → xmap adapter may produce
  *  records with a few optional fields the strict interface omits. */
-export type RawOmapSymbol = OmapSymbol | (Partial<OmapSymbol> & {
-  id?: number
-  code?: string
-  name?: string
-  [key: string]: unknown
-})
+export type RawOmapSymbol =
+  | OmapSymbol
+  | (Partial<OmapSymbol> & {
+      id?: number
+      code?: string
+      name?: string
+      [key: string]: unknown
+    })
 
 /**
  * Convert a `MapSymbol` (render-layer shape) into an
@@ -67,20 +84,33 @@ function toOmapSymbol(
   colorIds: Map<string | number, number>,
 ): RawOmapSymbol {
   const {
-    fills, hatches, structures, pointPatterns, strokes,
+    fills,
+    hatches,
+    structures,
+    pointPatterns,
+    strokes,
     border: borderSymbolLayer,
   } = classifyAreaLayers(symbol)
   const {
-    doubleLine, lineElements, lineSymbols: lineSymbolsLayer,
+    doubleLine,
+    lineElements,
+    lineSymbols: lineSymbolsLayer,
   } = classifyLineLayers(symbol)
   const {
-    fill: pointFill, stroke: pointStroke, elements: pointElementsLayer,
+    fill: pointFill,
+    stroke: pointStroke,
+    elements: pointElementsLayer,
   } = classifyPointLayers(symbol)
   const { text: textLayer } = classifyTextLayers(symbol)
 
   const t = symbol.type
-  const hasLine = strokes.length > 0 || !!doubleLine || !!lineElements || !!lineSymbolsLayer
-  const hasArea = fills.length > 0 || hatches.length > 0 || structures.length > 0 || pointPatterns.length > 0
+  const hasLine =
+    strokes.length > 0 || !!doubleLine || !!lineElements || !!lineSymbolsLayer
+  const hasArea =
+    fills.length > 0 ||
+    hatches.length > 0 ||
+    structures.length > 0 ||
+    pointPatterns.length > 0
   const hasPoint = !!pointFill || !!pointStroke || !!pointElementsLayer
   const hasText = !!textLayer
 
@@ -125,7 +155,8 @@ function toOmapSymbol(
     const primaryWidth = strokePrimary.width ?? 0
     return (s.width ?? 0) > primaryWidth
   }
-  const frameStroke = strokes.find(s => s.frame) ?? strokes.find(isFrameCandidate)
+  const frameStroke =
+    strokes.find(s => s.frame) ?? strokes.find(isFrameCandidate)
   // Detect the gitmap canonical form of a double-line: a secondary stroke
   // carrying `borders` in addition to a preceding visible primary stroke.
   // The gitmap writer normalises OCAD's `double-line` layer into this shape
@@ -138,17 +169,20 @@ function toOmapSymbol(
   // one. Firing here for those breaks xmap→xmap idempotence.
   const primaryVisibleForBorderSearch = strokes.find(s => strokeVisible(s))
   const borderCarrierStroke = primaryVisibleForBorderSearch
-    ? strokes.find(s =>
-      s !== primaryVisibleForBorderSearch
-      && Array.isArray(s.borders) && s.borders.length > 0
-    )
+    ? strokes.find(
+        s =>
+          s !== primaryVisibleForBorderSearch &&
+          Array.isArray(s.borders) &&
+          s.borders.length > 0,
+      )
     : undefined
-  if ((t === 'line' || t === 'combined') && (doubleLine || frameStroke || borderCarrierStroke)) {
+  if (
+    (t === 'line' || t === 'combined') &&
+    (doubleLine || frameStroke || borderCarrierStroke)
+  ) {
     const dl = doubleLine
     const fillC = dl ? colorRef(dl.fillColorId, colorIds) : -1
-    const frameC = frameStroke
-      ? colorRef(frameStroke.colorId, colorIds)
-      : -1
+    const frameC = frameStroke ? colorRef(frameStroke.colorId, colorIds) : -1
     const carrierC = borderCarrierStroke
       ? colorRef(borderCarrierStroke.colorId, colorIds)
       : -1
@@ -158,77 +192,103 @@ function toOmapSymbol(
     // in that case would put the borders directly on the visible
     // primary → Mapper's OCD encoding would set dblWidth = primary.
     // width instead of the invisible fill's width, losing 1mm per side.
-    const dlHasBorders = !!dl
-      && (((dl.leftWidth ?? 0) > 0) || ((dl.rightWidth ?? 0) > 0))
-    const carrierHasBorders = !!borderCarrierStroke
-      && Array.isArray(borderCarrierStroke.borders)
-      && borderCarrierStroke.borders.length > 0
-    if (fillC > 0 || frameC > 0 || carrierC > 0 || dlHasBorders || carrierHasBorders) {
-    // Prefer strokes that are NOT the frame carrier as "primary".
-    // The frame stroke, when present, was surfaced from OCAD's fr*
-    // fields and is drawn UNDER the main line — not the top layer.
-    const nonFrameStrokes = strokes.filter(s =>
-      !s.frame && s !== borderCarrierStroke,
-    )
-    const primary = nonFrameStrokes.find(s => strokeVisible(s))
-      ?? nonFrameStrokes[0]
-      ?? strokes[0]
-    const mainLine = buildXmapLineSymbol(
-      primary ? [primary] : [],
-      undefined, lineElements, lineSymbolsLayer, colorIds,
-    )
-    // Inherit cap/join from the source stroke so lineStyle round-trips.
-    // OCAD stores one `lineStyle` byte per line-symbol; both the visible
-    // main line and the fill share it. Xmap's cap_style/join_style
-    // attributes on the fill part must match what the primary carried
-    // or the round-trip re-encodes to a different lineStyle.
-    const strokeCapJoin = primary?.lineStyle !== undefined
-      ? decodeLineStyleForXmap(primary.lineStyle)
-      : { capStyle: primary?.capStyle, joinStyle: primary?.joinStyle }
-    // Width and color: prefer doubleLine's fill fields when present;
-    // fall back to the border-carrier stroke's own (gitmap-canonical
-    // double-line), then the frame stroke's, otherwise invisible.
-    const fillColorNumeric =
-      fillC > 0 ? fillC :
-      carrierC > 0 ? carrierC :
-      frameC > 0 ? frameC : -1
-    const fillWidth = dl
-      ? (dl.centerWidth ?? 0)
-      : (borderCarrierStroke?.width ?? frameStroke?.width ?? 0)
-    const fillLine: OmapLineSymbol = {
-      color: fillColorNumeric,
-      lineWidth: fillWidth,
-      minimumLength: 0,
-      dashed: false,
-      dashLength: 400,
-      breakLength: 100,
-      dashesInGroup: 1,
-      inGroupBreakLength: 50,
-      endLength: 0,
-      segmentLength: 400,
-      startOffset: 0,
-      endOffset: 0,
-      showAtLeastOneSymbol: true,
-      midSymbolsPerSpot: 1,
-      midSymbolDistance: 0,
-      midSymbolPlacement: 0,
-      minimumMidSymbolCount: 0,
-      minimumMidSymbolCountWhenClosed: 0,
-      suppressDashSymbolAtEnds: false,
-      scaleDashSymbol: true,
-      capStyle: strokeCapJoin.capStyle ?? 0,
-      joinStyle: strokeCapJoin.joinStyle ?? 0,
-      borders: doubleLine
-        ? extractBorders(undefined, doubleLine, colorIds)
-        : (borderCarrierStroke
-          ? extractBorders(borderCarrierStroke, undefined, colorIds)
-          : undefined),
-    } as OmapLineSymbol
+    const dlHasBorders =
+      !!dl && ((dl.leftWidth ?? 0) > 0 || (dl.rightWidth ?? 0) > 0)
+    const carrierHasBorders =
+      !!borderCarrierStroke &&
+      Array.isArray(borderCarrierStroke.borders) &&
+      borderCarrierStroke.borders.length > 0
+    if (
+      fillC > 0 ||
+      frameC > 0 ||
+      carrierC > 0 ||
+      dlHasBorders ||
+      carrierHasBorders
+    ) {
+      // Prefer strokes that are NOT the frame carrier as "primary".
+      // The frame stroke, when present, was surfaced from OCAD's fr*
+      // fields and is drawn UNDER the main line — not the top layer.
+      const nonFrameStrokes = strokes.filter(
+        s => !s.frame && s !== borderCarrierStroke,
+      )
+      const primary =
+        nonFrameStrokes.find(s => strokeVisible(s)) ??
+        nonFrameStrokes[0] ??
+        strokes[0]
+      const mainLine = buildXmapLineSymbol(
+        primary ? [primary] : [],
+        undefined,
+        lineElements,
+        lineSymbolsLayer,
+        colorIds,
+      )
+      // Inherit cap/join from the source stroke so lineStyle round-trips.
+      // OCAD stores one `lineStyle` byte per line-symbol; both the visible
+      // main line and the fill share it. Xmap's cap_style/join_style
+      // attributes on the fill part must match what the primary carried
+      // or the round-trip re-encodes to a different lineStyle.
+      const strokeCapJoin =
+        primary?.lineStyle !== undefined
+          ? decodeLineStyleForXmap(primary.lineStyle)
+          : { capStyle: primary?.capStyle, joinStyle: primary?.joinStyle }
+      // Width and color: prefer doubleLine's fill fields when present;
+      // fall back to the border-carrier stroke's own (gitmap-canonical
+      // double-line), then the frame stroke's, otherwise invisible.
+      const fillColorNumeric =
+        fillC > 0 ? fillC : carrierC > 0 ? carrierC : frameC > 0 ? frameC : -1
+      const fillWidth = dl
+        ? (dl.centerWidth ?? 0)
+        : (borderCarrierStroke?.width ?? frameStroke?.width ?? 0)
+      const fillLine: OmapLineSymbol = {
+        color: fillColorNumeric,
+        lineWidth: fillWidth,
+        minimumLength: 0,
+        dashed: false,
+        dashLength: 400,
+        breakLength: 100,
+        dashesInGroup: 1,
+        inGroupBreakLength: 50,
+        endLength: 0,
+        segmentLength: 400,
+        startOffset: 0,
+        endOffset: 0,
+        showAtLeastOneSymbol: true,
+        midSymbolsPerSpot: 1,
+        midSymbolDistance: 0,
+        midSymbolPlacement: 0,
+        minimumMidSymbolCount: 0,
+        minimumMidSymbolCountWhenClosed: 0,
+        suppressDashSymbolAtEnds: false,
+        scaleDashSymbol: true,
+        capStyle: strokeCapJoin.capStyle ?? 0,
+        joinStyle: strokeCapJoin.joinStyle ?? 0,
+        borders: doubleLine
+          ? extractBorders(undefined, doubleLine, colorIds)
+          : borderCarrierStroke
+            ? extractBorders(borderCarrierStroke, undefined, colorIds)
+            : undefined,
+      } as OmapLineSymbol
       record.type = 16
       record.combinedSymbol = {
         parts: [
-          { symbol: { id: -1, type: 2, code: symbol.code, name: `${symbol.name ?? ''} - main line`, lineSymbol: mainLine } as OmapSymbol },
-          { symbol: { id: -1, type: 2, code: symbol.code, name: `${symbol.name ?? ''} - double line`, lineSymbol: fillLine } as OmapSymbol },
+          {
+            symbol: {
+              id: -1,
+              type: 2,
+              code: symbol.code,
+              name: `${symbol.name ?? ''} - main line`,
+              lineSymbol: mainLine,
+            } as OmapSymbol,
+          },
+          {
+            symbol: {
+              id: -1,
+              type: 2,
+              code: symbol.code,
+              name: `${symbol.name ?? ''} - double line`,
+              lineSymbol: fillLine,
+            } as OmapSymbol,
+          },
         ],
       }
       return record
@@ -243,7 +303,13 @@ function toOmapSymbol(
   // the same so the border survives the ocd → xmap → ocd trip.
   if ((t === 'area' || t === 'combined') && hasArea && borderSymbolLayer) {
     const borderRef = borderSymbolLayer.symbolId
-    const areaBody = buildXmapAreaSymbol(fills, hatches, structures, pointPatterns, colorIds)
+    const areaBody = buildXmapAreaSymbol(
+      fills,
+      hatches,
+      structures,
+      pointPatterns,
+      colorIds,
+    )
     record.type = 16
     record.combinedSymbol = {
       parts: [
@@ -256,7 +322,10 @@ function toOmapSymbol(
             areaSymbol: areaBody,
           } as OmapSymbol,
         },
-        { symbolRef: typeof borderRef === 'number' ? borderRef : Number(borderRef) },
+        {
+          symbolRef:
+            typeof borderRef === 'number' ? borderRef : Number(borderRef),
+        },
       ],
     }
     return record
@@ -270,15 +339,41 @@ function toOmapSymbol(
   // `<area_symbol>` on the same root — Mapper reads that as area-only
   // (loses the bank line) and idempotence breaks.
   if (t === 'combined' && hasArea && hasLine) {
-    const areaBody = buildXmapAreaSymbol(fills, hatches, structures, pointPatterns, colorIds)
+    const areaBody = buildXmapAreaSymbol(
+      fills,
+      hatches,
+      structures,
+      pointPatterns,
+      colorIds,
+    )
     const lineBody = buildXmapLineSymbol(
-      strokes, doubleLine, lineElements, lineSymbolsLayer, colorIds,
+      strokes,
+      doubleLine,
+      lineElements,
+      lineSymbolsLayer,
+      colorIds,
     )
     record.type = 16
     record.combinedSymbol = {
       parts: [
-        { symbol: { id: -1, type: 4, code: symbol.code, name: symbol.name, areaSymbol: areaBody } as OmapSymbol },
-        { symbol: { id: -1, type: 2, code: symbol.code, name: symbol.name, lineSymbol: lineBody } as OmapSymbol },
+        {
+          symbol: {
+            id: -1,
+            type: 4,
+            code: symbol.code,
+            name: symbol.name,
+            areaSymbol: areaBody,
+          } as OmapSymbol,
+        },
+        {
+          symbol: {
+            id: -1,
+            type: 2,
+            code: symbol.code,
+            name: symbol.name,
+            lineSymbol: lineBody,
+          } as OmapSymbol,
+        },
       ],
     }
     return record
@@ -286,23 +381,37 @@ function toOmapSymbol(
 
   if ((t === 'line' || t === 'combined') && hasLine) {
     record.lineSymbol = buildXmapLineSymbol(
-      strokes, doubleLine, lineElements, lineSymbolsLayer, colorIds,
+      strokes,
+      doubleLine,
+      lineElements,
+      lineSymbolsLayer,
+      colorIds,
     )
   }
   if ((t === 'area' || t === 'combined') && hasArea) {
     record.areaSymbol = buildXmapAreaSymbol(
-      fills, hatches, structures, pointPatterns, colorIds,
+      fills,
+      hatches,
+      structures,
+      pointPatterns,
+      colorIds,
     )
   }
   if (t === 'point' && hasPoint) {
     record.pointSymbol = buildXmapPointSymbol(
-      pointFill, pointStroke, pointElementsLayer, colorIds,
+      pointFill,
+      pointStroke,
+      pointElementsLayer,
+      colorIds,
       isRotatableFromNative(symbol),
     )
   }
   if ((t === 'text' || t === 'line-text') && hasText) {
     record.textSymbol = buildXmapTextSymbol(
-      textLayer, symbol, colorIds, isRotatableFromNative(symbol),
+      textLayer,
+      symbol,
+      colorIds,
+      isRotatableFromNative(symbol),
     )
   }
 
@@ -310,13 +419,35 @@ function toOmapSymbol(
   // whichever layer bucket has something. Prevents the writer from
   // emitting an empty <symbol/> for a symbol that just happens to have
   // a `type` we didn't match cleanly (e.g. OCAD "combined" symbols).
-  if (!record.lineSymbol && !record.areaSymbol && !record.pointSymbol && !record.textSymbol) {
+  if (
+    !record.lineSymbol &&
+    !record.areaSymbol &&
+    !record.pointSymbol &&
+    !record.textSymbol
+  ) {
     if (hasLine) {
-      record.lineSymbol = buildXmapLineSymbol(strokes, doubleLine, lineElements, lineSymbolsLayer, colorIds)
+      record.lineSymbol = buildXmapLineSymbol(
+        strokes,
+        doubleLine,
+        lineElements,
+        lineSymbolsLayer,
+        colorIds,
+      )
     } else if (hasArea) {
-      record.areaSymbol = buildXmapAreaSymbol(fills, hatches, structures, pointPatterns, colorIds)
+      record.areaSymbol = buildXmapAreaSymbol(
+        fills,
+        hatches,
+        structures,
+        pointPatterns,
+        colorIds,
+      )
     } else if (hasPoint) {
-      record.pointSymbol = buildXmapPointSymbol(pointFill, pointStroke, pointElementsLayer, colorIds)
+      record.pointSymbol = buildXmapPointSymbol(
+        pointFill,
+        pointStroke,
+        pointElementsLayer,
+        colorIds,
+      )
     } else if (hasText) {
       record.textSymbol = buildXmapTextSymbol(textLayer, symbol, colorIds)
     }
@@ -353,12 +484,14 @@ function buildXmapLineSymbol(
 
   const cap = primary?.capStyle
   const join = primary?.joinStyle
-  const decoded = primary?.lineStyle !== undefined
-    ? decodeLineStyleForXmap(primary.lineStyle)
-    : {}
+  const decoded =
+    primary?.lineStyle !== undefined
+      ? decodeLineStyleForXmap(primary.lineStyle)
+      : {}
 
   const dash = primary?.dash
-  const isDashed = dash && (dash.mainGap || dash.secGap || dash.dashLength || dash.breakLength)
+  const isDashed =
+    dash && (dash.mainGap || dash.secGap || dash.dashLength || dash.breakLength)
 
   // Dash geometry: xmap has dashLength/breakLength (main dash + gap) and
   // dashesInGroup/inGroupBreakLength (secondary intra-group). OCD stores
@@ -377,13 +510,11 @@ function buildXmapLineSymbol(
   // line is actually dashed — for a plain solid line with no
   // decorations, Mapper writes `mainLength=0` and we should match.
   const segmentLength =
-    primary?.segmentLength
-    ?? (lineElements?.mainLength as number | undefined)
-    ?? (isDashed ? dashLength : 0)
+    primary?.segmentLength ??
+    (lineElements?.mainLength as number | undefined) ??
+    (isDashed ? dashLength : 0)
   const endLength =
-    primary?.endLength
-    ?? (lineElements?.endLength as number | undefined)
-    ?? 0
+    primary?.endLength ?? (lineElements?.endLength as number | undefined) ?? 0
 
   // Borders: xmap-sourced carries `borders` on the stroke;
   // OCD-sourced carries a separate `double-line` layer.
@@ -396,8 +527,7 @@ function buildXmapLineSymbol(
   // this back as `line_width` in the xmap. Without this the ISOM 511
   // Major Power Line (invisible wide main + two thin dashed borders)
   // collapses to a zero-width line on ocd→xmap→ocd.
-  const primaryWidth = (primary?.width ?? 0)
-    || (doubleLine?.centerWidth ?? 0)
+  const primaryWidth = (primary?.width ?? 0) || (doubleLine?.centerWidth ?? 0)
 
   const midSymbol = ocadElementsToXmapPointSymbol(
     (lineElements?.primSymElements as unknown[]) ?? [],
@@ -465,8 +595,12 @@ function extractBorders(
   if (Array.isArray(strokeBorders) && strokeBorders.length) {
     return strokeBorders.map(b => {
       const bo = b as {
-        color?: unknown; width?: number; shift?: number;
-        dashed?: boolean; dashLength?: number; breakLength?: number;
+        color?: unknown
+        width?: number
+        shift?: number
+        dashed?: boolean
+        dashLength?: number
+        breakLength?: number
       }
       return {
         color: colorRef(bo.color, colorIds),
@@ -479,7 +613,10 @@ function extractBorders(
     })
   }
   if (doubleLine) {
-    const dl = doubleLine as DoubleLineLayer & { dashLength?: number; breakLength?: number }
+    const dl = doubleLine as DoubleLineLayer & {
+      dashLength?: number
+      breakLength?: number
+    }
     const leftC = colorRef(dl.leftColorId, colorIds)
     const rightC = colorRef(dl.rightColorId, colorIds)
     const leftW = dl.leftWidth ?? 0
@@ -500,7 +637,9 @@ function extractBorders(
     const out: OmapLineBorder[] = []
     if (leftW > 0) {
       out.push({
-        color: leftC, width: leftW, shift: 0,
+        color: leftC,
+        width: leftW,
+        shift: 0,
         dashed: leftDashed || undefined,
         dashLength: leftDashed ? dashLength : undefined,
         breakLength: leftDashed ? breakLength : undefined,
@@ -508,7 +647,9 @@ function extractBorders(
     }
     if (rightW > 0) {
       out.push({
-        color: rightC, width: rightW, shift: 0,
+        color: rightC,
+        width: rightW,
+        shift: 0,
         dashed: rightDashed || undefined,
         dashLength: rightDashed ? dashLength : undefined,
         breakLength: rightDashed ? breakLength : undefined,
@@ -527,9 +668,7 @@ function buildXmapAreaSymbol(
   colorIds: Map<string | number, number>,
 ): OmapAreaSymbol {
   const primaryFill = fills[0]
-  const innerColor = primaryFill
-    ? colorRef(primaryFill.colorId, colorIds)
-    : -1
+  const innerColor = primaryFill ? colorRef(primaryFill.colorId, colorIds) : -1
 
   const patterns: OmapAreaPattern[] = []
 
@@ -537,7 +676,7 @@ function buildXmapAreaSymbol(
     patterns.push({
       type: 1,
       // xmap stores hatch angle in RADIANS; uses degrees
-      angle: (h.angle ?? 0) * Math.PI / 180,
+      angle: ((h.angle ?? 0) * Math.PI) / 180,
       lineSpacing: h.spacing ?? 0,
       pointDistance: 0,
       lineOffset: 0,
@@ -558,10 +697,9 @@ function buildXmapAreaSymbol(
     // onto a single row.
     const mode = s.mode ?? 1
     const pointDistance = s.symbolWidth ?? s.width ?? 0
-    const lineSpacing = mode === 2
-      ? (s.symbolHeight ?? 0) * 2
-      : (s.symbolHeight ?? 0)
-    const angleRad = (s.angle ?? 0) * Math.PI / 180
+    const lineSpacing =
+      mode === 2 ? (s.symbolHeight ?? 0) * 2 : (s.symbolHeight ?? 0)
+    const angleRad = ((s.angle ?? 0) * Math.PI) / 180
     const color = colorRef(s.colorId, colorIds)
     const rotatable = !!s.rotatable
     const nested = ocadElementsToXmapPointSymbol(s.elements ?? [], colorIds)
@@ -579,7 +717,7 @@ function buildXmapAreaSymbol(
       rotatable,
       noClipping,
       symbol: nested,
-    } as OmapAreaPattern & { noClipping?: number })
+    } as OmapAreaPattern)
 
     if (mode === 2) {
       patterns.push({
@@ -594,20 +732,25 @@ function buildXmapAreaSymbol(
         rotatable,
         noClipping,
         symbol: nested,
-      } as OmapAreaPattern & { noClipping?: number })
+      } as OmapAreaPattern)
     }
   }
 
   for (const p of pointPatterns) {
     const nested = p.pattern?.symbol as OmapSymbol | undefined
-    const pat = p.pattern as {
-      lineSpacing?: number; pointDistance?: number;
-      lineOffset?: number; offsetAlongLine?: number;
-      noClipping?: number; rotatable?: boolean;
-    } | undefined
+    const pat = p.pattern as
+      | {
+          lineSpacing?: number
+          pointDistance?: number
+          lineOffset?: number
+          offsetAlongLine?: number
+          noClipping?: number
+          rotatable?: boolean
+        }
+      | undefined
     patterns.push({
       type: 2,
-      angle: (p.angle ?? 0) * Math.PI / 180,
+      angle: ((p.angle ?? 0) * Math.PI) / 180,
       // Prefer the nested pattern's spacing over the layer's top-level
       // `width`/`height`. In the shifted-rows case the layer height is the
       // OCAD `structHeight` (half the tile) while the pattern encodes the
@@ -635,7 +778,7 @@ function buildXmapAreaSymbol(
       // are string ids; OMAP requires numeric priorities or Mapper
       // renders in the "unknown colour" fallback (bright pink).
       symbol: nested ? rewriteSymbolColors(nested, colorIds) : nested,
-    } as OmapAreaPattern & { noClipping?: number })
+    } as OmapAreaPattern)
   }
 
   return {
@@ -645,8 +788,8 @@ function buildXmapAreaSymbol(
 }
 
 /**
- * Read the Panmap rotatable flag. Both readers (`ocad/to-map.ts` and
- * `xmap/to-map.ts`) surface the bit here, so consumers no longer need
+ * Read the Panmap rotatable flag. Both readers (`ocad/reader/to-panmap.ts`
+ * and `omap/reader/to-panmap.ts`) surface the bit here, so consumers no longer need
  * to walk `native.*.raw` records — that's what let the writer's raw
  * passthrough retire.
  */
@@ -661,14 +804,12 @@ function buildXmapPointSymbol(
   colorIds: Map<string | number, number>,
   rotatable = false,
 ): OmapPointSymbol {
-  const innerColor = pointFill
-    ? colorRef(pointFill.colorId, colorIds)
-    : -1
-  const innerRadius = (pointFill?.radius as number | undefined)
-    ?? (pointStroke?.radius as number | undefined) ?? 0
-  const outerColor = pointStroke
-    ? colorRef(pointStroke.colorId, colorIds)
-    : -1
+  const innerColor = pointFill ? colorRef(pointFill.colorId, colorIds) : -1
+  const innerRadius =
+    (pointFill?.radius as number | undefined) ??
+    (pointStroke?.radius as number | undefined) ??
+    0
+  const outerColor = pointStroke ? colorRef(pointStroke.colorId, colorIds) : -1
   const outerWidth = (pointStroke?.width as number | undefined) ?? 0
 
   const elementsRaw = (pointElements?.elements as unknown[] | undefined) ?? []
@@ -708,7 +849,9 @@ function ocadElementsToXmapPointSymbol(
   //     in xmap's nested form. Pass through untouched — otherwise the
   //     ocad-only conversion silently drops them (missing `type` field
   //     → returns null → elements collapses to empty).
-  const isXmapShaped = (el: unknown): el is { symbol: OmapSymbol; object: OmapObject } =>
+  const isXmapShaped = (
+    el: unknown,
+  ): el is { symbol: OmapSymbol; object: OmapObject } =>
     !!el && typeof el === 'object' && 'symbol' in el && 'object' in el
   const converted: Array<{ symbol: OmapSymbol; object: OmapObject }> = []
   for (const el of elements) {
@@ -748,31 +891,39 @@ function rewriteSymbolColors(
   colorIds: Map<string | number, number>,
 ): OmapSymbol {
   const rewriteColor = (c: unknown): unknown =>
-    (typeof c === 'string') ? colorRef(c, colorIds) : c
+    typeof c === 'string' ? colorRef(c, colorIds) : c
   const out: OmapSymbol = { ...symbol }
-  const ps = symbol.pointSymbol as (Record<string, unknown> | undefined)
+  const ps = symbol.pointSymbol as Record<string, unknown> | undefined
   if (ps) {
     out.pointSymbol = {
       ...ps,
       innerColor: rewriteColor(ps.innerColor),
       outerColor: rewriteColor(ps.outerColor),
       elements: Array.isArray(ps.elements)
-        ? (ps.elements as Array<{symbol: OmapSymbol; object: OmapObject}>).map(el => ({
+        ? (
+            ps.elements as Array<{ symbol: OmapSymbol; object: OmapObject }>
+          ).map(el => ({
             symbol: rewriteSymbolColors(el.symbol, colorIds),
             object: el.object,
           }))
         : ps.elements,
     } as typeof symbol.pointSymbol
   }
-  const ls = symbol.lineSymbol as (Record<string, unknown> | undefined)
+  const ls = symbol.lineSymbol as Record<string, unknown> | undefined
   if (ls) {
-    out.lineSymbol = { ...ls, color: rewriteColor(ls.color) } as typeof symbol.lineSymbol
+    out.lineSymbol = {
+      ...ls,
+      color: rewriteColor(ls.color),
+    } as typeof symbol.lineSymbol
   }
-  const as = symbol.areaSymbol as (Record<string, unknown> | undefined)
+  const as = symbol.areaSymbol as Record<string, unknown> | undefined
   if (as) {
     out.areaSymbol = {
       ...as,
-      innerColor: rewriteColor((as as { innerColor?: unknown }).innerColor ?? (as as { color?: unknown }).color),
+      innerColor: rewriteColor(
+        (as as { innerColor?: unknown }).innerColor ??
+          (as as { color?: unknown }).color,
+      ),
     } as typeof symbol.areaSymbol
   }
   return out
@@ -783,8 +934,12 @@ function ocadElementToXmapElement(
   colorIds: Map<string | number, number>,
 ): { symbol: OmapSymbol; object: OmapObject } | null {
   const e = el as {
-    type?: number; flags?: number; color?: number; lineWidth?: number;
-    diameter?: number; coords?: Coord[];
+    type?: number
+    flags?: number
+    color?: number
+    lineWidth?: number
+    diameter?: number
+    coords?: Coord[]
   }
   if (!e || e.type === undefined) return null
 
@@ -805,8 +960,8 @@ function ocadElementToXmapElement(
   // reconstructs the same OCAD flags. Contour slope lines (101/102/103)
   // ship with flags=4 (miter join) so this bit is a common one.
   const elFlags = e.flags ?? 0
-  const elCap = (elFlags & 0x01) ? 1 : 0
-  const elJoin = (elFlags & 0x04) ? 1 : 0
+  const elCap = elFlags & 0x01 ? 1 : 0
+  const elJoin = elFlags & 0x04 ? 1 : 0
 
   if (e.type === 1) {
     // line
@@ -839,7 +994,13 @@ function ocadElementToXmapElement(
           joinStyle: elJoin,
         } as OmapLineSymbol,
       } as OmapSymbol,
-      object: { type: 1, symbol: 0, coords, text: null, textBox: null } as OmapObject,
+      object: {
+        type: 1,
+        symbol: 0,
+        coords,
+        text: null,
+        textBox: null,
+      } as OmapObject,
     }
   }
 
@@ -851,7 +1012,13 @@ function ocadElementToXmapElement(
         type: 4,
         areaSymbol: { innerColor: c, patterns: undefined },
       } as OmapSymbol,
-      object: { type: 1, symbol: 0, coords, text: null, textBox: null } as OmapObject,
+      object: {
+        type: 1,
+        symbol: 0,
+        coords,
+        text: null,
+        textBox: null,
+      } as OmapObject,
     }
   }
 
@@ -865,13 +1032,21 @@ function ocadElementToXmapElement(
         type: 1,
         pointSymbol: {
           innerColor: filled ? c : -1,
-          innerRadius: filled ? dia / 2 : Math.max(0, dia / 2 - (e.lineWidth ?? 0) / 2),
+          innerRadius: filled
+            ? dia / 2
+            : Math.max(0, dia / 2 - (e.lineWidth ?? 0) / 2),
           outerColor: filled ? -1 : c,
           outerWidth: filled ? 0 : (e.lineWidth ?? 0),
           rotatable: false,
         } as OmapPointSymbol,
       } as OmapSymbol,
-      object: { type: 0, symbol: 0, coords, text: null, textBox: null } as OmapObject,
+      object: {
+        type: 0,
+        symbol: 0,
+        coords,
+        text: null,
+        textBox: null,
+      } as OmapObject,
     }
   }
 
@@ -886,18 +1061,22 @@ function buildXmapTextSymbol(
 ): OmapTextSymbol {
   const typo = textLayer?.text as
     | {
-        fontFamily?: string; fontSize?: number;
-        fontWeight?: number; italic?: boolean;
-        lineSpace?: number; paraSpace?: number; charSpace?: number;
+        fontFamily?: string
+        fontSize?: number
+        fontWeight?: number
+        italic?: boolean
+        lineSpace?: number
+        paraSpace?: number
+        charSpace?: number
       }
     | undefined
-  const family = typo?.fontFamily
-    ?? (textLayer?.fontFamily as string | undefined)
-    ?? 'Arial'
-  const size = typo?.fontSize
-    ?? (textLayer?.fontSize as number | undefined)
-    ?? (symbol.fontSize as number | undefined)
-    ?? 12
+  const family =
+    typo?.fontFamily ?? (textLayer?.fontFamily as string | undefined) ?? 'Arial'
+  const size =
+    typo?.fontSize ??
+    (textLayer?.fontSize as number | undefined) ??
+    (symbol.fontSize as number | undefined) ??
+    12
   const bold = typo?.fontWeight !== undefined ? typo.fontWeight >= 700 : false
   const italic = typo?.italic ?? false
   return {
@@ -942,8 +1121,11 @@ function symbolIdMap(symbols: MapSymbol[]): Map<MapSymbol, number> {
   for (const symbol of symbols) {
     const sourceId = Number(symbol.sourceId)
     const ownId = Number(symbol.id)
-    const wanted = Number.isFinite(sourceId) ? sourceId
-      : Number.isFinite(ownId) ? ownId : null
+    const wanted = Number.isFinite(sourceId)
+      ? sourceId
+      : Number.isFinite(ownId)
+        ? ownId
+        : null
     preferred.push({ symbol, wanted })
     if (wanted !== null) maxUsed = Math.max(maxUsed, wanted)
   }

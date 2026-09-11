@@ -25,20 +25,7 @@ export default class StringIndexBlock {
     }
   }
 
-  getStrings(reader: BufferReader): Record<number, ParameterString[]> {
-    return this.getStringsInOrder(reader).reduce((pss, ps) => {
-      let typeStrings = pss[ps.recType]
-      if (!typeStrings) {
-        pss[ps.recType] = typeStrings = []
-      }
-
-      typeStrings.push(ps)
-
-      return pss
-    }, {} as Record<number, ParameterString[]>)
-  }
-
-  /** Same parsing as `getStrings`, but returns records in original disk order. */
+  /** Parse parameter-string records in original disk order. */
   getStringsInOrder(reader: BufferReader): ParameterString[] {
     return this.table
       .filter(si => si.recType > 0)

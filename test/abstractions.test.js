@@ -15,7 +15,7 @@ import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { omap, read as readMap, write as writeMap } from '../src/index.ts'
+import { omap, read as readMap } from '../src/index.ts'
 import { fixtureFile } from './helpers/fixtures.js'
 import { readOcad, ocadFileToMap } from './helpers/raw.js'
 const writeOmap = omap.write
@@ -42,7 +42,7 @@ test('OCAD colors carry canonical cmyk and opacity', async (/** @type {Execution
     t.is(color.cmyk.length, 4, 'cmyk is 4-tuple')
     t.true(
       color.cmyk.every(v => v >= 0 && v <= 1),
-      `cmyk values in [0,1] for ${color.name}`
+      `cmyk values in [0,1] for ${color.name}`,
     )
     if (color.opacity !== undefined) {
       t.true(color.opacity >= 0 && color.opacity <= 1, 'opacity in [0,1]')
@@ -118,25 +118,32 @@ for (const fixture of OCAD_FIXTURES) {
   const exists = fsSync.existsSync(fixture)
   const t = exists ? test : test.skip
 
-  t(`tag populated for objects that have one (${path.basename(fixture)})`, async (/** @type {ExecutionContext} */ tt) => {
-    const map = await readMap(fixture)
-    const withStr = map.objects.filter(o => o.tag)
-    const withStrType = map.objects.filter(o => o.tagType !== undefined)
-    // Not all maps have tags; if none exist the test still verifies
-    // the field is properly absent (undefined, not empty string).
-    tt.true(
-      map.objects.every(o => o.tag === undefined || typeof o.tag === 'string'),
-      'tag is string or undefined'
-    )
-    tt.true(
-      map.objects.every(o => o.tagType === undefined || typeof o.tagType === 'number'),
-      'tagType is number or undefined'
-    )
-    if (withStr.length > 0) {
-      tt.log(`found ${withStr.length} objects with tag`)
-      tt.truthy(withStrType.length > 0, 'tagType set when tag present')
-    }
-  })
+  t(
+    `tag populated for objects that have one (${path.basename(fixture)})`,
+    async (/** @type {ExecutionContext} */ tt) => {
+      const map = await readMap(fixture)
+      const withStr = map.objects.filter(o => o.tag)
+      const withStrType = map.objects.filter(o => o.tagType !== undefined)
+      // Not all maps have tags; if none exist the test still verifies
+      // the field is properly absent (undefined, not empty string).
+      tt.true(
+        map.objects.every(
+          o => o.tag === undefined || typeof o.tag === 'string',
+        ),
+        'tag is string or undefined',
+      )
+      tt.true(
+        map.objects.every(
+          o => o.tagType === undefined || typeof o.tagType === 'number',
+        ),
+        'tagType is number or undefined',
+      )
+      if (withStr.length > 0) {
+        tt.log(`found ${withStr.length} objects with tag`)
+        tt.truthy(withStrType.length > 0, 'tagType set when tag present')
+      }
+    },
+  )
 }
 
 test('tag not leaked on objects that have none (basic-1.ocd)', async (/** @type {ExecutionContext} */ t) => {
@@ -204,7 +211,10 @@ test('OCAD text symbol populates full TextTypography', async (/** @type {Executi
     const typo = layer.text
     t.truthy(typo.fontFamily, 'fontFamily present')
     t.true(typo.fontSize > 0, 'fontSize > 0')
-    t.true(typo.fontWeight === 400 || typo.fontWeight === 700, 'fontWeight is 400 or 700')
+    t.true(
+      typo.fontWeight === 400 || typo.fontWeight === 700,
+      'fontWeight is 400 or 700',
+    )
     t.is(typeof typo.italic, 'boolean')
   }
 })

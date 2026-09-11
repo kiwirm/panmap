@@ -5,6 +5,7 @@ import {
   expandTextBoxCoords,
 } from '../../codecs/index.js'
 import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
+import { otpForType } from './object-type.js'
 
 /**
  * Translate MapObject[] into the record + index-entry shape
@@ -40,7 +41,7 @@ export function synthesizeObjects(
     if (obj.hidden) continue
     const ocadSym = symToOcadNum(obj.symbolId)
     if (ocadSym == null) continue
-    const symbol = symbols.find((s) => s.id === obj.symbolId)
+    const symbol = symbols.find(s => s.id === obj.symbolId)
     const otp = otpForObject(obj, symbol)
     let coords = normalizeCoords(obj.coordinates ?? [], flipY)
     // OCAD text objects (otp=4/5) expect 5 coords: the text anchor
@@ -109,14 +110,15 @@ function buildSymNumLookup(
 ): (id: unknown) => number | null {
   const byId = new Map<unknown, number>()
   for (const s of symbols) {
-    const num = symNums?.get(s.id)
-      ?? parseSymbolCode(s.code || String(s.sourceId ?? s.id))
+    const num =
+      symNums?.get(s.id) ??
+      parseSymbolCode(s.code || String(s.sourceId ?? s.id))
     byId.set(s.id, num)
     // Also key by sourceId so objects that carry raw ids
     // (e.g. numeric OCAD ids) resolve without a rename step.
     if (s.sourceId !== undefined) byId.set(s.sourceId, num)
   }
-  return (id) => byId.get(id) ?? (typeof id === 'number' ? id : null)
+  return id => byId.get(id) ?? (typeof id === 'number' ? id : null)
 }
 
 /**
@@ -127,20 +129,16 @@ function buildSymNumLookup(
  */
 function otpForObject(obj: MapObject, symbol?: MapSymbol): number {
   switch (obj.type) {
-    case 'point': return 1
-    case 'line':  return 2
-    case 'area':  return 3
-    case 'text':  return 4
-    default:      return symbol ? otpForType(symbol.type) : 1
-  }
-}
-function otpForType(t: string): number {
-  switch (t) {
-    case 'point': return 1
-    case 'line':  return 2
-    case 'area':  return 3
-    case 'text':  return 4
-    default:      return 1
+    case 'point':
+      return 1
+    case 'line':
+      return 2
+    case 'area':
+      return 3
+    case 'text':
+      return 4
+    default:
+      return symbol ? otpForType(symbol.type) : 1
   }
 }
 
@@ -183,7 +181,12 @@ function normalizeCoords(input: unknown[], flipY: boolean): FlatCoord[] {
         yFlags: (t.yFlags ?? 0) & 0xff,
       })
     } else if (c && typeof c === 'object') {
-      const o = c as { x?: number; y?: number; xFlags?: number; yFlags?: number }
+      const o = c as {
+        x?: number
+        y?: number
+        xFlags?: number
+        yFlags?: number
+      }
       raw.push({
         0: Number(o.x ?? 0) | 0,
         1: (Number(o.y ?? 0) * s) | 0,
@@ -194,15 +197,19 @@ function normalizeCoords(input: unknown[], flipY: boolean): FlatCoord[] {
   }
   // Move each hole flag last-of-prev → first-of-new (OCAD's on-disk
   // convention). The exact inverse runs on read (`shiftHoleFlagsFromOcad`);
-  // both live together in map/coord.ts.
+  // both live together in ../../codecs/hole-flags.ts.
   return shiftHoleFlagsToOcad(raw)
 }
 
 function boundsFor(coords: FlatCoord[]): {
-  min: [number, number]; max: [number, number]
+  min: [number, number]
+  max: [number, number]
 } {
   if (!coords.length) return { min: [0, 0], max: [0, 0] }
-  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
   for (const c of coords) {
     if (c[0] < minX) minX = c[0]
     if (c[1] < minY) minY = c[1]
@@ -211,4 +218,3 @@ function boundsFor(coords: FlatCoord[]): {
   }
   return { min: [minX, minY], max: [maxX, maxY] }
 }
-

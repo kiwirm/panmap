@@ -134,6 +134,9 @@ export interface OmapLineBorder {
   color: number
   width: number
   shift: number
+  dashed?: boolean
+  dashLength?: number
+  breakLength?: number
 }
 
 export interface OmapAreaPattern {
@@ -147,6 +150,8 @@ export interface OmapAreaPattern {
   lineWidth: number
   rotatable: boolean
   symbol?: OmapSymbol
+  /** Clip mode enum (0/1/2), not a bool. */
+  noClipping?: number
 }
 
 export interface OmapAreaSymbol {
@@ -179,6 +184,8 @@ export interface OmapTextSymbol {
   fontSize: number
   bold: boolean
   italic: boolean
+  /** Icon caption text carried on the `<text_symbol icon_text="…">` attribute. */
+  iconText?: string
   /** Line spacing as a multiplier (1 = single-spaced). */
   lineSpacing?: number
   /** Paragraph spacing in map units. */

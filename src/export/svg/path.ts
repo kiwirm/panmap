@@ -1,7 +1,11 @@
 // Path geometry for the SVG renderer. Pure — no DOM, no map model.
 // Consumers: svg.ts (and eventually the split render pipeline).
 
-import { isFirstBezier, isSecondBezier, isFirstHolePoint } from '../../panmap/coord.js'
+import {
+  isFirstBezier,
+  isSecondBezier,
+  isFirstHolePoint,
+} from '../../panmap/coord.js'
 
 type Coord = ArrayLike<number>
 type Transform = (coord: Coord) => Coord
@@ -24,7 +28,7 @@ type Transform = (coord: Coord) => Coord
  *  the polygon in the background colour. */
 export function coordsToPath(
   coordinates: Coord[],
-  transform: Transform = (c) => c,
+  transform: Transform = c => c,
 ): string {
   if (!coordinates.length) return ''
 
@@ -67,8 +71,14 @@ export function coordsToPath(
       return
     }
 
-    if (isFirstBezier(coord as any)) { cp1 = transformed; return }
-    if (isSecondBezier(coord as any)) { cp2 = transformed; return }
+    if (isFirstBezier(coord as any)) {
+      cp1 = transformed
+      return
+    }
+    if (isSecondBezier(coord as any)) {
+      cp2 = transformed
+      return
+    }
 
     if (cp1 && cp2) {
       commands.push(
@@ -93,9 +103,9 @@ export function coordsToPath(
  *  per-lookup allocation of a 6000-entry `PathSegment[]`. */
 export interface PathSampler {
   count: number
-  starts: Float64Array   // 2·count: [x0, y0, x1, y1, ...]
-  ends: Float64Array     // 2·count
-  cumLen: Float64Array   // count: total path length up to and including segment i
+  starts: Float64Array // 2·count: [x0, y0, x1, y1, ...]
+  ends: Float64Array // 2·count
+  cumLen: Float64Array // count: total path length up to and including segment i
   total: number
 }
 
@@ -131,14 +141,26 @@ export function buildPathSampler(coords: Coord[]): PathSampler {
         continue
       }
 
-      if (isFirstBezier(coord as any)) { cp1 = coord; continue }
-      if (isSecondBezier(coord as any)) { cp2 = coord; continue }
+      if (isFirstBezier(coord as any)) {
+        cp1 = coord
+        continue
+      }
+      if (isSecondBezier(coord as any)) {
+        cp2 = coord
+        continue
+      }
 
       if (cp1 && cp2) {
         let prevX = currentX
         let prevY = currentY
         for (let step = 1; step <= 16; step++) {
-          const next = cubicBezierPoint([currentX, currentY], cp1, cp2, coord, step / 16)
+          const next = cubicBezierPoint(
+            [currentX, currentY],
+            cp1,
+            cp2,
+            coord,
+            step / 16,
+          )
           push(prevX, prevY, next[0], next[1])
           prevX = next[0]
           prevY = next[1]
@@ -165,12 +187,9 @@ export function buildPathSampler(coords: Coord[]): PathSampler {
   }
 }
 
-export function pathLength(coords: Coord[]): number {
-  return buildPathSampler(coords).total
-}
-
 export function pointAndAngleAtSampler(
-  sampler: PathSampler, distance: number,
+  sampler: PathSampler,
+  distance: number,
 ): { 0: number; 1: number; angle: number } {
   if (sampler.count === 0) {
     return { 0: 0, 1: 0, angle: 0 }
@@ -184,8 +203,10 @@ export function pointAndAngleAtSampler(
     else hi = mid
   }
   const i = lo
-  const sx = sampler.starts[i * 2]; const sy = sampler.starts[i * 2 + 1]
-  const ex = sampler.ends[i * 2]; const ey = sampler.ends[i * 2 + 1]
+  const sx = sampler.starts[i * 2]
+  const sy = sampler.starts[i * 2 + 1]
+  const ex = sampler.ends[i * 2]
+  const ey = sampler.ends[i * 2 + 1]
   const prevCum = i === 0 ? 0 : sampler.cumLen[i - 1]
   const segLen = sampler.cumLen[i] - prevCum
   const dx = ex - sx
@@ -197,39 +218,43 @@ export function pointAndAngleAtSampler(
   return { 0: sx + dx * ratio, 1: sy + dy * ratio, angle: Math.atan2(dy, dx) }
 }
 
-export function pointAndAngleAt(coords: Coord[], distance: number): { 0: number; 1: number; angle: number } {
-  return pointAndAngleAtSampler(buildPathSampler(coords), distance)
-}
-
-export function cubicBezierPoint(p0: Coord, p1: Coord, p2: Coord, p3: Coord, t: number): Coord {
+export function cubicBezierPoint(
+  p0: Coord,
+  p1: Coord,
+  p2: Coord,
+  p3: Coord,
+  t: number,
+): Coord {
   const mt = 1 - t
   const mt2 = mt * mt
   const t2 = t * t
   return [
-    mt2 * mt * p0[0] + 3 * mt2 * t * p1[0] + 3 * mt * t2 * p2[0] + t2 * t * p3[0],
-    mt2 * mt * p0[1] + 3 * mt2 * t * p1[1] + 3 * mt * t2 * p2[1] + t2 * t * p3[1],
+    mt2 * mt * p0[0] +
+      3 * mt2 * t * p1[0] +
+      3 * mt * t2 * p2[0] +
+      t2 * t * p3[0],
+    mt2 * mt * p0[1] +
+      3 * mt2 * t * p1[1] +
+      3 * mt * t2 * p2[1] +
+      t2 * t * p3[1],
   ]
-}
-
-export function lineAngleStart(coords: Coord[]): number {
-  return lineAngleStartSampler(buildPathSampler(coords))
 }
 
 export function lineAngleStartSampler(s: PathSampler): number {
   if (s.count === 0) return 0
-  const sx = s.starts[0]; const sy = s.starts[1]
-  const ex = s.ends[0]; const ey = s.ends[1]
+  const sx = s.starts[0]
+  const sy = s.starts[1]
+  const ex = s.ends[0]
+  const ey = s.ends[1]
   return Math.atan2(ey - sy, ex - sx)
-}
-
-export function lineAngleEnd(coords: Coord[]): number {
-  return lineAngleEndSampler(buildPathSampler(coords))
 }
 
 export function lineAngleEndSampler(s: PathSampler): number {
   if (s.count === 0) return 0
   const i = s.count - 1
-  const sx = s.starts[i * 2]; const sy = s.starts[i * 2 + 1]
-  const ex = s.ends[i * 2]; const ey = s.ends[i * 2 + 1]
+  const sx = s.starts[i * 2]
+  const sy = s.starts[i * 2 + 1]
+  const ex = s.ends[i * 2]
+  const ey = s.ends[i * 2 + 1]
   return Math.atan2(ey - sy, ex - sx)
 }

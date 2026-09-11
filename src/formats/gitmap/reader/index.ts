@@ -2,12 +2,14 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import Panmap from '../../../panmap/model.js'
 import { boundsForCoords } from '../../../panmap/coord.js'
+import { parseJson } from '../../../util/json.js'
+import { parseNdjson } from '../../../util/ndjson.js'
 import {
-  parseJson, parseNdjson,
-} from '../../../util/ndjson.js'
-import {
-  capStyleFromGitmap, joinStyleFromGitmap,
-  hAlignFromGitmap, vAlignFromGitmap, rotationFromGitmap,
+  capStyleFromGitmap,
+  joinStyleFromGitmap,
+  hAlignFromGitmap,
+  vAlignFromGitmap,
+  rotationFromGitmap,
 } from '../codecs/index.js'
 
 // A gitmap is a small set of named files (manifest.json + colors/symbols/
@@ -63,7 +65,10 @@ export async function readGitmapBundle(
 }
 
 /** Core reader, agnostic to where the bytes come from. */
-async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panmap> {
+async function readGitmapFrom(
+  source: GitmapSource,
+  label: string,
+): Promise<Panmap> {
   const manifestText = await source.read('manifest.json')
   if (manifestText == null) {
     throw new Error(`Not a GitMap package: ${label} (missing manifest.json)`)
@@ -76,9 +81,18 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panm
   // Filenames are fixed by convention (no manifest `files` map).
   const readEntry = async (name: string): Promise<string> =>
     (await source.read(name)) ?? ''
-  const colors = parseNdjson(await readEntry('colors.ndjson'), 'colors.ndjson') as any[]
-  const symbols = parseNdjson(await readEntry('symbols.ndjson'), 'symbols.ndjson') as any[]
-  const objects = parseNdjson(await readEntry('objects.ndjson'), 'objects.ndjson') as any[]
+  const colors = parseNdjson(
+    await readEntry('colors.ndjson'),
+    'colors.ndjson',
+  ) as any[]
+  const symbols = parseNdjson(
+    await readEntry('symbols.ndjson'),
+    'symbols.ndjson',
+  ) as any[]
+  const objects = parseNdjson(
+    await readEntry('objects.ndjson'),
+    'objects.ndjson',
+  ) as any[]
 
   // `view` / `print` live under `private/` for gitignoring editor state.
   const privText = await source.read('private/view.json')
@@ -97,9 +111,9 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panm
   const multiPart = gitmapParts.length > 1
   const parts = multiPart
     ? gitmapParts.map((part: { id: unknown; name?: unknown }) => ({
-      id: String(part.id),
-      name: typeof part.name === 'string' ? part.name : undefined,
-    }))
+        id: String(part.id),
+        name: typeof part.name === 'string' ? part.name : undefined,
+      }))
     : undefined
 
   return new Panmap({
@@ -113,22 +127,27 @@ async function readGitmapFrom(source: GitmapSource, label: string): Promise<Panm
     // the original OMap/OCAD document order. `order` is the object's
     // canonical z-rank, so sorting on it restores render order.
     objects: sortBySourceId(
-      objects.map((object, i) => objectFromGitmap(object, symbolIds, i, multiPart)),
+      objects.map((object, i) =>
+        objectFromGitmap(object, symbolIds, i, multiPart),
+      ),
     ) as any, // order-preserving reorder; MapObject typing is nominal here
     parts,
     warnings: [],
-    extensions: manifest.extensions && typeof manifest.extensions === 'object'
-      ? manifest.extensions
-      : {},
+    extensions:
+      manifest.extensions && typeof manifest.extensions === 'object'
+        ? manifest.extensions
+        : {},
     notes: typeof manifest.notes === 'string' ? manifest.notes : '',
     view: view as Panmap['view'] | undefined,
     print: print as Panmap['print'] | undefined,
-    templates: manifest.templates && typeof manifest.templates === 'object'
-      ? manifest.templates as Panmap['templates']
-      : undefined,
-    georeferencing: manifest.georeferencing && typeof manifest.georeferencing === 'object'
-      ? manifest.georeferencing as Panmap['georeferencing']
-      : undefined,
+    templates:
+      manifest.templates && typeof manifest.templates === 'object'
+        ? (manifest.templates as Panmap['templates'])
+        : undefined,
+    georeferencing:
+      manifest.georeferencing && typeof manifest.georeferencing === 'object'
+        ? (manifest.georeferencing as Panmap['georeferencing'])
+        : undefined,
   })
 }
 
@@ -197,13 +216,22 @@ function symbolFromGitmap(symbol, index = 0) {
 
 function fontSizeFromLayers(layers: unknown[]): number | undefined {
   for (const l of layers || []) {
-    const layer = l as { type?: string; text?: { fontSize?: number }; fontSize?: number }
+    const layer = l as {
+      type?: string
+      text?: { fontSize?: number }
+      fontSize?: number
+    }
     if (layer.type === 'text') return layer.text?.fontSize ?? layer.fontSize
   }
   return undefined
 }
 
-function objectFromGitmap(object, symbolIds: Map<string | number, string | number>, index = 0, multiPart = false) {
+function objectFromGitmap(
+  object,
+  symbolIds: Map<string | number, string | number>,
+  index = 0,
+  multiPart = false,
+) {
   const coordinates = ringsFromGitmap(object.coordinates || [], object.holes)
   return {
     // Gitmap stores no object id (objects.ndjson is geometry-sorted, not
@@ -232,9 +260,12 @@ function objectFromGitmap(object, symbolIds: Map<string | number, string | numbe
 function renderLayerFromGitmap(layer) {
   const output = { ...layer }
   // Reverse the canonical enum strings back to the model's OCAD/Mapper ints.
-  if (output.capStyle !== undefined) output.capStyle = capStyleFromGitmap(output.capStyle)
-  if (output.joinStyle !== undefined) output.joinStyle = joinStyleFromGitmap(output.joinStyle)
-  if (Array.isArray(output.borders)) output.borders = output.borders.map(borderFromGitmap)
+  if (output.capStyle !== undefined)
+    output.capStyle = capStyleFromGitmap(output.capStyle)
+  if (output.joinStyle !== undefined)
+    output.joinStyle = joinStyleFromGitmap(output.joinStyle)
+  if (Array.isArray(output.borders))
+    output.borders = output.borders.map(borderFromGitmap)
   if (Array.isArray(output.elements)) {
     output.elements = output.elements.map(elementFromGitmap)
   }
@@ -253,7 +284,8 @@ function renderLayerFromGitmap(layer) {
 
 // A stroke casing line: restore the model's `color` field from `colorId`.
 function borderFromGitmap(border) {
-  if (!border || typeof border !== 'object' || border.colorId === undefined) return border
+  if (!border || typeof border !== 'object' || border.colorId === undefined)
+    return border
   const { colorId, ...rest } = border
   return { color: colorId, ...rest }
 }
@@ -263,10 +295,19 @@ function elementFromGitmap(element) {
   // Restore the model field names the OCD/OMap writers expect: gitmap renamed
   // color→colorId and coords→coordinates and dropped the derived numberCoords
   // (= coordinates.length).
-  if (output.colorId !== undefined) { output.color = output.colorId; delete output.colorId }
-  if (output.radius !== undefined) { output.diameter = output.radius * 2; delete output.radius }
-  const coordSrc = Array.isArray(output.coordinates) ? output.coordinates
-    : Array.isArray(output.coords) ? output.coords : undefined
+  if (output.colorId !== undefined) {
+    output.color = output.colorId
+    delete output.colorId
+  }
+  if (output.radius !== undefined) {
+    output.diameter = output.radius * 2
+    delete output.radius
+  }
+  const coordSrc = Array.isArray(output.coordinates)
+    ? output.coordinates
+    : Array.isArray(output.coords)
+      ? output.coords
+      : undefined
   if (coordSrc) {
     output.coords = coordsFromGitmap(coordSrc)
     delete output.coordinates
@@ -278,7 +319,8 @@ function elementFromGitmap(element) {
 // Object/pattern rotation is stored in degrees in gitmap; the model uses
 // radians. Convert the pattern override's rotation back on read.
 function patternFromGitmap(pattern) {
-  if (!pattern || typeof pattern !== 'object' || pattern.rotation === undefined) return pattern
+  if (!pattern || typeof pattern !== 'object' || pattern.rotation === undefined)
+    return pattern
   return { ...pattern, rotation: rotationFromGitmap(pattern.rotation) }
 }
 
@@ -312,13 +354,16 @@ function coordsFromGitmap(coords: unknown[]): CoordArray[] {
   let controlRun = 0
   return (coords || []).map((c): CoordArray => {
     if (!Array.isArray(c)) return c as CoordArray
-    const flags = c.length > 2 && c[2] && typeof c[2] === 'object'
-      ? (c[2] as Record<string, unknown>)
-      : undefined
+    const flags =
+      c.length > 2 && c[2] && typeof c[2] === 'object'
+        ? (c[2] as Record<string, unknown>)
+        : undefined
     let xFlags = 0
     let yFlags = 0
-    if (flags?.control) { controlRun += 1; xFlags |= controlRun % 2 === 1 ? 0x01 : 0x02 }
-    else controlRun = 0
+    if (flags?.control) {
+      controlRun += 1
+      xFlags |= controlRun % 2 === 1 ? 0x01 : 0x02
+    } else controlRun = 0
     if (flags?.corner) yFlags |= 0x01
     if (flags?.hole) yFlags |= 0x02
     if (flags?.dash) yFlags |= 0x08

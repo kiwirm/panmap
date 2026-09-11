@@ -1,11 +1,10 @@
 /**
  * XMap XML emitter — `Panmap` → XML string.
  *
- * The write path splits into two files: `from-map.ts` converts a
- * `MapSymbol` / `MapObject` into an intermediate XMap
- * record, and this file walks the map and serializes those records
- * (plus map-level chrome — colours, notes, georeferencing, parts) to
- * XMap XML.
+ * The write path splits into two files: `from-panmap.ts` converts a
+ * `MapSymbol` / `MapObject` into an intermediate XMap record, and this
+ * file walks the map and serializes those records (plus map-level
+ * chrome — colours, notes, georeferencing, parts) to XMap XML.
  */
 import fs from 'node:fs/promises'
 import { XMLBuilder } from 'fast-xml-parser'
@@ -34,6 +33,7 @@ import type {
 import { formatNotes } from '../../codecs/index.js'
 import { coordinatesForOmap } from '../codecs/index.js'
 import { escapeXmlAttr as xmlAttr } from '../../../util/xml.js'
+import { cleanNumber } from '../../../util/number.js'
 import {
   toOmapSymbol,
   colorIdMap,
@@ -41,11 +41,6 @@ import {
   omapObjectType,
 } from './from-panmap.js'
 import type { RawOmapSymbol } from './from-panmap.js'
-
-/** XMap pattern / text symbol shapes as they actually appear in parsed
- *  records — the strict interfaces omit optional fields the writer emits. */
-type RawOmapPattern = OmapAreaPattern & { noClipping?: number }
-type RawOmapTextSymbol = OmapTextSymbol & { iconText?: string }
 
 const extrasBuilder = new XMLBuilder({
   ignoreAttributes: false,
@@ -88,8 +83,6 @@ function mapToOmapXml(map: Panmap): string {
     const n = symbolIds.get(symbol)
     if (n !== undefined) objectSymbolIds.set(symbol.id, n)
   }
-  const flipY = false // model is already canonical y-down
-
   const mapAttrs = mapAttributes()
   const barrierAttrs = barrierAttributes()
 
@@ -116,7 +109,7 @@ function mapToOmapXml(map: Panmap): string {
     ...mapExtras,
     `<barrier ${barrierAttrs}>`,
     symbolsToXml(map.symbols, symbolIds, colorIds),
-    partsToXml(map.objects, map.parts, objectSymbolIds, flipY),
+    partsToXml(map.objects, map.parts, objectSymbolIds),
     '</barrier>',
     '</map>',
     '',
@@ -151,11 +144,16 @@ function renderGeoreferencingFromCanonical(crs: MapCrs | undefined): string {
   if (!crs) return ''
   const attrs: string[] = []
   if (crs.scale !== undefined) attrs.push(`scale="${crs.scale}"`)
-  if (crs.gridScaleFactor !== undefined) attrs.push(`grid_scale_factor="${crs.gridScaleFactor}"`)
-  if (crs.auxiliaryScaleFactor !== undefined) attrs.push(`auxiliary_scale_factor="${crs.auxiliaryScaleFactor}"`)
-  if (crs.declination !== undefined) attrs.push(`declination="${crs.declination}"`)
+  if (crs.gridScaleFactor !== undefined)
+    attrs.push(`grid_scale_factor="${crs.gridScaleFactor}"`)
+  if (crs.auxiliaryScaleFactor !== undefined)
+    attrs.push(`auxiliary_scale_factor="${crs.auxiliaryScaleFactor}"`)
+  if (crs.declination !== undefined)
+    attrs.push(`declination="${crs.declination}"`)
   if (crs.grivation !== undefined) attrs.push(`grivation="${crs.grivation}"`)
-  const parts: string[] = [`<georeferencing${attrs.length ? ' ' + attrs.join(' ') : ''}>`]
+  const parts: string[] = [
+    `<georeferencing${attrs.length ? ' ' + attrs.join(' ') : ''}>`,
+  ]
   if (crs.refPoint) {
     parts.push(`  <ref_point x="${crs.refPoint.x}" y="${crs.refPoint.y}"/>`)
   }
@@ -163,9 +161,12 @@ function renderGeoreferencingFromCanonical(crs: MapCrs | undefined): string {
     const p = crs.projected
     parts.push(`  <projected_crs id="${xmlAttr(p.id)}">`)
     if (p.spec) {
-      parts.push(`    <spec language="${xmlAttr(p.spec.language)}">${p.spec.value}</spec>`)
+      parts.push(
+        `    <spec language="${xmlAttr(p.spec.language)}">${p.spec.value}</spec>`,
+      )
     }
-    if (p.parameter !== undefined) parts.push(`    <parameter>${p.parameter}</parameter>`)
+    if (p.parameter !== undefined)
+      parts.push(`    <parameter>${p.parameter}</parameter>`)
     if (p.refPoint) {
       parts.push(`    <ref_point x="${p.refPoint.x}" y="${p.refPoint.y}"/>`)
     }
@@ -175,10 +176,14 @@ function renderGeoreferencingFromCanonical(crs: MapCrs | undefined): string {
     const g = crs.geographic
     parts.push(`  <geographic_crs id="${xmlAttr(g.id)}">`)
     if (g.spec) {
-      parts.push(`    <spec language="${xmlAttr(g.spec.language)}">${g.spec.value}</spec>`)
+      parts.push(
+        `    <spec language="${xmlAttr(g.spec.language)}">${g.spec.value}</spec>`,
+      )
     }
     if (g.refPointDeg) {
-      parts.push(`    <ref_point_deg lat="${g.refPointDeg.lat}" lon="${g.refPointDeg.lon}"/>`)
+      parts.push(
+        `    <ref_point_deg lat="${g.refPointDeg.lat}" lon="${g.refPointDeg.lon}"/>`,
+      )
     }
     parts.push(`  </geographic_crs>`)
   }
@@ -186,7 +191,9 @@ function renderGeoreferencingFromCanonical(crs: MapCrs | undefined): string {
   return parts.join('\n')
 }
 
-function renderTemplatesFromCanonical(templates: MapTemplates | undefined): string {
+function renderTemplatesFromCanonical(
+  templates: MapTemplates | undefined,
+): string {
   if (!templates) return ''
   const items = templates.items ?? []
   const rootAttrs: string[] = [`count="${items.length}"`]
@@ -208,9 +215,13 @@ function renderTemplatesFromCanonical(templates: MapTemplates | undefined): stri
     parts.push(`  <template ${attrs.join(' ')}>`)
     const tr = t.transformations
     const trAttrs: string[] = []
-    if (tr.adjustmentDirty !== undefined) trAttrs.push(`adjustment_dirty="${tr.adjustmentDirty}"`)
-    if (tr.passpoints !== undefined) trAttrs.push(`passpoints="${tr.passpoints}"`)
-    parts.push(`    <transformations${trAttrs.length ? ' ' + trAttrs.join(' ') : ''}>`)
+    if (tr.adjustmentDirty !== undefined)
+      trAttrs.push(`adjustment_dirty="${tr.adjustmentDirty}"`)
+    if (tr.passpoints !== undefined)
+      trAttrs.push(`passpoints="${tr.passpoints}"`)
+    parts.push(
+      `    <transformations${trAttrs.length ? ' ' + trAttrs.join(' ') : ''}>`,
+    )
     if (tr.active) parts.push(renderTransform('active', tr.active))
     if (tr.other) parts.push(renderTransform('other', tr.other))
     parts.push(renderMatrix('map_to_template', tr.mapToTemplate))
@@ -222,8 +233,10 @@ function renderTemplatesFromCanonical(templates: MapTemplates | undefined): stri
   if (templates.defaults) {
     const d = templates.defaults
     const dAttrs: string[] = []
-    if (d.useMetersPerPixel !== undefined) dAttrs.push(`use_meters_per_pixel="${d.useMetersPerPixel}"`)
-    if (d.metersPerPixel !== undefined) dAttrs.push(`meters_per_pixel="${d.metersPerPixel}"`)
+    if (d.useMetersPerPixel !== undefined)
+      dAttrs.push(`use_meters_per_pixel="${d.useMetersPerPixel}"`)
+    if (d.metersPerPixel !== undefined)
+      dAttrs.push(`meters_per_pixel="${d.metersPerPixel}"`)
     if (d.dpi !== undefined) dAttrs.push(`dpi="${d.dpi}"`)
     if (d.scale !== undefined) dAttrs.push(`scale="${d.scale}"`)
     parts.push(`  <defaults${dAttrs.length ? ' ' + dAttrs.join(' ') : ''}/>`)
@@ -232,7 +245,10 @@ function renderTemplatesFromCanonical(templates: MapTemplates | undefined): stri
   return parts.join('\n')
 }
 
-function renderTransform(role: string, t: NonNullable<MapTemplates['items'][number]['transformations']>['active']): string {
+function renderTransform(
+  role: string,
+  t: NonNullable<MapTemplates['items'][number]['transformations']>['active'],
+): string {
   const attrs: string[] = [`role="${role}"`]
   if (t?.x !== undefined) attrs.push(`x="${t.x}"`)
   if (t?.y !== undefined) attrs.push(`y="${t.y}"`)
@@ -258,28 +274,39 @@ function renderPrintFromCanonical(print: MapPrint | undefined): string {
   if (!print) return ''
   const attrs: string[] = []
   if (print.scale !== undefined) attrs.push(`scale="${print.scale}"`)
-  if (print.resolution !== undefined) attrs.push(`resolution="${print.resolution}"`)
+  if (print.resolution !== undefined)
+    attrs.push(`resolution="${print.resolution}"`)
   if (print.mode !== undefined) attrs.push(`mode="${xmlAttr(print.mode)}"`)
   const openTag = `<print${attrs.length ? ' ' + attrs.join(' ') : ''}>`
   const parts: string[] = [openTag]
   const pf = print.pageFormat
   if (pf) {
     const pfAttrs: string[] = []
-    if (pf.paperSize !== undefined) pfAttrs.push(`paper_size="${xmlAttr(pf.paperSize)}"`)
-    if (pf.orientation !== undefined) pfAttrs.push(`orientation="${pf.orientation}"`)
+    if (pf.paperSize !== undefined)
+      pfAttrs.push(`paper_size="${xmlAttr(pf.paperSize)}"`)
+    if (pf.orientation !== undefined)
+      pfAttrs.push(`orientation="${pf.orientation}"`)
     if (pf.hOverlap !== undefined) pfAttrs.push(`h_overlap="${pf.hOverlap}"`)
     if (pf.vOverlap !== undefined) pfAttrs.push(`v_overlap="${pf.vOverlap}"`)
-    parts.push(`  <page_format${pfAttrs.length ? ' ' + pfAttrs.join(' ') : ''}>`)
+    parts.push(
+      `  <page_format${pfAttrs.length ? ' ' + pfAttrs.join(' ') : ''}>`,
+    )
     if (pf.dimensions) {
-      parts.push(`    <dimensions width="${pf.dimensions.width}" height="${pf.dimensions.height}"/>`)
+      parts.push(
+        `    <dimensions width="${pf.dimensions.width}" height="${pf.dimensions.height}"/>`,
+      )
     }
     if (pf.pageRect) {
-      parts.push(`    <page_rect left="${pf.pageRect.left}" top="${pf.pageRect.top}" width="${pf.pageRect.width}" height="${pf.pageRect.height}"/>`)
+      parts.push(
+        `    <page_rect left="${pf.pageRect.left}" top="${pf.pageRect.top}" width="${pf.pageRect.width}" height="${pf.pageRect.height}"/>`,
+      )
     }
     parts.push(`  </page_format>`)
   }
   if (print.printArea) {
-    parts.push(`  <print_area left="${print.printArea.left}" top="${print.printArea.top}" width="${print.printArea.width}" height="${print.printArea.height}"/>`)
+    parts.push(
+      `  <print_area left="${print.printArea.left}" top="${print.printArea.top}" width="${print.printArea.width}" height="${print.printArea.height}"/>`,
+    )
   }
   parts.push('</print>')
   return parts.join('\n')
@@ -301,7 +328,10 @@ function renderViewFromCanonical(view: MapView | undefined): string {
   return `<view>\n  <map_view${attrs.length ? ' ' + attrs.join(' ') : ''}/>\n</view>`
 }
 
-function colorsToXml(colors: MapColor[], colorIds: Map<string | number, number>): string {
+function colorsToXml(
+  colors: MapColor[],
+  colorIds: Map<string | number, number>,
+): string {
   return block(
     `colors count="${colors.length}"`,
     colors
@@ -312,7 +342,12 @@ function colorsToXml(colors: MapColor[], colorIds: Map<string | number, number>)
         // Use Panmap cmyk when present (both OCAD and XMap sources carry
         // it); fall back to recomputing from RGB only when absent.
         const cmyk = color.cmyk
-          ? { c: color.cmyk[0], m: color.cmyk[1], y: color.cmyk[2], k: color.cmyk[3] }
+          ? {
+              c: color.cmyk[0],
+              m: color.cmyk[1],
+              y: color.cmyk[2],
+              k: color.cmyk[3],
+            }
           : rgbToCmyk(rgb)
         const opacity = color.opacity ?? 1
         return [
@@ -321,28 +356,30 @@ function colorsToXml(colors: MapColor[], colorIds: Map<string | number, number>)
           `    <rgb method="custom" r="${rgb.r / 255}" g="${rgb.g / 255}" b="${rgb.b / 255}" />`,
           '  </color>',
         ].join('\n')
-      })
+      }),
   )
 }
 
 function symbolsToXml(
   symbols: MapSymbol[],
   symbolIds: Map<MapSymbol, number>,
-  colorIds: Map<string | number, number>
+  colorIds: Map<string | number, number>,
 ): string {
   return block(
     `symbols count="${symbols.length}" id="panmap"`,
     symbols
       .slice()
-      .sort((a, b) => String(a.code || a.id).localeCompare(String(b.code || b.id)))
-      .map(symbol => symbolToXml(symbol, symbolIds, colorIds))
+      .sort((a, b) =>
+        String(a.code || a.id).localeCompare(String(b.code || b.id)),
+      )
+      .map(symbol => symbolToXml(symbol, symbolIds, colorIds)),
   )
 }
 
 function symbolToXml(
   symbol: MapSymbol,
   symbolIds: Map<MapSymbol, number>,
-  colorIds: Map<string | number, number>
+  colorIds: Map<string | number, number>,
 ): string {
   const targetId = symbolIds.get(symbol) ?? Number(symbol.sourceId) ?? 0
   const synthetic = toOmapSymbol(symbol, targetId, colorIds)
@@ -353,13 +390,12 @@ function partsToXml(
   objects: MapObject[],
   parts: MapPart[] | undefined,
   symbolIds: Map<string | number, number>,
-  flipY: boolean
 ): string {
   const renderPart = (name: string, partObjects: MapObject[]): string => {
     const visible = partObjects.filter(object => !object.hidden)
     const objectsXml = block(
       `objects count="${visible.length}"`,
-      visible.map(object => objectToXml(object, symbolIds, flipY))
+      visible.map(object => objectToXml(object, symbolIds)),
     )
     return [
       `  <part name="${attr(name)}">`,
@@ -375,9 +411,9 @@ function partsToXml(
       parts.map(part =>
         renderPart(
           part.name ?? 'default part',
-          objects.filter(object => (object.partId ?? firstId) === part.id)
-        )
-      )
+          objects.filter(object => (object.partId ?? firstId) === part.id),
+        ),
+      ),
     )
   }
 
@@ -389,22 +425,21 @@ function partsToXml(
 function objectToXml(
   object: MapObject,
   symbolIds: Map<string | number, number>,
-  flipY: boolean
 ): string {
-  const coordinates = coordinatesForOmap(
-    object.coordinates || [],
-  )
+  const coordinates = coordinatesForOmap(object.coordinates || [])
 
   // Base attributes
   let objAttrs = `type="${omapObjectType(object)}" symbol="${attr(symbolIds.get(object.symbolId) || 0)}"`
   if (object.rotation) objAttrs += ` rotation="${object.rotation}"`
-  if (object.hAlign !== undefined) objAttrs += ` h_align="${attr(object.hAlign)}"`
-  if (object.vAlign !== undefined) objAttrs += ` v_align="${attr(object.vAlign)}"`
+  if (object.hAlign !== undefined)
+    objAttrs += ` h_align="${attr(object.hAlign)}"`
+  if (object.vAlign !== undefined)
+    objAttrs += ` v_align="${attr(object.vAlign)}"`
 
   const lines = [
     `  <object ${objAttrs}>`,
     `    <coords count="${coordinates.length}">`,
-    ...coordinates.map(coord => coordToXml(coord, flipY)),
+    ...coordinates.map(coord => coordToXml(coord)),
     '    </coords>',
   ]
 
@@ -412,16 +447,16 @@ function objectToXml(
 
   if (object.textBox) {
     lines.push(
-      `    <size width="${attr(dim(object.textBox.width))}" height="${attr(dim(object.textBox.height))}" />`
+      `    <size width="${attr(dim(object.textBox.width))}" height="${attr(dim(object.textBox.height))}" />`,
     )
   }
   if (object.pattern) {
     const p = object.pattern
     let patternStr = `    <pattern`
-    if (p.rotation !== undefined) patternStr += ` rotation="${attr(p.rotation)}"`
+    if (p.rotation !== undefined)
+      patternStr += ` rotation="${attr(p.rotation)}"`
     if (p.origin) {
-      patternStr +=
-        `>\n      <coord x="${attr(dim(p.origin.x))}" y="${attr(dim(p.origin.y))}" />\n    </pattern>`
+      patternStr += `>\n      <coord x="${attr(dim(p.origin.x))}" y="${attr(dim(p.origin.y))}" />\n    </pattern>`
     } else {
       patternStr += ' />'
     }
@@ -432,9 +467,10 @@ function objectToXml(
   return lines.join('\n')
 }
 
-function coordToXml(coord, flipY = false): string {
-  const flagAttr = coord.flags !== undefined ? ` flags="${attr(coord.flags)}"` : ''
-  return `      <coord x="${dim(coord[0])}" y="${dim(flipY ? -coord[1] : coord[1])}"${flagAttr}/>`
+function coordToXml(coord): string {
+  const flagAttr =
+    coord.flags !== undefined ? ` flags="${attr(coord.flags)}"` : ''
+  return `      <coord x="${dim(coord[0])}" y="${dim(coord[1])}"${flagAttr}/>`
 }
 
 function block(name: string, children: string[]): string {
@@ -453,10 +489,6 @@ function indent(value: string, spaces: number): string {
 
 function dim(value: number): number {
   return cleanNumber(value / MAP_UNIT_SCALE)
-}
-
-function cleanNumber(value: number): number {
-  return Number.isInteger(value) ? value : Number(value.toFixed(3))
 }
 
 // The XMap serialiser escapes `"` inside text content as well as attributes,
@@ -514,7 +546,11 @@ function xmapSymbolToXml(symbol: RawOmapSymbol, id?: number): string {
   ].filter(Boolean) as string[]
 
   if (!children.length) return `<symbol ${attrs}/>`
-  return [`<symbol ${attrs}>`, ...children.map(child => indent(child, 2)), '</symbol>'].join('\n')
+  return [
+    `<symbol ${attrs}>`,
+    ...children.map(child => indent(child, 2)),
+    '</symbol>',
+  ].join('\n')
 }
 
 function xmapPointSymbolToXml(symbol: OmapPointSymbol): string {
@@ -543,14 +579,16 @@ function xmapPointSymbolToXml(symbol: OmapPointSymbol): string {
       indent(
         [
           '<element>',
-          element.symbol ? indent(xmapSymbolToXml(element.symbol, undefined), 2) : '',
+          element.symbol
+            ? indent(xmapSymbolToXml(element.symbol, undefined), 2)
+            : '',
           element.object ? indent(xmapObjectToXml(element.object), 2) : '',
           '</element>',
         ]
           .filter(Boolean)
           .join('\n'),
-        2
-      )
+        2,
+      ),
     ),
     '</point_symbol>',
   ].join('\n')
@@ -558,10 +596,13 @@ function xmapPointSymbolToXml(symbol: OmapPointSymbol): string {
 
 function xmapLineSymbolToXml(symbol: OmapLineSymbol): string {
   const children = [
-    ...(symbol.borders && symbol.borders.length ? [xmapLineBordersToXml(symbol.borders)] : []),
+    ...(symbol.borders && symbol.borders.length
+      ? [xmapLineBordersToXml(symbol.borders)]
+      : []),
     symbol.dashSymbol && xmapNestedSymbolXml('dash_symbol', symbol.dashSymbol),
     symbol.midSymbol && xmapNestedSymbolXml('mid_symbol', symbol.midSymbol),
-    symbol.startSymbol && xmapNestedSymbolXml('start_symbol', symbol.startSymbol),
+    symbol.startSymbol &&
+      xmapNestedSymbolXml('start_symbol', symbol.startSymbol),
     symbol.endSymbol && xmapNestedSymbolXml('end_symbol', symbol.endSymbol),
   ].filter(Boolean) as string[]
   const open = `<line_symbol${attrs({
@@ -575,7 +616,8 @@ function xmapLineSymbolToXml(symbol: OmapLineSymbol): string {
     dashed: boolAttr(symbol.dashed),
     segment_length: dim(symbol.segmentLength ?? 400),
     end_length: dim(symbol.endLength || 0),
-    show_at_least_one_symbol: symbol.showAtLeastOneSymbol === false ? 'false' : 'true',
+    show_at_least_one_symbol:
+      symbol.showAtLeastOneSymbol === false ? 'false' : 'true',
     minimum_mid_symbol_count: symbol.minimumMidSymbolCount ?? 0,
     minimum_mid_symbol_count_when_closed:
       symbol.minimumMidSymbolCountWhenClosed ?? 0,
@@ -591,23 +633,26 @@ function xmapLineSymbolToXml(symbol: OmapLineSymbol): string {
   })}`
 
   if (!children.length) return `${open}/>`
-  return [`${open}>`, ...children.map(child => indent(child, 2)), '</line_symbol>'].join('\n')
+  return [
+    `${open}>`,
+    ...children.map(child => indent(child, 2)),
+    '</line_symbol>',
+  ].join('\n')
 }
 
 function xmapLineBordersToXml(borders: OmapLineBorder[]): string {
   return [
     '<borders>',
     ...borders.map(border => {
-      const b = border as OmapLineBorder & {
-        dashed?: boolean; dashLength?: number; breakLength?: number;
-      }
+      const b = border
       return `  <border${attrs({
         color: b.color ?? -1,
         width: dim(b.width || 0),
         shift: dim(b.shift || 0),
         dashed: boolAttr(b.dashed),
         dash_length: b.dashLength !== undefined ? dim(b.dashLength) : undefined,
-        break_length: b.breakLength !== undefined ? dim(b.breakLength) : undefined,
+        break_length:
+          b.breakLength !== undefined ? dim(b.breakLength) : undefined,
       })}/>`
     }),
     '</borders>',
@@ -635,7 +680,7 @@ function xmapAreaSymbolToXml(symbol: OmapAreaSymbol): string {
   ].join('\n')
 }
 
-function xmapPatternToXml(pattern: RawOmapPattern): string {
+function xmapPatternToXml(pattern: OmapAreaPattern): string {
   const children = pattern.symbol
     ? [indent(xmapSymbolToXml(pattern.symbol, undefined), 2)]
     : []
@@ -650,13 +695,14 @@ function xmapPatternToXml(pattern: RawOmapPattern): string {
     offset_along_line: dim(pattern.offsetAlongLine || 0),
     point_distance: dim(pattern.pointDistance || 0),
     color: pattern.color,
-    line_width: pattern.lineWidth !== undefined ? dim(pattern.lineWidth) : undefined,
+    line_width:
+      pattern.lineWidth !== undefined ? dim(pattern.lineWidth) : undefined,
   })}`
   if (!children.length) return `${open}/>`
   return [`${open}>`, ...children, '</pattern>'].join('\n')
 }
 
-function xmapTextSymbolToXml(symbol: RawOmapTextSymbol): string {
+function xmapTextSymbolToXml(symbol: OmapTextSymbol): string {
   return [
     `<text_symbol${attrs({
       icon_text: symbol.iconText || '',
@@ -689,8 +735,12 @@ function xmapCombinedSymbolToXml(symbol: OmapCombinedSymbol): string {
     ...parts.map(part => {
       if (part.symbol) {
         return indent(
-          ['<part private="true">', indent(xmapSymbolToXml(part.symbol, undefined), 2), '</part>'].join('\n'),
-          2
+          [
+            '<part private="true">',
+            indent(xmapSymbolToXml(part.symbol, undefined), 2),
+            '</part>',
+          ].join('\n'),
+          2,
         )
       }
       return `  <part symbol="${attr(part.symbolRef)}"/>`
@@ -700,7 +750,11 @@ function xmapCombinedSymbolToXml(symbol: OmapCombinedSymbol): string {
 }
 
 function xmapNestedSymbolXml(tag: string, symbol: RawOmapSymbol): string {
-  return [`<${tag}>`, indent(xmapSymbolToXml(symbol, undefined), 2), `</${tag}>`].join('\n')
+  return [
+    `<${tag}>`,
+    indent(xmapSymbolToXml(symbol, undefined), 2),
+    `</${tag}>`,
+  ].join('\n')
 }
 
 function xmapObjectToXml(object: OmapObject): string {
@@ -714,11 +768,14 @@ function xmapObjectToXml(object: OmapObject): string {
       v_align: object.vAlign,
     })}>`,
     `  <coords count="${coordinates.length}">`,
-    ...coordinates.map((coord) => `    <coord${attrs({
-      x: dim(coord.x || 0),
-      y: dim(coord.y || 0),
-      flags: coord.flags,
-    })}/>`),
+    ...coordinates.map(
+      coord =>
+        `    <coord${attrs({
+          x: dim(coord.x || 0),
+          y: dim(coord.y || 0),
+          flags: coord.flags,
+        })}/>`,
+    ),
     '  </coords>',
   ]
   if (object.text) lines.push(`  <text>${text(object.text)}</text>`)
