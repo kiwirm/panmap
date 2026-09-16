@@ -4,7 +4,12 @@
  * geometry into contiguous unchanged / removed / added runs. Pure geometry —
  * no diff pairing or SVG-render state.
  */
-import { isFirstBezier, isSecondBezier, isFirstHolePoint } from './coord.js'
+import {
+  isFirstBezier,
+  isSecondBezier,
+  isFirstHolePoint,
+  boundsForCoords,
+} from './coord.js'
 
 export function coordArr(object: { coordinates?: unknown }): unknown[] {
   return Array.isArray(object.coordinates) ? object.coordinates : []
@@ -14,22 +19,7 @@ export function boundsOfCoords(coords: unknown[]): {
   min: number[]
   max: number[]
 } {
-  let a = Infinity
-  let b = Infinity
-  let c = -Infinity
-  let d = -Infinity
-  for (const p of coords) {
-    const x = Array.isArray(p) ? p[0] : (p as { x?: number }).x
-    const y = Array.isArray(p) ? p[1] : (p as { y?: number }).y
-    if (typeof x !== 'number' || typeof y !== 'number') continue
-    if (x < a) a = x
-    if (y < b) b = y
-    if (x > c) c = x
-    if (y > d) d = y
-  }
-  return isFinite(a)
-    ? { min: [a, b], max: [c, d] }
-    : { min: [0, 0], max: [0, 0] }
+  return boundsForCoords(coords) ?? { min: [0, 0], max: [0, 0] }
 }
 
 // Classify a feature's before→after geometry into contiguous runs:
@@ -69,6 +59,9 @@ export function classifyRuns(
 // hole flag sits on the LAST coord of the previous ring, so that coord
 // ends its ring and the next coord starts a fresh (hole) ring — there is
 // no real edge between them.
+// NOTE: this intentionally uses the split-AFTER convention (hole coord ends
+// its ring), the opposite of coord.ts's splitRingsAtHolePoints (split-before),
+// so it is deliberately NOT unified with it.
 function toRings(coords: unknown[]): unknown[][] {
   const rings: unknown[][] = []
   let cur: unknown[] = []

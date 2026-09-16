@@ -17,7 +17,7 @@ import type { CrsView } from '../../panmap/crs.js'
 import {
   isFirstBezier,
   isSecondBezier,
-  isFirstHolePoint,
+  splitRingsAtHolePoints,
 } from '../../panmap/coord.js'
 
 const defaultOptions = {
@@ -299,25 +299,12 @@ function formatNum(num: number, digits: number | undefined): number {
   return Math.round(num * pow) / pow
 }
 
-const coordinatesToRings = (coordinates: TdPoly[]): number[][][] => {
-  const rings: number[][][] = []
-  let currentRing: number[][] = []
-  rings.push(currentRing)
-  for (let i = 0; i < coordinates.length; i++) {
-    const c = coordinates[i]
-    if (isFirstHolePoint(c)) {
-      currentRing.push(currentRing[0].slice())
-      currentRing = []
-      rings.push(currentRing)
-    }
-
-    currentRing.push(c.slice())
-  }
-
-  currentRing.push(currentRing[0].slice())
-
-  return rings
-}
+const coordinatesToRings = (coordinates: TdPoly[]): number[][][] =>
+  splitRingsAtHolePoints(coordinates).map(ring => {
+    const out = ring.map(c => c.slice())
+    out.push(ring[0].slice())
+    return out
+  })
 
 /**
  * GeoJSON properties for a map object. Panmap fields only —

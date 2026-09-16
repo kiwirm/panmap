@@ -5,6 +5,7 @@ import {
   expandTextBoxCoords,
 } from '../../codecs/index.js'
 import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
+import { boundsForCoords } from '../../../../panmap/coord.js'
 import { otpForType } from './object-type.js'
 
 /**
@@ -205,16 +206,8 @@ function boundsFor(coords: FlatCoord[]): {
   min: [number, number]
   max: [number, number]
 } {
-  if (!coords.length) return { min: [0, 0], max: [0, 0] }
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (const c of coords) {
-    if (c[0] < minX) minX = c[0]
-    if (c[1] < minY) minY = c[1]
-    if (c[0] > maxX) maxX = c[0]
-    if (c[1] > maxY) maxY = c[1]
-  }
-  return { min: [minX, minY], max: [maxX, maxY] }
+  // OCAD coords are always finite integers, so the finite-skip in
+  // boundsForCoords is a no-op here. FlatCoord is `{0, 1, xFlags, yFlags}`,
+  // resolved via boundsForCoords' array-index fallback.
+  return boundsForCoords(coords) ?? { min: [0, 0], max: [0, 0] }
 }

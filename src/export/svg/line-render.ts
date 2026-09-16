@@ -1,6 +1,9 @@
 import lineOffset from '@turf/line-offset'
 import TdPoly from '../../formats/ocad/reader/decode/td-poly.js'
-import { isFirstHolePoint, type FlaggedCoord } from '../../panmap/coord.js'
+import {
+  splitRingsAtHolePoints,
+  type FlaggedCoord,
+} from '../../panmap/coord.js'
 import type { MapObject } from '../../panmap/model.js'
 import type {
   LineSymbolsLayer,
@@ -374,21 +377,9 @@ function offsetLineCoordinates(
   coordinates: FlaggedCoord[],
   offset: number,
 ): number[][][] {
-  const result: number[][][] = []
-  let current: FlaggedCoord[] = []
-
-  for (const coord of coordinates) {
-    if (!isFirstHolePoint(coord)) {
-      current.push(coord)
-    } else {
-      if (current.length > 1) result.push(offsetLineString(current, offset))
-      current = [coord]
-    }
-  }
-
-  if (current.length > 1) result.push(offsetLineString(current, offset))
-
-  return result
+  return splitRingsAtHolePoints(coordinates)
+    .filter(seg => seg.length > 1)
+    .map(seg => offsetLineString(seg, offset))
 }
 
 function offsetLineString(

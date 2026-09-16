@@ -117,8 +117,8 @@ export function diffChanges(
   changeOptions: DiffChangesOptions = {},
 ): DiffChangesResult {
   const diffMap = diffMaps(before, after, options)
-  const beforeSymbols = symbolsById(before)
-  const afterSymbols = symbolsById(after)
+  const beforeSymbols = before.symbolsById()
+  const afterSymbols = after.symbolsById()
 
   // Group diff primitives back onto the source feature that produced
   // them (all segments of one line share the same sourceObject ref).
@@ -790,12 +790,6 @@ function pointToSegmentDist(
   let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2
   t = Math.max(0, Math.min(1, t))
   return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy))
-}
-
-function symbolsById(map: Panmap): Record<string | number, MapSymbol> {
-  const out: Record<string | number, MapSymbol> = {}
-  for (const s of map.symbols) out[s.id] = s
-  return out
 }
 
 function codeOf(symbol?: MapSymbol): string {

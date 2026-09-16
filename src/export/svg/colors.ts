@@ -18,10 +18,7 @@ function opacityAttr(layer: { opacity?: number }): string {
 }
 
 function getSymbolsById(map: Panmap): SymbolLookup {
-  return map.symbols.reduce((symbols, symbol) => {
-    symbols[symbol.id] = symbol
-    return symbols
-  }, {} as SymbolLookup)
+  return map.symbolsById()
 }
 
 function getColorsById(map: Panmap): ColorLookup {

@@ -72,8 +72,8 @@ function diffMaps(
   options: DiffMapsOptions = {},
 ): Panmap {
   const opts = { ...defaultOptions, ...options }
-  const beforeSymbols = symbolsById(before)
-  const afterSymbols = symbolsById(after)
+  const beforeSymbols = before.symbolsById()
+  const afterSymbols = after.symbolsById()
   const beforeObjects = transformObjects(
     before.objects,
     before,
@@ -450,16 +450,6 @@ function diffSymbol(
     diffKind,
     layers,
   }
-}
-
-function symbolsById(map: Panmap): Record<number | string, MapSymbol> {
-  return map.symbols.reduce<Record<number | string, MapSymbol>>(
-    (symbols, symbol) => {
-      symbols[symbol.id] = symbol
-      return symbols
-    },
-    {},
-  )
 }
 
 function lineSegmentDiffObjects(

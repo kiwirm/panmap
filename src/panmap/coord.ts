@@ -105,6 +105,20 @@ export function isFirstHolePoint(coord: FlaggedCoord): boolean {
   )
 }
 
+/** Partition a coord list into groups, starting a NEW group at each hole
+ *  point (split-before). Shared by the GeoJSON ring builder and the SVG
+ *  line-offset splitter. Note: diff-runs' toRings uses the opposite
+ *  (split-after) convention and does NOT use this. */
+export function splitRingsAtHolePoints<T>(coords: readonly T[]): T[][] {
+  const rings: T[][] = [[]]
+  for (const c of coords) {
+    const last = rings[rings.length - 1]
+    if (last.length && isFirstHolePoint(c as FlaggedCoord)) rings.push([])
+    rings[rings.length - 1].push(c)
+  }
+  return rings
+}
+
 // The OMap↔canonical flag-byte translation (`normaliseOmapFlags` decode +
 // `coordinatesForOmap` encode) lives together in ../formats/codecs/omap-flags.ts.
 
@@ -113,9 +127,16 @@ export interface Bounds {
   max: [number, number]
 }
 
-/** Compute bounding box of a coordinate array; returns null for empty input. */
+/**
+ * Compute bounding box of a coordinate array; returns null for empty input.
+ *
+ * Accepts array-shaped coords (`[x, y]`, e.g. TdPoly) and object-shaped
+ * coords (`{x, y}`). For objects, array-index access (`c[0]`/`c[1]`) is used
+ * as the fallback so OCAD's `{0, 1, xFlags, yFlags}` coord objects resolve
+ * too. Non-finite components are skipped; the array-shaped path is unchanged.
+ */
 export function boundsForCoords(
-  coordinates: ReadonlyArray<ArrayLike<number>>,
+  coordinates: readonly unknown[],
 ): Bounds | null {
   if (!coordinates || !coordinates.length) return null
   let minX = Number.POSITIVE_INFINITY
@@ -123,8 +144,9 @@ export function boundsForCoords(
   let maxX = Number.NEGATIVE_INFINITY
   let maxY = Number.NEGATIVE_INFINITY
   for (const c of coordinates) {
-    const x = Number(c[0])
-    const y = Number(c[1])
+    const o = c as { x?: number; y?: number } & ArrayLike<number>
+    const x = Number(Array.isArray(c) ? c[0] : (o.x ?? o[0]))
+    const y = Number(Array.isArray(c) ? c[1] : (o.y ?? o[1]))
     if (!Number.isFinite(x) || !Number.isFinite(y)) continue
     if (x < minX) minX = x
     if (y < minY) minY = y

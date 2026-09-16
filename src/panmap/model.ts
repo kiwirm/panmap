@@ -368,6 +368,13 @@ export default class Panmap {
     })
   }
 
+  /** Symbols keyed by their `id` (last write wins). */
+  symbolsById(): Record<string | number, MapSymbol> {
+    const out: Record<string | number, MapSymbol> = {}
+    for (const s of this.symbols) out[s.id] = s
+    return out
+  }
+
   getBounds(
     projection: Projection = identity,
   ): [number, number, number, number] {
