@@ -1,23 +1,7 @@
 import type Panmap from '../../panmap/model.js'
 import type { MapObject, MapSymbol } from '../../panmap/model.js'
-import type { RenderLayer } from '../../panmap/render-layers.js'
 import { getSymbolsById } from './colors.js'
-
-const supportedLayerTypes = new Set([
-  'stroke',
-  'fill',
-  'hatch-fill',
-  'structure-fill',
-  'line-elements',
-  'double-line',
-  'border-symbol',
-  'line-symbols',
-  'point-pattern-fill',
-  'point-fill',
-  'point-stroke',
-  'point-elements',
-  'text',
-])
+import { canRenderObjectLayer, supportedLayerTypes } from './dispatch.js'
 
 export interface UnsupportedRenderReason {
   symbolId: number | string
@@ -99,38 +83,6 @@ function getUnsupportedReasons(
   })
 
   return Array.from(new Set(reasons))
-}
-
-function canRenderObjectLayer(object: MapObject, layer: RenderLayer): boolean {
-  switch (object.type) {
-    case 'line':
-      return (
-        layer.type === 'stroke' ||
-        layer.type === 'line-elements' ||
-        layer.type === 'double-line' ||
-        layer.type === 'line-symbols'
-      )
-    case 'area':
-      return (
-        layer.type === 'fill' ||
-        layer.type === 'stroke' ||
-        layer.type === 'hatch-fill' ||
-        layer.type === 'structure-fill' ||
-        layer.type === 'border-symbol' ||
-        layer.type === 'point-pattern-fill'
-      )
-    case 'point':
-      return (
-        layer.type === 'point-fill' ||
-        layer.type === 'point-stroke' ||
-        layer.type === 'point-elements'
-      )
-    case 'text':
-    case 'line-text':
-      return layer.type === 'text'
-    default:
-      return false
-  }
 }
 
 export { getMapSvgRenderSupport }
