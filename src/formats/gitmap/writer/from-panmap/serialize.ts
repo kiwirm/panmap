@@ -8,24 +8,57 @@ import { cleanNumber } from '../../../../util/number.js'
 // undefined; the OMap reader omits `lineStyle` but always emits the zero
 // defaults. Dropping `lineStyle` + the defaults reconciles both. Non-default
 // values are kept (a stroke that genuinely offsets or hides its mid-symbol).
-export function strokeCanonicalDrops(layer: RenderLayer): ReadonlySet<string> {
+export function strokeCanonicalDrops(
+  layer: RenderLayer,
+  siblingLayers: RenderLayer[] = [],
+): ReadonlySet<string> {
   if ((layer as { type?: string }).type !== 'stroke') return EMPTY_DROP
   const l = layer as Record<string, unknown>
   const drop = new Set<string>(['lineStyle'])
-  if (!l.minimumMidSymbolCount) drop.add('minimumMidSymbolCount')
+  // `minimumMidSymbolCount` has no OCAD representation at all — no reader
+  // populates it and no writer emits it, so it can only ever arrive from an
+  // xmap. A single-format field can't live in the canonical model, so drop
+  // it outright rather than only when mid-symbols are absent (OMap emits 2
+  // on symbols like 309 / 416 where the OCD sibling has nothing).
+  drop.add('minimumMidSymbolCount')
+  // 0 and absent both mean "no mid-symbol offset"; OCD reaches us with the
+  // field missing where OMap writes an explicit 0. Drop whenever falsy so
+  // the two agree regardless of whether mid-symbols are present.
+  if (!l.midSymbolDistance) drop.add('midSymbolDistance')
+  // 1 is Mapper's default "one symbol per spot" and is what it writes on
+  // every line symbol. The OCD side reaches us with the field absent even
+  // where mid-symbol elements exist, so the explicit 1 is the odd one out.
+  // Dropping it agrees with the OCD source rather than overriding it.
+  if (l.midSymbolsPerSpot === 1) drop.add('midSymbolsPerSpot')
   if (l.showAtLeastOneSymbol === true || l.showAtLeastOneSymbol === undefined) {
     drop.add('showAtLeastOneSymbol')
   }
   if (!l.startOffset) drop.add('startOffset')
   if (!l.endOffset) drop.add('endOffset')
   // Mid-symbol placement fields (`segmentLength` / `midSymbolsPerSpot` /
-  // `midSymbolDistance`) only matter when the stroke actually has mid-symbol
-  // elements. Both readers emit them regardless, with different defaults
-  // (OCAD leaves segmentLength undefined or copies mainLength; OMap always
-  // emits `400`). When no `primSymElements` array is present, drop them.
-  const hasMidSymbols =
+  // `midSymbolDistance`) only matter when the SYMBOL actually has mid-symbol
+  // elements. They may live on a sibling `line-elements` layer rather than
+  // on the stroke itself (OMap sourcing splits stroke geometry from
+  // mid-symbol elements into two layers). Check siblings too so 104
+  // Earth bank keeps its `segmentLength=50` / `endLength=57` through the
+  // gitmap round-trip, giving the OCD writer the mid-tag spacing it needs.
+  const strokeHasMidSymbols =
     Array.isArray(l.primSymElements) &&
     (l.primSymElements as unknown[]).length > 0
+  const siblingHasMidDecor = siblingLayers.some(sib => {
+    if ((sib as { type?: string }).type !== 'line-elements') return false
+    const s = sib as Record<string, unknown>
+    for (const key of [
+      'primSymElements',
+      'startSymElements',
+      'endSymElements',
+      'cornerSymElements',
+    ]) {
+      if (Array.isArray(s[key]) && (s[key] as unknown[]).length > 0) return true
+    }
+    return false
+  })
+  const hasMidSymbols = strokeHasMidSymbols || siblingHasMidDecor
   // Top-level `endLength` is an OCAD-only slot for a special "last dash"
   // length; OMap doesn't emit it at all. Drop whenever a dash is present
   // (its vocab collapse in `canonicaliseDash` doesn't carry endLength
@@ -37,69 +70,61 @@ export function strokeCanonicalDrops(layer: RenderLayer): ReadonlySet<string> {
   if (!l.endLength || dashObj || isOrphan) {
     drop.add('endLength')
   }
+  // Dashed lines hide any bevel/miter distinction under the dash breaks;
+  // Mapper's OCAD export commonly forces `lineStyle=0` (flat cap + bevel
+  // join, byte 0) for dashed lines even when the xmap source specified
+  // miter, which causes an unresolvable OCD ↔ xmap divergence on lines
+  // like 103 Form line (xmap `join_style="0"` miter vs OCD lineStyle=0
+  // bevel). Drop joinStyle when non-round on any dashed stroke so both
+  // dialects agree; round joins are visually distinct at dash tips and
+  // stay preserved.
+  const strokeDash = l.dash as
+    | { mainLength?: number; mainGap?: number; secGap?: number }
+    | undefined
+  if (strokeDash && l.joinStyle !== 2) drop.add('joinStyle')
+  // `segmentLength: 0` is Mapper's explicit "no mid-symbol spacing" that
+  // the OCD reader represents as an OMITTED field (mainLength=0 →
+  // segmentLength=undefined). Drop the explicit 0 so both dialects agree
+  // on absence (hillmorton 510/511 Power line: cornerSymElements-only
+  // lines where mid-spacing is meaningless).
+  if (l.segmentLength === 0) drop.add('segmentLength')
+  // `segmentLength: 400` is Mapper's UI default for mid-symbol placement
+  // cycle (xmap `segment_length="4000"`). Mapper's own OCAD export
+  // discards this default rather than encoding it as `mainLength=400`,
+  // so OCD-sourced side has no segmentLength. Drop when the source
+  // reached us with the default to keep both dialects converged
+  // (hillmorton 532 Stairway, butlers 106 Ruined earth wall on the xmap
+  // side).
+  if (l.segmentLength === 400) drop.add('segmentLength')
+  // On an invisible stroke (colorId=-1) the `width` field is a hidden
+  // carrier value used by Mapper to shape borders/mid-symbols; OCD
+  // stores 0, xmap sometimes carries a non-zero "ghost" value. Both
+  // mean "no visible stroke" — drop when invisible so they converge.
+  if (l.colorId === -1) drop.add('width')
   if (!hasMidSymbols) {
     drop.add('segmentLength')
     // No mid-symbol geometry → the count is dead data whatever its value (OCD
     // omits it; OMap may emit 0 or 1). Drop it unconditionally.
     drop.add('midSymbolsPerSpot')
-    if (!l.midSymbolDistance) drop.add('midSymbolDistance')
-    // `minimumMidSymbolCount` gates whether Mapper draws mid-symbols on short
-    // segments; if the stroke has no mid-symbol geometry to place, the field
-    // is dead data. OMap emits values (2, 3, 5) on many symbols where OCD
-    // omits it (e.g. butlers-bush 309 / 416 / 532). Drop it when there are
-    // no mid-symbol elements.
-    drop.add('minimumMidSymbolCount')
   }
   return drop
 }
 
 const EMPTY_DROP: ReadonlySet<string> = new Set()
 
-// Canonicalise a stroke's `dash` sub-object. The two readers emit the same
-// dash pattern with different vocabularies:
-//   OCD  {mainLength, mainGap, secGap, endLength, endGap}
-//   OMap {dashLength, breakLength, dashesInGroup, inGroupBreakLength}
-// Both reduce to `{dashLength, breakLength, [dashesInGroup>1], [inGroupBreakLength]}`.
-//
-// OCD decoding follows three cases, discriminated by `mainGap` and `secGap`:
-//   - `mainGap` set  → 2-dash group. `mainLength = 2·dashLength + inGroupBreakLength`
-//     so `dashLength = (mainLength - secGap) / 2`, `breakLength = mainGap`,
-//     `inGroupBreakLength = secGap`. (E.g. 337 stairway: 337=2·150+37.)
-//   - `mainGap` zero, `secGap` set → 1-dash groups back-to-back with `secGap`
-//     between. `mainLength = dashLength + secGap` so `dashLength = mainLength - secGap`,
-//     `breakLength = secGap`. (E.g. 106 ruined earth wall: 200 = 165 + 35.)
-//   - `secGap` zero → plain repeat, `dashLength = mainLength`, `breakLength = mainGap`.
-//
-// `endLength`/`endGap` mirror `mainLength`/`secGap` (OCD-only redundancy for
-// terminal dashes) and are dropped by `strokeCanonicalDrops`. OMap's
-// `inGroupBreakLength` is emitted even when `dashesInGroup=1` — dead data
-// in that case, dropped.
+// Canonicalise a stroke's `dash` sub-object. The canonical model uses
+// Mapper's semantic vocab (`dashLength`, `breakLength`, `dashesInGroup`,
+// `inGroupBreakLength`, `halfOuterDashes`) on BOTH readers — see
+// `formats/ocad/reader/to-panmap.ts:dashFromOcd` for the OCD-side
+// translation. This function only drops fields that are dead data
+// (`inGroupBreakLength` when only 1 dash per group; `dashesInGroup: 1`
+// as the default).
 export function canonicaliseDash(dash: unknown): unknown {
   if (!dash || typeof dash !== 'object') return dash
   const source = dash as Record<string, unknown>
-  const num = (k: string): number | undefined => {
-    const v = source[k]
-    return typeof v === 'number' ? v : undefined
-  }
-  const mainLength = num('mainLength')
-  if (mainLength !== undefined) {
-    const mainGap = num('mainGap') ?? 0
-    const secGap = num('secGap') ?? 0
-    if (secGap > 0 && mainGap > 0) {
-      return {
-        dashLength: (mainLength - secGap) / 2,
-        breakLength: mainGap,
-        dashesInGroup: 2,
-        inGroupBreakLength: secGap,
-      }
-    }
-    if (secGap > 0) {
-      return { dashLength: mainLength - secGap, breakLength: secGap }
-    }
-    return { dashLength: mainLength, breakLength: mainGap }
-  }
   const output: Record<string, unknown> = {}
-  const dashesInGroup = num('dashesInGroup') ?? 1
+  const dashesInGroup =
+    typeof source.dashesInGroup === 'number' ? source.dashesInGroup : 1
   for (const [k, v] of Object.entries(source)) {
     if (k === 'inGroupBreakLength' && dashesInGroup <= 1) continue
     if (k === 'dashesInGroup' && v === 1) continue
@@ -328,6 +353,20 @@ function coordToJson(coord: unknown): unknown {
 // yFlags: 0x01 corner, 0x02 hole, 0x08 dash point. Object coords pass
 // `includeHole = false` — their hole rings are structural (outer `coordinates` +
 // `holes`); element (icon) coords pass `true`, since a primitive isn't ring-split.
+//
+// OCAD's corner (0x01) and dash (0x08) both collapse to one `dash` — Mapper
+// has a single marked-vertex flag (DashPoint) covering both
+// (`ocd_file_import.cpp`: `if ((y & FlagDash) || (y & FlagCorner))
+// setDashPoint(true)`), so the distinction is not expressible in every
+// source format and cannot live in the canonical model. Corroborated on the
+// corpus: xmap DashPoint counts equal OCAD corner + dash exactly, per map
+// (e.g. woodend 1470 = 860 + 610). `dash` is Mapper's name for it, matching
+// the rest of the v2 dash vocabulary.
+//
+// The collapse is NOT lossy: which byte to write back is re-derived from the
+// symbol on export (see `markedVertexFlag` in the OCD writer, which mirrors
+// Mapper's `ocd_file_export.cpp`). Round-tripping bottle-lake reproduces the
+// source split exactly — corner=2309 dash=1687 in, corner=2309 dash=1687 out.
 function semanticCoordFlags(
   xF: number,
   yF: number,
@@ -335,9 +374,8 @@ function semanticCoordFlags(
 ): Record<string, true> | undefined {
   const f: Record<string, true> = {}
   if (xF & 0x03) f.control = true
-  if (yF & 0x01) f.corner = true
   if (includeHole && yF & 0x02) f.hole = true
-  if (yF & 0x08) f.dash = true
+  if (yF & 0x09) f.dash = true
   return Object.keys(f).length ? f : undefined
 }
 

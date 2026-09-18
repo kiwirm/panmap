@@ -16,9 +16,7 @@ import type {
   StrokeLayer,
   LineElementsLayer,
   DoubleLineLayer,
-  LineSymbolsLayer,
   HatchLayer,
-  StructureLayer,
   PointPatternLayer,
   BorderSymbolLayer,
   TextLayer,
@@ -39,11 +37,9 @@ import {
 import {
   lineElementsLayerToSvg,
   doubleLineLayerToSvg,
-  lineSymbolsLayerToSvg,
 } from './line-render.js'
 import {
   hatchPatternToSvg,
-  structurePatternToSvg,
   pointPatternToSvg,
 } from './fills.js'
 import { pointLayerToSvg } from './point-symbols.js'
@@ -177,14 +173,6 @@ const areaHatchToSvg: LayerRenderFn = ctx => {
   return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(ctx.layer)} />`
 }
 
-// area/structure-fill — structure pattern registered in <defs>.
-const areaStructureToSvg: LayerRenderFn = ctx => {
-  const { object, colors, defs, patternIndex, transform } = ctx
-  const id = `map-structure-${patternIndex}`
-  defs.push(structurePatternToSvg(id, ctx.layer as StructureLayer, colors))
-  return `<path d="${coordsToPath(object.coordinates as FlaggedCoord[], transform)} Z" fill="url(#${id})" fill-rule="evenodd"${opacityAttr(ctx.layer)} />`
-}
-
 // area/point-pattern-fill — point pattern registered in <defs>.
 const areaPointPatternToSvg: LayerRenderFn = ctx => {
   const { object, colors, defs, patternIndex, transform } = ctx
@@ -250,19 +238,11 @@ export const OBJECT_LAYER_RENDERERS: Record<
         ctx.colors,
         ctx.transform,
       ),
-    'line-symbols': ctx =>
-      lineSymbolsLayerToSvg(
-        ctx.object,
-        ctx.layer as LineSymbolsLayer,
-        ctx.colors,
-        ctx.transform,
-      ),
   },
   area: {
     fill: areaFillToSvg,
     stroke: areaStrokeToSvg,
     'hatch-fill': areaHatchToSvg,
-    'structure-fill': areaStructureToSvg,
     'point-pattern-fill': areaPointPatternToSvg,
     'border-symbol': areaBorderSymbolToSvg,
   },

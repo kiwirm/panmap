@@ -28,14 +28,11 @@ import { otpForType } from './object-type.js'
 export function synthesizeObjects(
   objects: MapObject[],
   symbols: MapSymbol[],
-  sourceFormat?: string,
   symNums?: Map<MapSymbol['id'], number>,
 ): unknown[] {
-  // OCAD uses Y-up (north = positive Y). Xmap and gitmap store
-  // coords with Y-down (paper origin at top-left). Without a flip,
-  // maps sourced from either open upside-down in Mapper. OCAD-sourced
-  // maps already have Y-up coords, so leave them alone.
-  const flipY = true // OCAD is y-up; the model is y-down, so always flip on write
+  // Object coords are canonical y-down in the model (a93c61a); OCD stores
+  // y-up. Always flip on write — no source-format branching.
+  const flipY = true
   const symToOcadNum = buildSymNumLookup(symbols, symNums)
   const out: unknown[] = []
   for (const obj of objects) {
@@ -44,7 +41,7 @@ export function synthesizeObjects(
     if (ocadSym == null) continue
     const symbol = symbols.find(s => s.id === obj.symbolId)
     const otp = otpForObject(obj, symbol)
-    let coords = normalizeCoords(obj.coordinates ?? [], flipY)
+    let coords = normalizeCoords(obj.coordinates ?? [], flipY, symbol)
     // OCAD text objects (otp=4/5) expect 5 coords: the text anchor
     // followed by the four corners of a bounding box that Mapper
     // uses for click-hit + alignment. Canonical text objects only
@@ -169,8 +166,49 @@ interface FlatCoord {
  *  flag is applied to coord[i+1] instead. Without this shift Mapper
  *  triangulates holes against the outer ring's edges and paints thin
  *  triangle streaks all over large areas. */
-function normalizeCoords(input: unknown[], flipY: boolean): FlatCoord[] {
+/**
+ * Which OCAD byte a marked vertex gets. The canonical model has ONE
+ * marked-vertex flag (`dash`, stored as yFlags 0x01) because Mapper has
+ * only one — its OCD import folds both OCAD flags into `DashPoint`
+ * (`ocd_file_import.cpp`: `if ((y & FlagDash) || (y & FlagCorner))
+ * setDashPoint(true)`). Which of the two to write back is not stored but
+ * DERIVED from the symbol, reproducing Mapper's own export rule
+ * (`ocd_file_export.cpp`):
+ *
+ *     if (!symbol || symbol->getType() != Symbol::Line)   FlagCorner
+ *     else if (dash_symbol empty && line->isDashed())     FlagDash
+ *     else                                                FlagCorner
+ *
+ * So a dashed line with no corner symbol gets the dash byte; everything
+ * else gets corner (which is also what places the corner symbol, e.g.
+ * the 104 cliff/bank tags).
+ */
+function markedVertexFlag(symbol: MapSymbol | undefined): number {
+  const YFLAG_CORNER = 0x01
+  const YFLAG_DASH = 0x08
+  if (!symbol || symbol.type !== 'line') return YFLAG_CORNER
+  let dashed = false
+  let hasCornerSymbol = false
+  for (const layer of symbol.layers ?? []) {
+    const l = layer as Record<string, unknown>
+    if (l.dash) dashed = true
+    const corner = l.cornerSymElements
+    if (Array.isArray(corner) && corner.length > 0) hasCornerSymbol = true
+  }
+  return dashed && !hasCornerSymbol ? YFLAG_DASH : YFLAG_CORNER
+}
+
+function normalizeCoords(
+  input: unknown[],
+  flipY: boolean,
+  symbol?: MapSymbol,
+): FlatCoord[] {
   const s = flipY ? -1 : 1
+  const markedFlag = markedVertexFlag(symbol)
+  // Re-target the canonical marked-vertex bit (0x01) onto whichever byte
+  // this symbol calls for, leaving the hole bit (0x02) untouched.
+  const retarget = (yFlags: number): number =>
+    yFlags & 0x01 ? (yFlags & ~0x01) | markedFlag : yFlags
   const raw: FlatCoord[] = []
   for (const c of input) {
     if (Array.isArray(c)) {
@@ -179,7 +217,7 @@ function normalizeCoords(input: unknown[], flipY: boolean): FlatCoord[] {
         0: Number(c[0]) | 0,
         1: (Number(c[1]) * s) | 0,
         xFlags: (t.xFlags ?? 0) & 0xff,
-        yFlags: (t.yFlags ?? 0) & 0xff,
+        yFlags: retarget((t.yFlags ?? 0) & 0xff),
       })
     } else if (c && typeof c === 'object') {
       const o = c as {
@@ -192,7 +230,7 @@ function normalizeCoords(input: unknown[], flipY: boolean): FlatCoord[] {
         0: Number(o.x ?? 0) | 0,
         1: (Number(o.y ?? 0) * s) | 0,
         xFlags: (o.xFlags ?? 0) & 0xff,
-        yFlags: (o.yFlags ?? 0) & 0xff,
+        yFlags: retarget((o.yFlags ?? 0) & 0xff),
       })
     }
   }

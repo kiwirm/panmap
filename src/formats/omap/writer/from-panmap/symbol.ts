@@ -43,16 +43,11 @@ function classifySymbol(symbol: MapSymbol) {
   const {
     fills,
     hatches,
-    structures,
     pointPatterns,
     strokes,
     border: borderSymbolLayer,
   } = classifyAreaLayers(symbol)
-  const {
-    doubleLine,
-    lineElements,
-    lineSymbols: lineSymbolsLayer,
-  } = classifyLineLayers(symbol)
+  const { doubleLine, lineElements } = classifyLineLayers(symbol)
   const {
     fill: pointFill,
     stroke: pointStroke,
@@ -61,12 +56,10 @@ function classifySymbol(symbol: MapSymbol) {
   const { text: textLayer } = classifyTextLayers(symbol)
 
   const t = symbol.type
-  const hasLine =
-    strokes.length > 0 || !!doubleLine || !!lineElements || !!lineSymbolsLayer
+  const hasLine = strokes.length > 0 || !!doubleLine || !!lineElements
   const hasArea =
     fills.length > 0 ||
     hatches.length > 0 ||
-    structures.length > 0 ||
     pointPatterns.length > 0
   const hasPoint = !!pointFill || !!pointStroke || !!pointElementsLayer
   const hasText = !!textLayer
@@ -74,13 +67,11 @@ function classifySymbol(symbol: MapSymbol) {
   return {
     fills,
     hatches,
-    structures,
     pointPatterns,
     strokes,
     borderSymbolLayer,
     doubleLine,
     lineElements,
-    lineSymbolsLayer,
     pointFill,
     pointStroke,
     pointElementsLayer,
@@ -155,7 +146,7 @@ function tryDoubleLineSplit(
   symbol: MapSymbol,
   colorIds: ColorIds,
 ): boolean {
-  const { strokes, doubleLine, lineElements, lineSymbolsLayer, t } = ctx
+  const { strokes, doubleLine, lineElements, t } = ctx
 
   // OCAD "double line" or "frame" line-symbol idiom → XMap `<combined_symbol>`:
   // OCAD packs "main visible line + wider fill/frame + optional borders"
@@ -231,12 +222,30 @@ function tryDoubleLineSplit(
       !!borderCarrierStroke &&
       Array.isArray(borderCarrierStroke.borders) &&
       borderCarrierStroke.borders.length > 0
+    // Combined_symbol vs plain line_symbol dispatch (Mapper's convention):
+    //   • Visible primary + borders (dashed footpath 501.11) → combined
+    //   • Invisible primary + mid-symbol content on the main (stairway
+    //     532: main is invisible tread-tick carrier, borders are the
+    //     rails) → combined (mid_symbol goes on the "main line" part)
+    //   • Invisible primary, no mid-symbol content but corner ticks
+    //     (Major power line 511: invisible main, per-corner dash_symbol,
+    //     borders) → plain line_symbol with dash_symbol + borders,
+    //     `line_width = dblWidth`
+    const hasVisiblePrimary = strokes.some(s => strokeVisible(s))
+    const hasMidDecor =
+      !!lineElements &&
+      Array.isArray(
+        (lineElements as { primSymElements?: unknown[] }).primSymElements,
+      ) &&
+      ((lineElements as { primSymElements?: unknown[] }).primSymElements
+        ?.length ?? 0) > 0
     if (
-      fillC > 0 ||
-      frameC > 0 ||
-      carrierC > 0 ||
-      dlHasBorders ||
-      carrierHasBorders
+      (hasVisiblePrimary || hasMidDecor) &&
+      (fillC > 0 ||
+        frameC > 0 ||
+        carrierC > 0 ||
+        dlHasBorders ||
+        carrierHasBorders)
     ) {
       // Prefer strokes that are NOT the frame carrier as "primary".
       // The frame stroke, when present, was surfaced from OCAD's fr*
@@ -252,7 +261,6 @@ function tryDoubleLineSplit(
         primary ? [primary] : [],
         undefined,
         lineElements,
-        lineSymbolsLayer,
         colorIds,
       )
       // Inherit cap/join from the source stroke so lineStyle round-trips.
@@ -260,10 +268,20 @@ function tryDoubleLineSplit(
       // main line and the fill share it. Xmap's cap_style/join_style
       // attributes on the fill part must match what the primary carried
       // or the round-trip re-encodes to a different lineStyle.
+      // Take cap/join from the SAME stroke this part draws from. Width and
+      // `borders` below come from `borderCarrierStroke`, so reading cap/join
+      // off `primary` assembled one part out of two different strokes. On
+      // road symbols (501.1x / 501.3x / 505.x / 509.x) the carrier is miter
+      // while the frame is bevel, so the part was written with the frame's
+      // join and lost `join_style="1"` on every xmap round-trip.
+      const capJoinStroke = borderCarrierStroke ?? primary
       const strokeCapJoin =
-        primary?.lineStyle !== undefined
-          ? decodeLineStyleForXmap(primary.lineStyle)
-          : { capStyle: primary?.capStyle, joinStyle: primary?.joinStyle }
+        capJoinStroke?.lineStyle !== undefined
+          ? decodeLineStyleForXmap(capJoinStroke.lineStyle)
+          : {
+              capStyle: capJoinStroke?.capStyle,
+              joinStyle: capJoinStroke?.joinStyle,
+            }
       // Width and color: prefer doubleLine's fill fields when present;
       // fall back to the border-carrier stroke's own (gitmap-canonical
       // double-line), then the frame stroke's, otherwise invisible.
@@ -307,7 +325,7 @@ function tryDoubleLineSplit(
           {
             symbol: {
               id: -1,
-              type: 2,
+                            type: 2,
               code: symbol.code,
               name: `${symbol.name ?? ''} - main line`,
               lineSymbol: mainLine,
@@ -316,7 +334,7 @@ function tryDoubleLineSplit(
           {
             symbol: {
               id: -1,
-              type: 2,
+                            type: 2,
               code: symbol.code,
               name: `${symbol.name ?? ''} - double line`,
               lineSymbol: fillLine,
@@ -350,7 +368,6 @@ function tryAreaWithBorder(
     borderSymbolLayer,
     fills,
     hatches,
-    structures,
     pointPatterns,
   } = ctx
   if ((t === 'area' || t === 'combined') && hasArea && borderSymbolLayer) {
@@ -358,8 +375,7 @@ function tryAreaWithBorder(
     const areaBody = buildXmapAreaSymbol(
       fills,
       hatches,
-      structures,
-      pointPatterns,
+        pointPatterns,
       colorIds,
     )
     record.type = 16
@@ -368,7 +384,7 @@ function tryAreaWithBorder(
         {
           symbol: {
             id: -1,
-            type: 4,
+                        type: 4,
             code: symbol.code,
             name: symbol.name,
             areaSymbol: areaBody,
@@ -406,26 +422,22 @@ function tryAreaWithBankLine(
     hasLine,
     fills,
     hatches,
-    structures,
     pointPatterns,
     strokes,
     doubleLine,
     lineElements,
-    lineSymbolsLayer,
   } = ctx
   if (t === 'combined' && hasArea && hasLine) {
     const areaBody = buildXmapAreaSymbol(
       fills,
       hatches,
-      structures,
-      pointPatterns,
+        pointPatterns,
       colorIds,
     )
     const lineBody = buildXmapLineSymbol(
       strokes,
       doubleLine,
       lineElements,
-      lineSymbolsLayer,
       colorIds,
     )
     record.type = 16
@@ -434,7 +446,7 @@ function tryAreaWithBankLine(
         {
           symbol: {
             id: -1,
-            type: 4,
+                        type: 4,
             code: symbol.code,
             name: symbol.name,
             areaSymbol: areaBody,
@@ -443,7 +455,7 @@ function tryAreaWithBankLine(
         {
           symbol: {
             id: -1,
-            type: 2,
+                        type: 2,
             code: symbol.code,
             name: symbol.name,
             lineSymbol: lineBody,
@@ -475,10 +487,8 @@ function applyPlainBodies(
     strokes,
     doubleLine,
     lineElements,
-    lineSymbolsLayer,
     fills,
     hatches,
-    structures,
     pointPatterns,
     pointFill,
     pointStroke,
@@ -491,7 +501,6 @@ function applyPlainBodies(
       strokes,
       doubleLine,
       lineElements,
-      lineSymbolsLayer,
       colorIds,
     )
   }
@@ -499,8 +508,7 @@ function applyPlainBodies(
     record.areaSymbol = buildXmapAreaSymbol(
       fills,
       hatches,
-      structures,
-      pointPatterns,
+        pointPatterns,
       colorIds,
     )
   }
@@ -543,10 +551,8 @@ function applyFallbackBody(
     strokes,
     doubleLine,
     lineElements,
-    lineSymbolsLayer,
     fills,
     hatches,
-    structures,
     pointPatterns,
     pointFill,
     pointStroke,
@@ -565,15 +571,13 @@ function applyFallbackBody(
         strokes,
         doubleLine,
         lineElements,
-        lineSymbolsLayer,
         colorIds,
       )
     } else if (hasArea) {
       record.areaSymbol = buildXmapAreaSymbol(
         fills,
         hatches,
-        structures,
-        pointPatterns,
+            pointPatterns,
         colorIds,
       )
     } else if (hasPoint) {
@@ -582,6 +586,7 @@ function applyFallbackBody(
         pointStroke,
         pointElementsLayer,
         colorIds,
+        isRotatableFromNative(symbol),
       )
     } else if (hasText) {
       record.textSymbol = buildXmapTextSymbol(textLayer, symbol, colorIds)

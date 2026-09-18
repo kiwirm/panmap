@@ -18,9 +18,44 @@ function frameFields(
   primary: StrokeLayer | undefined,
   strokes: StrokeLayer[],
   colorNumber: ColorNumber,
+  doubleLine: { dblFillColor: number },
 ): { frColor: number; frWidth: number; frStyle: number } {
-  const primaryDash = !!primary?.dash
-  if (!primaryDash) return { frColor: 0, frWidth: 0, frStyle: 0 }
+  // The OCD reader flags the frame stroke explicitly (`frame: true`;
+  // see reader/to-panmap.ts). Prefer that marker over "any other visible
+  // non-dashed stroke", which used to miss frames on non-dashed primary
+  // lines (e.g. ISOM 502.0 Motorway — frame under a double-line, primary
+  // stroke has no dash but Mapper still records frColor=16 / frWidth=126).
+  const framed = strokes.find(
+    s => (s as StrokeLayer & { frame?: boolean }).frame,
+  )
+  if (framed && strokeColorValid(framed)) {
+    // The OCD reader stashes the raw frStyle byte on the frame stroke's
+    // `lineStyle` field (capStyle / joinStyle stay undefined). Prefer
+    // the raw byte when it's there so it round-trips verbatim; fall back
+    // to re-packing cap/join for xmap-sourced framed lines that arrive
+    // with the decoded fields instead.
+    const frStyle =
+      typeof framed.lineStyle === 'number'
+        ? framed.lineStyle
+        : encodeLineStyle(framed.capStyle, framed.joinStyle)
+    return {
+      frColor: colorNumber(framed.colorId),
+      frWidth: normUnits(framed.width),
+      frStyle,
+    }
+  }
+  // Fallback for xmap-native / gitmap-round-tripped lines that don't
+  // carry the `frame` marker: the frame is any visible non-dashed
+  // stroke that isn't the primary, and only meaningful when the
+  // primary itself is dashed (matches OCD's "frame under a dashed
+  // main line" idiom — ara 509.1 style). Skip the fallback when a
+  // double-line is present — its border stroke would falsely register
+  // as a frame (Mapper's `<combined_symbol>` path/road symbols like
+  // hillmorton 501.11 Paved footpath have a dashed main line PLUS a
+  // solid double-line border, no frame).
+  if (!primary?.dash) return { frColor: 0, frWidth: 0, frStyle: 0 }
+  if (doubleLine.dblFillColor > 0)
+    return { frColor: 0, frWidth: 0, frStyle: 0 }
   const frame = strokes.find(
     s => s !== primary && strokeColorValid(s) && !s.dash,
   )
@@ -202,15 +237,37 @@ export function lineBody(
         mainStrokeVisible(primary, strokes),
       )
   const mainMeta = strokes[0] !== primary ? strokes[0] : undefined
-  const rhythm = encodeDashRhythm(primary, mainMeta)
+  const hasMidSymbol =
+    !!lineElementsLayer &&
+    Array.isArray(lineElementsLayer.primSymElements) &&
+    lineElementsLayer.primSymElements.length > 0
+  const rhythm = encodeDashRhythm(primary, mainMeta, {
+    hasMidSymbol,
+    spacing: lineElementsLayer?.spacing as number | undefined,
+    endOffset: lineElementsLayer?.endOffset as number | undefined,
+  })
   const visible = mainStrokeVisible(primary, strokes)
   const hasPrimary = !!primary
   return {
     lineColor: hasPrimary && visible ? colorNumber(primary!.colorId) : 0,
     lineWidth: hasPrimary && visible ? normUnits(primary!.width) : 0,
     lineStyle: encodePrimaryLineStyle(primary, mainMeta),
-    distFromStart: normUnits(primary?.startOffset) || 0,
-    distToEnd: normUnits(primary?.endOffset) || 0,
+    // OCD's `distFromStart` / `distToEnd` = xmap's `start_offset` /
+    // `end_offset`. On pointed-cap lines Mapper's xmap stores the same
+    // value into `pointed_cap_length` as well, so the reader always
+    // carries both fields on the stroke — prefer `startOffset` here
+    // since that's the primary carrier, falling back to `pointedCapLength`
+    // only when the source populated one but not the other.
+    distFromStart:
+      normUnits(
+        primary?.startOffset ??
+          (primary as { pointedCapLength?: number })?.pointedCapLength,
+      ) || 0,
+    distToEnd:
+      normUnits(
+        primary?.endOffset ??
+          (primary as { pointedCapLength?: number })?.pointedCapLength,
+      ) || 0,
     ...rhythm,
     minSym: primary?.showAtLeastOneSymbol === false ? -1 : 0,
     nPrimSym: primary?.midSymbolsPerSpot ?? 0,
@@ -222,35 +279,48 @@ export function lineBody(
       decSymbolDistance: false,
       decSymbolWidth: false,
     },
-    ...(doubleLine.dblFillColor > 0
-      ? { frColor: 0, frWidth: 0, frStyle: 0 }
-      : frameFields(primary, strokes, colorNumber)),
+    ...frameFields(primary, strokes, colorNumber, doubleLine),
     useSymbolFlags: encodeUseSymbolFlags(symbol),
     reserved: 0,
-    // OCAD-sourced line symbols carry raw element arrays on a
-    // `line-elements` render layer; prefer those verbatim. Xmap-sourced
-    // symbols expose their mid/corner/start/end sub-symbols via a
-    // `line-symbols` layer, in which case `lineDecorElements` builds
-    // the OCAD elements from that nested shape.
-    primSymElements:
-      lineElementsLayer?.primSymElements ??
-      lineDecorElements(symbol, 'midSymbol', colorNumber, flipY),
-    secSymElements: lineElementsLayer?.secSymElements ?? ([] as unknown[]),
-    cornerSymElements:
-      lineElementsLayer?.cornerSymElements ??
-      lineDecorElements(symbol, 'dashSymbol', colorNumber, flipY),
-    startSymElements:
-      lineElementsLayer?.startSymElements ??
-      lineDecorElements(symbol, 'startSymbol', colorNumber, flipY),
-    endSymElements:
-      lineElementsLayer?.endSymElements ??
-      lineDecorElements(symbol, 'endSymbol', colorNumber, flipY),
+    // Both OCD-sourced and OMap-sourced maps expose line decorations
+    // through the canonical `line-elements` layer (OMap reader flattens
+    // its <mid_symbol>/<start_symbol>/etc. into these arrays at read
+    // time). Gitmap-sourced elements arrive with `color` as a string
+    // colorId; translate to an OCD palette slot via `colorNumber` so
+    // dash/tag/etc. decorations render in the correct color instead of
+    // defaulting to slot 0 (black). See also point-body's
+    // `normaliseOcadElementColor`.
+    primSymElements: mapElementColors(
+      lineElementsLayer?.primSymElements,
+      colorNumber,
+    ),
+    secSymElements: mapElementColors(
+      lineElementsLayer?.secSymElements,
+      colorNumber,
+    ),
+    cornerSymElements: mapElementColors(
+      lineElementsLayer?.cornerSymElements,
+      colorNumber,
+    ),
+    startSymElements: mapElementColors(
+      lineElementsLayer?.startSymElements,
+      colorNumber,
+    ),
+    endSymElements: mapElementColors(
+      lineElementsLayer?.endSymElements,
+      colorNumber,
+    ),
   }
 }
 
 function encodeDashRhythm(
   primary: StrokeLayer | undefined,
   mainMeta: StrokeLayer | undefined,
+  ctx: {
+    hasMidSymbol: boolean
+    spacing?: number
+    endOffset?: number
+  },
 ): {
   mainLength: number
   endLength: number
@@ -260,47 +330,64 @@ function encodeDashRhythm(
 } {
   const dash = primary?.dash
   if (dash) {
-    // OCAD-sourced dashes come in with the OCAD field names already
-    // (mainLength/mainGap/…); xmap-sourced dashes come in with Mapper's
-    // conceptual names (dashLength/breakLength/dashesInGroup). Prefer
-    // the OCAD names when present so OCAD → synth → OCAD round-trips
-    // the exact fields Mapper wrote.
-    const dashAsOcad = dash as {
-      mainLength?: number
-      mainGap?: number
-      secGap?: number
-      endLength?: number
-      endGap?: number
-    }
-    if (
-      dashAsOcad.mainLength !== undefined ||
-      dashAsOcad.mainGap !== undefined
-    ) {
-      return {
-        mainLength: normUnits(dashAsOcad.mainLength),
-        endLength: normUnits(dashAsOcad.endLength ?? dashAsOcad.mainLength),
-        mainGap: normUnits(dashAsOcad.mainGap),
-        secGap: normUnits(dashAsOcad.secGap),
-        endGap: normUnits(dashAsOcad.endGap),
-      }
-    }
-    const dashLen = normUnits(dash.dashLength)
-    const breakLen = normUnits(dash.breakLength)
+    // Canonical model uses Mapper's semantic dash vocab
+    // (dashLength/breakLength/dashesInGroup/inGroupBreakLength/
+    // halfOuterDashes); encode into OCD's on-disk rhythm here. Keep
+    // raw (fractional) values on both sides of the +/× before
+    // running through `normUnits` once — the previous form rounded each
+    // component separately, producing off-by-1 errors on half-integer
+    // xmap values (castle-hill 507 dash_length=1875 → 187.5 → 188×2 = 376,
+    // where Mapper's `round(1875×2 + 460 = 4210) / 10 = 421` gives 421).
+    const dashLenRaw = Number(dash.dashLength) || 0
+    const breakLenRaw = Number(dash.breakLength) || 0
     const dashesInGroup = dash.dashesInGroup ?? 1
-    const inGroupBreak = normUnits(dash.inGroupBreakLength)
+    const inGroupBreakRaw = Number(dash.inGroupBreakLength) || 0
+    const breakLen = normUnits(breakLenRaw)
+    const inGroupBreak = normUnits(inGroupBreakRaw)
+    const halfOuter = !!dash.halfOuterDashes
     if (dashesInGroup > 1) {
-      const mainLength = 2 * dashLen + inGroupBreak
+      // 2-dash group. mainLength packs both dashes plus the intra-group
+      // break: mainLength = 2·dashLength + inGroupBreak; secGap = inGroupBreak;
+      // mainGap = breakLength.
+      const mainLengthRaw = 2 * dashLenRaw + inGroupBreakRaw
+      const mainLength = normUnits(mainLengthRaw)
       return {
         mainLength,
-        endLength: mainLength,
+        endLength: halfOuter ? normUnits(mainLengthRaw / 2) : mainLength,
         mainGap: breakLen,
         secGap: inGroupBreak,
         endGap: inGroupBreak,
       }
     }
+    // 1-dash-per-group: two OCD encodings render the same visual, and
+    // Mapper picks between them based on whether the line has mid-symbol
+    // content:
+    //   • no mid-symbol → straight repeat: mainLength=dashLen, mainGap=break.
+    //   • has mid-symbol → 1-dash pairs encoding: mainLength=dashLen+break,
+    //     mainGap=0, secGap=break. The mainLength then coincides with the
+    //     mid-symbol placement cycle (Mapper's `endLength = mainLength / 2`
+    //     for the mid-dot at the centre — see butlers 106 Ruined earth wall).
+    const dashLen = normUnits(dashLenRaw)
+    if (ctx.hasMidSymbol) {
+      const spacing =
+        typeof ctx.spacing === 'number'
+          ? normUnits(ctx.spacing)
+          : normUnits(dashLenRaw + breakLenRaw)
+      const endOffset =
+        typeof ctx.endOffset === 'number'
+          ? normUnits(ctx.endOffset)
+          : normUnits(spacing / 2)
+      return {
+        mainLength: spacing,
+        endLength: endOffset,
+        mainGap: 0,
+        secGap: breakLen,
+        endGap: 0,
+      }
+    }
     return {
       mainLength: dashLen,
-      endLength: dashLen,
+      endLength: halfOuter ? normUnits(dashLenRaw / 2) : dashLen,
       mainGap: breakLen,
       secGap: 0,
       endGap: 0,
@@ -328,27 +415,38 @@ function encodePrimaryLineStyle(
   )
 }
 
-function encodeUseSymbolFlags(symbol: MapSymbol): number {
-  const ls = classifyLineLayers(symbol).lineSymbols?.lineSymbol
-  if (!ls) return 0
-  let flags = 0
-  if (ls.startSymbol || ls.endSymbol) flags |= 0x03
-  if (ls.dashSymbol) flags |= 0x04
-  return flags
+/** Rewrite string colorIds (from gitmap) on OCD-shape decoration elements
+ *  to numeric OCD palette slots. See point-body's `normaliseOcadElementColor`. */
+function mapElementColors(
+  els: unknown,
+  colorNumber: ColorNumber,
+): unknown[] {
+  if (!Array.isArray(els)) return []
+  return els.map(el => {
+    if (!el || typeof el !== 'object') return el
+    const e = el as { color?: unknown }
+    if (typeof e.color === 'number' || e.color === undefined) return el
+    return { ...(el as object), color: colorNumber(e.color) }
+  })
 }
 
-function lineDecorElements(
-  symbol: MapSymbol,
-  role: 'midSymbol' | 'startSymbol' | 'endSymbol' | 'dashSymbol',
-  colorNumber: ColorNumber,
-  flipY = false,
-): unknown[] {
-  const ls = classifyLineLayers(symbol).lineSymbols?.lineSymbol
-  const sub = ls?.[role]
-  if (!sub || typeof sub !== 'object') return []
-  return pointElementFromXmap(
-    { symbol: sub, object: { coords: [{ x: 0, y: 0 }] } },
-    colorNumber,
-    flipY,
-  )
+function encodeUseSymbolFlags(symbol: MapSymbol): number {
+  // Derive from the canonical `line-elements` layer — each array's
+  // non-empty state maps to an independent bit in OCAD's
+  // `useSymbolFlags` byte on the line symbol:
+  //   bit 0 (0x01) — <end_symbol>   present (endSymElements)
+  //   bit 1 (0x02) — <start_symbol> present (startSymElements)
+  //   bit 2 (0x04) — <dash_symbol>  present (cornerSymElements)
+  // Verified against bottle-lake 104.3 (start-only → 2) vs 104.0
+  // (start + end → 3). Previously the writer folded start+end into
+  // `|= 0x03` which lit both bits whenever either was present,
+  // spuriously turning 104.3's flags from 2 into 3.
+  const le = classifyLineLayers(symbol).lineElements
+  if (!le) return 0
+  let flags = 0
+  const has = (v: unknown): boolean => Array.isArray(v) && v.length > 0
+  if (has(le.endSymElements)) flags |= 0x01
+  if (has(le.startSymElements)) flags |= 0x02
+  if (has(le.cornerSymElements)) flags |= 0x04
+  return flags
 }

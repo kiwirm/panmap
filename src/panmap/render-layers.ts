@@ -30,24 +30,21 @@ export type RenderLayer =
   | FillLayer
   | StrokeLayer
   | HatchLayer
-  | StructureLayer
   | PointPatternLayer
   | BorderSymbolLayer
   | DoubleLineLayer
   | LineElementsLayer
-  | LineSymbolsLayer
   | PointFillLayer
   | PointStrokeLayer
   | PointElementsLayer
   | TextLayer
   | BaseRenderLayer
 
-/** True when `layer` carries a `pattern` field (structure-fill /
- *  point-pattern-fill). Narrows callers to the union of both types. */
+/** True when `layer` is a tiled stamp pattern. */
 export function isPatternLayer(
   layer: RenderLayer,
-): layer is StructureLayer | PointPatternLayer {
-  return layer.type === 'structure-fill' || layer.type === 'point-pattern-fill'
+): layer is PointPatternLayer {
+  return layer.type === 'point-pattern-fill'
 }
 
 export interface FillLayer extends BaseRenderLayer {
@@ -109,11 +106,11 @@ export interface DashSpec {
   breakLength?: number
   dashesInGroup?: number
   inGroupBreakLength?: number
-  mainLength?: number
-  mainGap?: number
-  secGap?: number
-  endLength?: number
-  endGap?: number
+  /** Mapper's `half_outer_dashes` — outermost dashes drawn at half the
+   *  interior length. Both readers populate this: OMap directly from
+   *  the xmap flag, OCD from `endLength ≈ mainLength / 2` when there's
+   *  no mid-symbol content (see `ocad/reader/to-panmap.ts:dashFromOcd`). */
+  halfOuterDashes?: boolean
 }
 
 export interface StrokeLayer extends BaseRenderLayer {
@@ -142,41 +139,31 @@ export interface HatchLayer extends BaseRenderLayer {
   type: 'hatch-fill'
 }
 
-export interface PatternSpec {
-  /** Row-to-row spacing (xmap `line_spacing`). */
-  lineSpacing?: number
-  /** Symbol-to-symbol spacing along a row (xmap `point_distance`). */
-  pointDistance?: number
-  /** Offset of the first row (xmap `line_offset`). */
-  lineOffset?: number
-  /** Offset along the first row (xmap `offset_along_line`). */
-  offsetAlongLine?: number
-  /** OCAD `structDraw` clip mode: 0 clip, 1 don't clip if inside, 2 if centre inside. */
-  noClipping?: number
-  rotation?: number
-  rotatable?: boolean
-  symbol?: {
-    pointSymbol?: {
-      elements?: unknown[]
-      innerColor?: unknown
-      innerRadius?: number
-    }
-  }
-}
-
-export interface StructureLayer extends BaseRenderLayer {
-  type: 'structure-fill'
-  pattern?: PatternSpec
-  /** OCAD structMode: 1 = aligned rows, 2 = shifted rows. */
-  mode?: number
-  symbolWidth?: number
-  symbolHeight?: number
-  noClipping?: number
-}
-
+/**
+ * A repeating stamp tiled across an area. `width` is the spacing along
+ * a row, `height` the spacing between rows; `elements` is the stamp
+ * itself, in the same flat icon-primitive shape `point-elements` and
+ * `line-elements` use.
+ *
+ * `shiftedRows` covers the "brick bond" layout both source formats can
+ * express — OCAD as one symbol with `structMode=2`, xmap as a pair of
+ * `<pattern>` records offset by half a tile. Either input reduces to a
+ * single layer with the flag set.
+ */
 export interface PointPatternLayer extends BaseRenderLayer {
   type: 'point-pattern-fill'
-  pattern?: PatternSpec
+  /** Offset of the first row, perpendicular to the row direction. */
+  rowOffset?: number
+  /** Offset of the first stamp along its row. */
+  columnOffset?: number
+  /** Alternate rows offset by half a tile (OCAD "shifted rows"). */
+  shiftedRows?: boolean
+  /** Clip mode: 0 clip, 1 don't clip if fully inside, 2 if centre inside. */
+  noClipping?: number
+  /** Pattern rotates with the object. */
+  rotatable?: boolean
+  /** The stamp drawn at each grid point, as flat icon primitives. */
+  elements?: RenderElement[]
 }
 
 export interface BorderSymbolLayer extends BaseRenderLayer {
@@ -200,9 +187,9 @@ export interface DoubleLineLayer extends BaseRenderLayer {
 export interface LineElementsLayer extends BaseRenderLayer {
   type: 'line-elements'
   /** Spacing between primary decoration placements along the line. */
-  mainLength?: number
+  spacing?: number
   /** Reserved end-run length used to inset the first/last placement. */
-  endLength?: number
+  endOffset?: number
   /** Decoration elements placed at even intervals along the line. */
   primSymElements?: RenderElement[]
   /** Secondary-run decoration elements (currently unused by the renderer). */
@@ -213,32 +200,6 @@ export interface LineElementsLayer extends BaseRenderLayer {
   startSymElements?: RenderElement[]
   /** Decoration elements placed at the line end. */
   endSymElements?: RenderElement[]
-}
-
-export interface LineSymbolsSpec {
-  midSymbol?: unknown
-  dashSymbol?: unknown
-  startSymbol?: unknown
-  endSymbol?: unknown
-  /** Nominal spacing between mid/dash symbol placements. */
-  segmentLength?: number
-  /** Explicit mid-symbol spacing (overrides `segmentLength` when set). */
-  midSymbolDistance?: number
-  /** Dash-symbol dash + break lengths (used to derive spacing). */
-  dashLength?: number
-  breakLength?: number
-  /** Offsets that inset the first/last dash-symbol placement. */
-  startOffset?: number
-  endOffset?: number
-  /** Lower bound on the number of mid-symbol placements. */
-  minimumMidSymbolCount?: number
-  /** Force at least one placement even on short lines. */
-  showAtLeastOneSymbol?: boolean
-}
-
-export interface LineSymbolsLayer extends BaseRenderLayer {
-  type: 'line-symbols'
-  lineSymbol?: LineSymbolsSpec
 }
 
 export interface PointFillLayer extends BaseRenderLayer {
@@ -263,9 +224,7 @@ export interface AreaLayers {
   strokes: StrokeLayer[]
   /** `hatch-fill` layers. Two crossed layers form OCAD `hatchMode=2`. */
   hatches: HatchLayer[]
-  /** `structure-fill` layers (xmap "structure" patterns). */
-  structures: StructureLayer[]
-  /** `point-pattern-fill` layers. Two matching layers form OCAD `structMode=2`. */
+  /** `point-pattern-fill` layers — tiled stamps. */
   pointPatterns: PointPatternLayer[]
   /** First `border-symbol` layer, or undefined. Points at a paired line symbol. */
   border: BorderSymbolLayer | undefined
@@ -276,7 +235,6 @@ export function classifyAreaLayers(symbol: MapSymbol): AreaLayers {
   const fills: FillLayer[] = []
   const strokes: StrokeLayer[] = []
   const hatches: HatchLayer[] = []
-  const structures: StructureLayer[] = []
   const pointPatterns: PointPatternLayer[] = []
   let border: BorderSymbolLayer | undefined
   for (const l of layers) {
@@ -289,9 +247,6 @@ export function classifyAreaLayers(symbol: MapSymbol): AreaLayers {
         break
       case 'hatch-fill':
         hatches.push(l as HatchLayer)
-        break
-      case 'structure-fill':
-        structures.push(l as StructureLayer)
         break
       case 'point-pattern-fill':
         pointPatterns.push(l as PointPatternLayer)
@@ -306,7 +261,6 @@ export function classifyAreaLayers(symbol: MapSymbol): AreaLayers {
     fills,
     strokes,
     hatches,
-    structures,
     pointPatterns,
     border,
   }
@@ -353,14 +307,12 @@ export interface LineLayers {
   strokes: StrokeLayer[]
   doubleLine: DoubleLineLayer | undefined
   lineElements: LineElementsLayer | undefined
-  lineSymbols: LineSymbolsLayer | undefined
 }
 
 export function classifyLineLayers(symbol: MapSymbol): LineLayers {
   const strokes: StrokeLayer[] = []
   let doubleLine: DoubleLineLayer | undefined
   let lineElements: LineElementsLayer | undefined
-  let lineSymbols: LineSymbolsLayer | undefined
   for (const l of symbol.layers ?? []) {
     switch (l.type) {
       case 'stroke':
@@ -372,10 +324,7 @@ export function classifyLineLayers(symbol: MapSymbol): LineLayers {
       case 'line-elements':
         if (!lineElements) lineElements = l as LineElementsLayer
         break
-      case 'line-symbols':
-        if (!lineSymbols) lineSymbols = l as LineSymbolsLayer
-        break
     }
   }
-  return { strokes, doubleLine, lineElements, lineSymbols }
+  return { strokes, doubleLine, lineElements }
 }

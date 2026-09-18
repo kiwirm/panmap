@@ -6,11 +6,9 @@ import {
 } from '../../panmap/coord.js'
 import type { MapObject } from '../../panmap/model.js'
 import type {
-  LineSymbolsLayer,
   LineElementsLayer,
   DoubleLineLayer,
   RenderElement,
-  DecorationSymbol,
 } from '../../panmap/render-layers.js'
 import { escapeXmlAttr as escapeAttr } from '../../util/xml.js'
 import {
@@ -29,150 +27,6 @@ import {
   type ColorLookup,
 } from './colors.js'
 import { ocadPointElementToSvg, xmapPointSymbolToSvg } from './point-symbols.js'
-
-function lineSymbolsLayerToSvg(
-  object: MapObject,
-  layer: LineSymbolsLayer,
-  colors: ColorLookup,
-  transform: Transform,
-) {
-  const line = layer.lineSymbol
-  const coords = (object.coordinates as FlaggedCoord[]) || []
-  if (!line || coords.length < 2) return null
-
-  const sampler = buildPathSampler(coords)
-  const total = sampler.total
-  if (total <= 0) return null
-
-  // Emit each sub-symbol placement as separate {order, node} entries so
-  // the top-level sort places each primitive at its own colour's
-  // priority. Previously all placements were joined into one string
-  // rendered at the containing line-symbols layer's order, which
-  // meant a mid-symbol's green ring painted at the same depth as its
-  // white halo — sub-symbol z-order collapsed to insertion order.
-  const rendered: Array<{ order: number; node: string }> = []
-  const addSymbol = (
-    symbol: DecorationSymbol | undefined,
-    distance: number,
-    rotatable = true,
-  ) => {
-    if (!symbol) return
-    const point = pointAndAngleAtSampler(
-      sampler,
-      Math.max(0, Math.min(total, distance)),
-    )
-    const primitives = xmapPointSymbolToSvg(
-      symbol,
-      point[0],
-      point[1],
-      colors,
-      transform,
-      rotatable && symbol.pointSymbol?.rotatable ? point.angle : 0,
-    )
-    for (const { colorId, node } of primitives) {
-      rendered.push({
-        order: orderFor(colorId, layer, colors),
-        node,
-      })
-    }
-  }
-
-  // Even distribution — matches Mapper's `LineSymbol::createRenderables`
-  // and OCAD's own placement. Compute a nominal symbol count from the
-  // usable length ÷ step, honour `showAtLeastOneSymbol` and
-  // `minimumMidSymbolCount`, then space them so the START-to-first and
-  // last-to-END gaps are equal ((i + 0.5) × spacing). The previous
-  // "for d = step; d < total; d += step" formulation drifted off centre
-  // and dropped the last symbol whenever the line length wasn't a
-  // clean multiple of the step.
-  const placeAlong = (
-    symbol: DecorationSymbol | undefined,
-    step: number,
-    startOffset: number,
-    endOffset: number,
-    minCount: number,
-    atLeastOne: boolean,
-  ) => {
-    if (!symbol) return
-    const usable = Math.max(0, total - startOffset - endOffset)
-    if (step <= 0) {
-      if (atLeastOne) addSymbol(symbol, total / 2)
-      return
-    }
-    let count = Math.round(usable / step)
-    if (count < minCount) count = minCount
-    if (count < 1 && atLeastOne) count = 1
-    if (count < 1) return
-    const spacing = usable / count
-    for (let i = 0; i < count; i++) {
-      addSymbol(symbol, startOffset + (i + 0.5) * spacing)
-    }
-  }
-
-  if (line.midSymbol) {
-    placeAlong(
-      line.midSymbol as DecorationSymbol,
-      line.midSymbolDistance || line.segmentLength || 0,
-      0,
-      0,
-      line.minimumMidSymbolCount || 0,
-      line.showAtLeastOneSymbol !== false,
-    )
-  }
-
-  if (line.dashSymbol) {
-    placeAlong(
-      line.dashSymbol as DecorationSymbol,
-      line.segmentLength || (line.dashLength || 0) + (line.breakLength || 0),
-      Math.max(line.startOffset || 0, 0),
-      Math.max(line.endOffset || 0, 0),
-      0,
-      !!line.showAtLeastOneSymbol,
-    )
-  }
-
-  if (line.startSymbol) {
-    const startSymbol = line.startSymbol as DecorationSymbol
-    const angle = lineAngleStartSampler(sampler)
-    const start = transform(coords[0])
-    const primitives = xmapPointSymbolToSvg(
-      startSymbol,
-      start[0],
-      start[1],
-      colors,
-      coord => coord,
-      startSymbol.pointSymbol?.rotatable ? angle : 0,
-    )
-    for (const { colorId, node } of primitives) {
-      rendered.push({
-        order: orderFor(colorId, layer, colors),
-        node,
-      })
-    }
-  }
-
-  if (line.endSymbol) {
-    const endSymbol = line.endSymbol as DecorationSymbol
-    const angle = lineAngleEndSampler(sampler)
-    const end = transform(coords[coords.length - 1])
-    const primitives = xmapPointSymbolToSvg(
-      endSymbol,
-      end[0],
-      end[1],
-      colors,
-      coord => coord,
-      endSymbol.pointSymbol?.rotatable ? angle : 0,
-    )
-    for (const { colorId, node } of primitives) {
-      rendered.push({
-        order: orderFor(colorId, layer, colors),
-        node,
-      })
-    }
-  }
-
-  return rendered
-}
 
 function lineElementsLayerToSvg(
   object: MapObject,
@@ -210,7 +64,7 @@ function lineElementsLayerToSvg(
   if (
     Array.isArray(layer.primSymElements) &&
     layer.primSymElements.length > 0 &&
-    (layer.mainLength as number) > 0
+    (layer.spacing as number) > 0
   ) {
     const sampler = buildPathSampler(coords)
     primaryLineElementPositions(sampler, layer).forEach(position => {
@@ -262,11 +116,11 @@ function primaryLineElementPositions(
   layer: LineElementsLayer,
 ): number[] {
   const total = sampler.total
-  const spacing = Math.max(layer.mainLength || 0, 1)
+  const spacing = Math.max((layer.spacing as number) || 0, 1)
   if (total <= 0) return []
 
-  const startOffset = Math.max(layer.endLength || 0, 0)
-  const endOffset = Math.max(layer.endLength || 0, 0)
+  const startOffset = Math.max((layer.endOffset as number) || 0, 0)
+  const endOffset = Math.max((layer.endOffset as number) || 0, 0)
   const start = Math.min(startOffset, total / 2)
   const end = Math.max(start, total - endOffset)
 
@@ -404,4 +258,4 @@ function offsetLineString(
   )
 }
 
-export { lineElementsLayerToSvg, doubleLineLayerToSvg, lineSymbolsLayerToSvg }
+export { lineElementsLayerToSvg, doubleLineLayerToSvg }

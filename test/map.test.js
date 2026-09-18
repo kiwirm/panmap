@@ -14,8 +14,6 @@ test('can normalize OCAD file to canonical Map', async (/** @type {ExecutionCont
   const map = ocadFileToMap(ocadFile)
 
   t.true(map instanceof Map)
-  t.is(map.sourceFormat, 'ocad')
-  t.is(map.sourceFile, ocadFile)
   t.is(map.metadata.version, 12)
   t.is(map.objects.length, ocadFile.objects.length)
   t.is(map.symbols.length, ocadFile.symbols.length)
@@ -42,7 +40,6 @@ test('readMap returns canonical Map for OCAD input', async (/** @type {Execution
   const map = await readMap(fixtureFile('basic-1.ocd'))
 
   t.true(map instanceof Map)
-  t.is(map.sourceFormat, 'ocad')
   t.is(map.objects.length, 2)
   t.is(map.symbols.length, 289)
 })
@@ -63,7 +60,6 @@ test('writeMap structurally round-trips OCAD-backed maps', async (/** @type {Exe
   const reread = await readMap(output)
   t.is(reread.symbols.length, map.symbols.length)
   t.is(reread.objects.length, map.objects.length)
-  t.is(reread.sourceFormat, 'ocad')
 })
 
 test('OCAD symbols expose shared render layers', async (/** @type {ExecutionContext} */ t) => {

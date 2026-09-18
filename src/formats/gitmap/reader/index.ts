@@ -107,7 +107,6 @@ async function readGitmapFrom(
     symbols,
     objects,
     privateData,
-    label,
   })
 }
 

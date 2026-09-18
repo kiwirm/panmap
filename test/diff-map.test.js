@@ -15,7 +15,6 @@ const serializer = new xmldom.XMLSerializer()
 
 function makeMap(objects) {
   return new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [
       {
@@ -61,7 +60,6 @@ function makeMap(objects) {
 
 function makeOcadMap(objects) {
   const map = makeMap(objects)
-  map.sourceFormat = 'ocad'
   return map
 }
 
@@ -364,7 +362,6 @@ test('diffMaps matches symbols across OMap/OCAD code formats (101 vs 101.0)', (/
   ]
   const mapWithCode = code =>
     new Map({
-      sourceFormat: 'test',
       colors: [],
       symbols: [
         {
@@ -443,7 +440,6 @@ test('diffChanges reports per-feature changes and pairs modified across code for
   // Moved contour (same symbol, OMap "101" vs OCAD "101.0", overlapping)
   // + a removed-only point + an added-only point.
   const before = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [lineSym('101'), ptSym('301', 'Boulder')],
     objects: [
@@ -456,7 +452,6 @@ test('diffChanges reports per-feature changes and pairs modified across code for
     ],
   })
   const after = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [lineSym('101.0'), ptSym('201', 'Pit')],
     objects: [
@@ -518,7 +513,6 @@ test('diffChanges distinguishes symbol changes from geometry changes', (/** @typ
   ]
   // Same geometry, different symbol → a symbol change.
   const before = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [lineSym('505'), lineSym('507')],
     objects: [
@@ -532,7 +526,6 @@ test('diffChanges distinguishes symbol changes from geometry changes', (/** @typ
     ],
   })
   const after = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [lineSym('506'), lineSym('507')],
     // 'a' re-symbolised 505→506 (same coords); 'b' edited but keeps a
@@ -588,7 +581,6 @@ test('diffChanges reports a reclassified + reshaped line as a "both" change', (/
   // Same feature: symbol 505→507 AND the last vertex moved (majority of
   // vertices shared → coverage matches; symbol differs).
   const before = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [lineSym('505')],
     objects: [
@@ -601,7 +593,6 @@ test('diffChanges reports a reclassified + reshaped line as a "both" change', (/
     ],
   })
   const after = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [lineSym('507')],
     objects: [
@@ -654,13 +645,11 @@ test('diffChanges renders an edited area with a hole without crossing rings', (/
     bounds: { min: [0, 0], max: [120, 120] },
   })
   const before = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [areaSym('406')],
     objects: [area([100, 100])],
   })
   const after = new Map({
-    sourceFormat: 'test',
     colors: [],
     symbols: [areaSym('406')],
     objects: [area([120, 120])],

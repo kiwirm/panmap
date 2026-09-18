@@ -12,6 +12,7 @@ import { ATTR_PREFIX } from '../native.js'
 import type Panmap from '../../../panmap/model.js'
 import type {
   MapColor,
+  MapSpotColor,
   MapCrs,
   MapObject,
   MapPart,
@@ -97,7 +98,7 @@ function mapToOmapXml(map: Panmap): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<map ${mapAttrs}>`,
-    colorsToXml(map.colors.filter(Boolean), colorIds),
+    colorsToXml(map.colors.filter(Boolean), colorIds, map.spotColors),
     ...mapExtras,
     `<barrier ${barrierAttrs}>`,
     symbolsToXml(map.symbols, symbolIds, colorIds),
@@ -320,12 +321,39 @@ function renderViewFromCanonical(view: MapView | undefined): string {
   return `<view>\n  <map_view${attrs.length ? ' ' + attrs.join(' ') : ''}/>\n</view>`
 }
 
+// Separations are written as trailing palette entries, each declaring itself
+// as its own spot colour. Mapper has two authoring styles — separations
+// defined in the palette (ara, hillmorton, …) vs referenced by name only
+// (butlers-bush, laidmore, …) — which reduce to the same canonical
+// `spotColors`, so the model cannot tell them apart and we emit one form.
+// Appending is the safe direction: exact for the first style, and harmless
+// for the second since the entries land after every existing priority, so no
+// index a `<component spotcolor="N">` refers to shifts. The reader's
+// contiguous-tail rule strips them back out, keeping the round-trip exact.
 function colorsToXml(
   colors: MapColor[],
   colorIds: Map<string | number, number>,
+  spotColors: MapSpotColor[] = [],
 ): string {
+  let maxPriority = -1
+  for (const color of colors) {
+    maxPriority = Math.max(maxPriority, colorIds.get(color.id) ?? 0)
+  }
+  const spotEntries = spotColors.map((spot, index) => {
+    const [c, m, y, k] = spot.cmyk ?? [0, 0, 0, 0]
+    const rgb = parseRgb(spot.rgb)
+    return [
+      `  <color priority="${maxPriority + 1 + index}" name="${attr(spot.name)}" c="${c}" m="${m}" y="${y}" k="${k}" opacity="1">`,
+      '    <spotcolors>',
+      `      <namedcolor>${attr(spot.name)}</namedcolor>`,
+      '    </spotcolors>',
+      '    <cmyk method="custom"/>',
+      `    <rgb method="cmyk" r="${rgb.r / 255}" g="${rgb.g / 255}" b="${rgb.b / 255}" />`,
+      '  </color>',
+    ].join('\n')
+  })
   return block(
-    `colors count="${colors.length}"`,
+    `colors count="${colors.length + spotEntries.length}"`,
     colors
       .slice()
       .sort((a, b) => (a.renderOrder ?? 0) - (b.renderOrder ?? 0))
@@ -348,7 +376,8 @@ function colorsToXml(
           `    <rgb method="custom" r="${rgb.r / 255}" g="${rgb.g / 255}" b="${rgb.b / 255}" />`,
           '  </color>',
         ].join('\n')
-      }),
+      })
+      .concat(spotEntries),
   )
 }
 

@@ -36,7 +36,6 @@ function extractCoordFlags(xml) {
 
 function synthMap(coordinates) {
   return new Panmap({
-    sourceFormat: 'test',
     colors: [
       { id: 0, sourceId: 0, name: 'black', rgb: 'rgb(0,0,0)', renderOrder: 0 },
     ],

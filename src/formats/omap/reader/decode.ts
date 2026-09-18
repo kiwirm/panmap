@@ -22,6 +22,11 @@ function parseOmapXml(xml: string): OmapFile {
     removeNSPrefix: true,
     allowBooleanAttributes: true,
     processEntities: true,
+    // fast-xml-parser trims attribute whitespace by default, which
+    // silently stripped Mapper's leading spaces from `name=" Small
+    // crossable watercourse"` etc — that shift broke every
+    // description-word position on ocd round-trip.
+    trimValues: false,
   })
   const root = parser.parse(xml)
   const map = root?.map ?? root?.Map ?? root
@@ -36,6 +41,18 @@ function parseOmapXml(xml: string): OmapFile {
     const k = parseNumber(color.k, NaN)
     const cmykValid = [c, m, y, k].every(Number.isFinite)
     const opacity = parseNumber(color.opacity, NaN)
+    // `<spotcolors><namedcolor>NAME</namedcolor></spotcolors>` marks the
+    // print separation this colour prints on. Two shapes appear in the
+    // wild: a DEDICATED record whose `name` is the separation itself, and
+    // an ordinary palette colour merely tagged with one. Capture the text
+    // so `to-panmap` can tell them apart (see `MapSpotColor`).
+    const named = color.spotcolors?.namedcolor
+    const spotName =
+      typeof named === 'string'
+        ? named
+        : typeof named?.['#text'] === 'string'
+          ? named['#text']
+          : undefined
     return {
       priority: parseNumber(color.priority),
       name: color.name ?? '',
@@ -44,6 +61,7 @@ function parseOmapXml(xml: string): OmapFile {
         ? ([c, m, y, k] as [number, number, number, number])
         : undefined,
       opacity: Number.isFinite(opacity) ? opacity : undefined,
+      spotName: spotName?.trim() || undefined,
     }
   })
 
@@ -62,7 +80,15 @@ function parseOmapXml(xml: string): OmapFile {
       vAlign:
         node.v_align !== undefined ? parseNumber(node.v_align) : undefined,
       coords: parseCoords(node),
-      text: typeof node.text === 'string' ? node.text : null,
+      // Accept a number too. This parser leaves `parseTagValue` at its
+      // default, so fast-xml-parser coerces a numeric tag body — `<text>1
+      // </text>` arrives as the NUMBER 1, and a string-only test dropped it.
+      // That silently lost the content of every numerically-labelled text
+      // object: control numbers, spot heights, bare digits on a map.
+      text:
+        typeof node.text === 'string' || typeof node.text === 'number'
+          ? String(node.text)
+          : null,
       textBox: sizeNode
         ? {
             width: parseDim(sizeNode.width),
@@ -115,6 +141,12 @@ function parseOmapXml(xml: string): OmapFile {
             500,
           ),
           endLength: parseDim(symbol.line_symbol.end_length, 0),
+          // Mapper's `half_outer_dashes="true"` means the outermost
+          // dashes at each end of the line are half-length. In OCAD this
+          // is encoded on `LineSymbol.endLength = mainLength / 2` — read
+          // now so `to-panmap.ts` can hoist it onto the stroke render
+          // layer and the OCD writer can rebuild the halved endLength.
+          halfOuterDashes: isTrue(symbol.line_symbol.half_outer_dashes),
           dashSymbol: symbol.line_symbol?.dash_symbol?.symbol
             ? parseSymbolNode(symbol.line_symbol.dash_symbol.symbol)
             : undefined,
@@ -146,7 +178,21 @@ function parseOmapXml(xml: string): OmapFile {
               ? true
               : isTrue(symbol.line_symbol.scale_dash_symbol),
           capStyle: parseNumber(symbol.line_symbol.cap_style, 0),
+          // `join_style` passes through verbatim. Although Mapper's
+          // source enum is nominally (0 miter, 1 round, 2 bevel) and
+          // OCAD's lineStyle nibble is (0 bevel, 1 miter, 2 round), the
+          // two agree in practice across the corpus: Mapper's own OCD
+          // export maps xmap 0 → lineStyle 0 and xmap 1 → lineStyle 4
+          // (cap flat + join miter). Translating between them produced
+          // the wrong OCD byte on every line symbol. Divergence between
+          // the two SOURCES is reconciled at gitmap-serialize time
+          // instead (`gitmap/writer/from-panmap/index.ts`).
           joinStyle: parseNumber(symbol.line_symbol.join_style, 0),
+          // Mapper's pointed-cap length (only meaningful when
+          // cap_style="3" = pointed). Used by ISOM 107 (erosion gully)
+          // and similar; without this the point-tapered ends of those
+          // lines flatten out on xmap round-trip.
+          pointedCapLength: parseDim(symbol.line_symbol.pointed_cap_length, 0),
           midSymbol: symbol.line_symbol?.mid_symbol?.symbol
             ? parseSymbolNode(symbol.line_symbol.mid_symbol.symbol)
             : undefined,
@@ -296,6 +342,18 @@ function parseOmapXml(xml: string): OmapFile {
                     0,
                   ),
                 }
+              : undefined,
+            // Paragraph tab stops — XMap serialises as
+            //   <tabs count="N"><tab>V</tab>…</tabs>
+            // where each <tab> is an ordinate in XMap units. Pull them
+            // into an array on the model so OCD-sourced and OMap-sourced
+            // copies of the same map converge in gitmap (bottle-lake
+            // 801.4 has one tab at 2000, previously only OCD-side
+            // preserved it).
+            tabs: symbol.text_symbol?.tabs?.tab
+              ? ensureArray(symbol.text_symbol.tabs.tab)
+                  .map(v => parseDim(v, 0))
+                  .filter((n: number) => Number.isFinite(n))
               : undefined,
             lineBelow: symbol.text_symbol?.line_below
               ? {
@@ -542,5 +600,10 @@ function toByte(value: XmlValue): number {
 function quantizeChannel(value: number): number {
   return Math.round(value * 100) / 100
 }
+
+
+// (`normaliseCapJoinPair` moved to `gitmap/writer/from-panmap/index.ts`
+// so xmap→panmap→xmap idempotence stays exact — normalisation only
+// applies where OCD-source and XMap-source siblings meet, at gitmap.)
 
 export { parseOmapXml, parseOmap, readOmapFile }

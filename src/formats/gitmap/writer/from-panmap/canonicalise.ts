@@ -26,10 +26,7 @@ export function canonicalSymbolType(
   )
   const hasStroke = canonLayers.some(l => l.type === 'stroke')
   const hasLineGeometry = canonLayers.some(
-    l =>
-      l.type === 'stroke' ||
-      l.type === 'line-elements' ||
-      l.type === 'line-symbols',
+    l => l.type === 'stroke' || l.type === 'line-elements',
   )
   // Area-with-border (border-symbol reference OR its post-dereference `stroke`
   // form): both dialects should serialise as `combined` so the OMap writer's
@@ -165,19 +162,31 @@ function stripPointElementXyFlags(el: unknown): unknown {
   const cleanedCoords = e.coords.map(c => {
     if (!c || typeof c !== 'object') return c
     if (Array.isArray(c)) {
-      const arr = c as unknown as { 0?: number; 1?: number }
-      return { x: snapSymCoord(arr[0] ?? 0), y: snapSymCoord(arr[1] ?? 0) }
+      // TdPoly array-with-props from the OCAD reader. Preserve
+      // xFlags/yFlags so `elementCoordToJson` can serialise bezier /
+      // corner / dash markers (cliff tags, minimum-knoll curves).
+      // Previously dropped, which turned OCAD-sourced curved icons into
+      // straight polygons on any OCD→gitmap round-trip and broke the
+      // convergence gate against xmap-sourced siblings.
+      const arr = c as unknown as {
+        0?: number
+        1?: number
+        xFlags?: number
+        yFlags?: number
+      }
+      const out: { x: number; y: number; xFlags?: number; yFlags?: number } = {
+        x: snapSymCoord(arr[0] ?? 0),
+        y: snapSymCoord(arr[1] ?? 0),
+      }
+      if (arr.xFlags) out.xFlags = arr.xFlags
+      if (arr.yFlags) out.yFlags = arr.yFlags
+      return out
     }
     const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      xFlags,
-      yFlags,
       x,
       y,
       ...rest
     } = c as {
-      xFlags?: unknown
-      yFlags?: unknown
       x?: number
       y?: number
     } & Record<string, unknown>
@@ -194,11 +203,13 @@ function stripPointElementXyFlags(el: unknown): unknown {
 // Element types (from `symbol-element-types.ts`):
 //   1 Line, 2 Area, 3 Circle (ring), 4 Dot (filled disc).
 //
-// Coord y is FLIPPED to match OCD-native element convention (y-up). OCD-
-// sourced elements are stored y-up here (symbol-internal offsets, not
-// object coordinates — those get flipped separately). Xmap-sourced elements
-// arrive y-down; flip so both dialects agree. The xmap writer's
-// `ocadElementToXmapElement` re-flips on the reverse path (`y: -coordY(c)`).
+// Coord y is now canonicalised to y-UP at read time on BOTH sides (OCD
+// reader → OCD binary is y-up natively; OMap reader → `flatten-line-decor.ts`
+// / `normalisePointElementsYUp` negate y from xmap's y-down convention).
+// This helper therefore preserves y verbatim — no more double-flip.
+// The xmap writer's `ocadElementToXmapElement` continues to re-flip on the
+// reverse path (`y: -coordY(c)`), and the equivalent negation lives on
+// the pattern-symbol / point-symbol pass-through paths in `elements.ts`.
 //
 // The OCAD-emitted `flags` byte packs cap+join style:
 //   bit 0 (0x01) = round cap (capStyle == 1)
@@ -234,10 +245,9 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
   const anchorX = snapSymCoord(
     Array.isArray(anchor) ? (anchor[0] ?? 0) : (anchor?.x ?? 0),
   )
-  const anchorYSrc = snapSymCoord(
+  const anchorY = snapSymCoord(
     Array.isArray(anchor) ? (anchor[1] ?? 0) : (anchor?.y ?? 0),
   )
-  const anchorY = -anchorYSrc
 
   const out: unknown[] = []
   if (sym.pointSymbol) {
@@ -271,9 +281,11 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
     return out
   }
   if (sym.lineSymbol) {
-    const coords = rawCoords.map(mapAndRoundYFlippedCoord)
+    const coords = mapXmapCoordsToOcadElement(rawCoords)
     const cap = sym.lineSymbol.capStyle ?? 0
     const join = sym.lineSymbol.joinStyle ?? 0
+    // OCD line-element flags byte: bit 0 (0x01) round cap,
+    // bit 2 (0x04) miter join.
     const flags = (cap === 1 ? 0x01 : 0) | (join === 1 ? 0x04 : 0)
     return [
       {
@@ -288,7 +300,7 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
     ]
   }
   if (sym.areaSymbol) {
-    const coords = rawCoords.map(mapAndRoundYFlippedCoord)
+    const coords = mapXmapCoordsToOcadElement(rawCoords)
     return [
       {
         type: 2,
@@ -323,123 +335,65 @@ function snapSymCoord(v: number): number {
 function mapAndRoundYFlippedCoord(
   c: { x?: number; y?: number } | [number?, number?],
 ): { x: number; y: number } {
+  // Element coords are canonicalised to y-up on BOTH reader paths now
+  // (see reader-side normalisation), so this helper preserves y verbatim.
   const x = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
   const y = Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0)
-  return { x: snapSymCoord(x), y: -snapSymCoord(y) }
+  return { x: snapSymCoord(x), y: snapSymCoord(y) }
+}
+
+/**
+ * Map an xmap-shape coord array into OCD-shape `{x, y, xFlags, yFlags}`
+ * records, translating the xmap `flags` byte to OCD's xFlags/yFlags for
+ * **icon element coords** (a stricter mapping than the object-coord
+ * translation in `formats/omap/codecs/omap-flags.ts:normaliseOmapFlags`):
+ *   • xmap 0x01 (CurveStart) on coord[N] → OCD
+ *     coord[N+1].xFlags |= 0x01 (cp1) AND coord[N+2].xFlags |= 0x02 (cp2)
+ *   • xmap 0x10 (HolePoint) is Mapper's sub-path terminator: it always
+ *     appears on the LAST coord of an icon path and is implicit in
+ *     OCD (which terminates paths at the end of the coord array).
+ *     DROP it here — carrying yFlags=0x02 would produce a spurious
+ *     `{hole:true}` semantic flag that OCD-sourced siblings don't emit
+ *     (32 divergences on the corpus, e.g. 115 Prominent landform).
+ *   • xmap 0x20 (DashPoint) on coord[N] → OCD coord[N].yFlags |= 0x01
+ *     (**icon corner**, NOT `dash` (0x08) as in object coords). Mapper's
+ *     xmap→OCD export writes DashPoint on icon element vertices where
+ *     the OCAD side stores yFlags=0x01 (corner) — the two source paths
+ *     must agree on the canonical semantic flag or gitmap convergence
+ *     diverges (`{corner}` vs `{dash}` for the same icon vertex).
+ * Without this translation, curved point-symbol icons (101.2/3/4
+ * minimum-knoll contours, 110 elongated knoll etc.) render as straight-
+ * edge polygon approximations after any xmap→gitmap→OCD round-trip.
+ */
+function mapXmapCoordsToOcadElement(
+  rawCoords: Array<{ x?: number; y?: number; flags?: number } | [number?, number?]>,
+): Array<{ x: number; y: number; xFlags: number; yFlags: number }> {
+  const flagsOf = (c: unknown): number => {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return 0
+    return Number((c as { flags?: number }).flags ?? 0)
+  }
+  return rawCoords.map((c, i) => {
+    const x = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
+    const y = Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0)
+    let xFlags = 0
+    let yFlags = 0
+    if (i >= 1 && flagsOf(rawCoords[i - 1]) & 0x01) xFlags |= 0x01
+    if (i >= 2 && flagsOf(rawCoords[i - 2]) & 0x01) xFlags |= 0x02
+    const own = flagsOf(c)
+    if (own & 0x20) yFlags |= 0x01
+    return {
+      x: snapSymCoord(x),
+      y: snapSymCoord(y),
+      xFlags,
+      yFlags,
+    }
+  })
 }
 
 function isRealColor(v: unknown): boolean {
   if (v === undefined || v === null) return false
   if (typeof v === 'number') return v >= 0
   return typeof v === 'string' && v.length > 0
-}
-
-// Flatten a single OMap `midSymbol`/`startSymbol`/`endSymbol`/`dashSymbol`
-// (a nested xmap point-symbol) into the flat `*SymElements` array shape used
-// by OCD-sourced `line-elements`. Reuses `flattenXmapLineDecorElement` by
-// synthesising an outer `{symbol, object}` wrapper positioned at the origin.
-function flattenXmapDecorSymbol(sub: unknown): unknown[] {
-  if (!sub || typeof sub !== 'object') return []
-  return flattenXmapLineDecorElement({
-    symbol: sub,
-    object: { coords: [{ x: 0, y: 0 }] },
-  })
-}
-
-// Nest an OCAD flat pattern element into the xmap-shape `{symbol, object}`
-// record OMap emits inside `point-pattern-fill.pattern.symbol.pointSymbol.elements`.
-// Y coord is FLIPPED: OCAD element coords are y-up here; xmap-nested elements
-// are y-down. The xmap writer's `ocadElementsToXmapPointSymbol` re-flips on
-// the reverse path (`y: -coordY(c)`).
-// The `symbol.id` field is deliberately omitted — Mapper writes per-export
-// negative counters (`-110`, `-111`, ...) that carry no meaning and would
-// diff every export. `canonicaliseInnerElement` strips it from OMap-native
-// side too.
-function nestOcadPatternElement(el: unknown): unknown {
-  if (!el || typeof el !== 'object') return null
-  const e = el as {
-    type?: number
-    flags?: number
-    color?: unknown
-    lineWidth?: number
-    diameter?: number
-    coords?: Array<{ x?: number; y?: number } | [number?, number?]>
-  }
-  const coords = (e.coords ?? []).map(c => {
-    const x = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
-    const y = Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0)
-    return { x, y: -y }
-  })
-  const objectBase = { type: 0, symbol: 0, text: null, textBox: null, coords }
-  if (e.type === 4) {
-    return {
-      symbol: {
-        code: '',
-        type: 1,
-        isHidden: false,
-        pointSymbol: {
-          innerColor: e.color,
-          innerRadius: (e.diameter ?? 0) / 2,
-          outerColor: -1,
-          outerWidth: 0,
-          rotatable: false,
-        },
-      },
-      object: objectBase,
-    }
-  }
-  if (e.type === 3) {
-    const lw = e.lineWidth ?? 0
-    return {
-      symbol: {
-        code: '',
-        type: 1,
-        isHidden: false,
-        pointSymbol: {
-          innerColor: -1,
-          innerRadius: ((e.diameter ?? 0) - lw) / 2,
-          outerColor: e.color,
-          outerWidth: lw,
-          rotatable: false,
-        },
-      },
-      object: objectBase,
-    }
-  }
-  if (e.type === 1) {
-    const flags = e.flags ?? 0
-    return {
-      symbol: {
-        code: '',
-        type: 2,
-        isHidden: false,
-        lineSymbol: {
-          color: e.color,
-          lineWidth: e.lineWidth ?? 0,
-          capStyle: flags & 0x01 ? 1 : 0,
-          joinStyle: flags & 0x04 ? 1 : 0,
-        },
-      },
-      object: { ...objectBase, type: 1 },
-    }
-  }
-  if (e.type === 2) {
-    return {
-      symbol: {
-        code: '',
-        type: 4,
-        isHidden: false,
-        // OMap-native elements emit only `innerColor` on the areaSymbol; the
-        // `color` field is OCAD-writer-facing and OMap side omits it.
-        areaSymbol: { innerColor: e.color },
-      },
-      // OMap encodes area sub-elements with `object.type: 1` (Mapper's line-
-      // shaped object type used for closed polygons), not the fill-shaped
-      // `type: 2` you'd expect. Match the convention.
-      object: { ...objectBase, type: 1 },
-    }
-  }
-  return null
 }
 
 // Strip fields that differ between dialects on an OMap-native inner element:
@@ -522,276 +476,10 @@ function normaliseInnerPointSymbol(
   return out
 }
 
-// Canonicalise a pattern-symbol node to the shape both dialects agree on.
-// Strips Mapper's ephemeral private ids (`symbol.id: -N` counters that change
-// per export) and fills in the defaults Mapper always writes onto its outer
-// pointSymbol (`rotatable: true`, `innerRadius: 100` for multi-element
-// container symbols) so the OCD-sourced form matches without special-casing.
-function canonicaliseOuterPatternSymbol(sym: unknown): unknown {
-  if (!sym || typeof sym !== 'object') return sym
-  const s = sym as {
-    id?: unknown
-    code?: unknown
-    type?: unknown
-    isHidden?: unknown
-    pointSymbol?: {
-      innerColor?: unknown
-      innerRadius?: number
-      outerColor?: unknown
-      outerWidth?: number
-      rotatable?: unknown
-      elements?: unknown[]
-    }
-  }
-  const ps = s.pointSymbol
-  const isMultiElement = Array.isArray(ps?.elements) && ps!.elements!.length > 0
-  const canonPs = ps
-    ? {
-        ...ps,
-        // OMap always sets rotatable=true on the outer pattern point-symbol,
-        // independent of whether the pattern actually rotates (that lives on
-        // `pattern.rotatable`). Match the convention.
-        rotatable: true,
-        // Multi-element container pointSymbols get a Mapper-convention 100-unit
-        // innerRadius even though nothing paints — normalise both dialects.
-        innerRadius: isMultiElement ? 100 : (ps?.innerRadius ?? 0),
-        // Strip ephemeral Mapper counter ids off inner elements too.
-        elements: isMultiElement
-          ? (ps!.elements as unknown[]).map(canonicaliseInnerElement)
-          : ps?.elements,
-      }
-    : ps
-  const out: Record<string, unknown> = {
-    code: s.code ?? '',
-    type: s.type ?? 1,
-    isHidden: s.isHidden ?? false,
-    pointSymbol: canonPs,
-  }
-  // Drop `id` — it's Mapper's private symbol counter (`-77`, `-114`, ...)
-  // that changes every export and carries no meaning.
-  return out
-}
-
-// Canonicalise an OCAD-sourced `structure-fill` layer into the OMap-shape
-// `point-pattern-fill` the OCD writer's `encodePatternStructure` consumes.
-// Nests the flat `elements` array under `pattern.symbol.pointSymbol.elements`
-// and preserves rotatability + clipping-mode fields.
-//
-// mode=2 (OCAD shifted-rows) is emitted as TWO `point-pattern-fill` layers
-// so `isShiftedRows` in the OCD writer detects it correctly on the return
-// path. Single-disc-at-origin patterns are LIFTED to the outer pointSymbol
-// (innerColor + innerRadius, empty elements[]) to match OMap's convention
-// for that shape — the OCD writer's `extractPatternElements` reads either.
-export function structureFillToPointPattern(layer: RenderLayer): RenderLayer[] {
-  const l = layer as {
-    type?: string
-    colorId?: unknown
-    width?: number
-    height?: number
-    angle?: number
-    mode?: number
-    symbolWidth?: number
-    symbolHeight?: number
-    elements?: unknown[]
-    noClipping?: number
-    structDraw?: number
-    rotatable?: boolean
-    // OMap-native pass-through (normaliser branch below).
-    pattern?: Record<string, unknown>
-  }
-  // OMap-native point-pattern-fill: strip the ephemeral symbol id and
-  // normalise `pattern.symbol` to the canonical shape. Also strip the
-  // OMap-writer-emitted `pattern.color` — that field duplicates the layer's
-  // top-level `colorId`, and OMap's writer derives it from that, so it's
-  // guaranteed-redundant. Leaving it caused a one-cycle drift on
-  // omap→gitmap→omap round-trips: source had no `pattern.color`, xmap write
-  // added it as OMap's default, next gitmap read saw it.
-  if (l.type === 'point-pattern-fill' && l.pattern) {
-    const p = l.pattern as { symbol?: unknown; color?: unknown } & Record<
-      string,
-      unknown
-    >
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { color, symbol, ...rest } = p
-    return [
-      {
-        ...l,
-        pattern: { ...rest, symbol: canonicaliseOuterPatternSymbol(symbol) },
-      } as unknown as RenderLayer,
-    ]
-  }
-  if (l.type !== 'structure-fill') return [layer]
-  const flatElements = l.elements ?? []
-  const width = l.symbolWidth ?? l.width ?? 0
-  const height = l.symbolHeight ?? l.height ?? 0
-  const angleRad = ((l.angle ?? 0) * Math.PI) / 180
-  const noClipping = l.noClipping ?? 0
-  const rotatable = !!l.rotatable
-  // Single-disc-at-origin lift.
-  let outerInner: { color: unknown; radius: number } | undefined
-  let nestedElements: unknown[] = []
-  let topColorId: unknown = -1
-  const soleDisc =
-    flatElements.length === 1
-      ? (flatElements[0] as {
-          type?: number
-          color?: unknown
-          lineWidth?: number
-          diameter?: number
-          coords?: Array<{ x?: number; y?: number } | [number?, number?]>
-        })
-      : undefined
-  const atOrigin = (c: unknown): boolean => {
-    if (!c) return false
-    const cx = Array.isArray(c) ? (c[0] ?? 0) : ((c as { x?: number })?.x ?? 0)
-    const cy = Array.isArray(c) ? (c[1] ?? 0) : ((c as { y?: number })?.y ?? 0)
-    return cx === 0 && cy === 0
-  }
-  if (
-    soleDisc?.type === 4 &&
-    (soleDisc.lineWidth ?? 0) === 0 &&
-    Array.isArray(soleDisc.coords) &&
-    soleDisc.coords.length === 1 &&
-    atOrigin(soleDisc.coords[0])
-  ) {
-    outerInner = { color: soleDisc.color, radius: (soleDisc.diameter ?? 0) / 2 }
-    topColorId = soleDisc.color
-  } else {
-    nestedElements = flatElements.map(nestOcadPatternElement).filter(Boolean)
-  }
-  // Mode=2 (shifted-rows) doubles OCAD's `structHeight` into the OMap
-  // `lineSpacing`, and the second pattern's `lineOffset` equals `structHeight`.
-  // This mirrors the OMap writer's `structures` path so `isShiftedRows` and
-  // `structHeight = patterns[1].lineOffset` come out right on the round-trip.
-  const shifted = l.mode === 2
-  const lineSpacing = shifted ? height * 2 : height
-  const pointDistance = width
-  // OMap's reader sets both `layer.width` and `layer.height` to
-  // `pointDistance || lineSpacing` — a symmetric cache. The asymmetric
-  // tile info (e.g. 208 Boulder Field's 300×333 tile) lives in
-  // `pattern.pointDistance` + `pattern.lineSpacing`. Match the convention.
-  const layerSize = pointDistance
-  const makePattern = ({
-    lineOffset,
-    offsetAlongLine,
-  }: {
-    lineOffset: number
-    offsetAlongLine: number
-  }): RenderLayer =>
-    ({
-      type: 'point-pattern-fill',
-      colorId: topColorId,
-      width: layerSize,
-      height: layerSize,
-      angle: l.angle ?? 0,
-      pattern: {
-        type: 2,
-        angle: angleRad,
-        lineSpacing,
-        pointDistance,
-        lineOffset,
-        offsetAlongLine,
-        lineWidth: 0,
-        rotatable,
-        noClipping,
-        symbol: canonicaliseOuterPatternSymbol({
-          code: '',
-          type: 1,
-          isHidden: false,
-          pointSymbol: outerInner
-            ? {
-                innerColor: outerInner.color,
-                innerRadius: outerInner.radius,
-                outerColor: -1,
-                outerWidth: 0,
-                rotatable,
-              }
-            : {
-                elements: nestedElements,
-                innerColor: -1,
-                innerRadius: 0,
-                outerColor: -1,
-                outerWidth: 0,
-                rotatable,
-              },
-        }),
-      },
-    }) as unknown as RenderLayer
-  const first = makePattern({ lineOffset: 0, offsetAlongLine: 0 })
-  if (shifted) {
-    const second = makePattern({
-      lineOffset: height,
-      offsetAlongLine: pointDistance / 2,
-    })
-    return [first, second]
-  }
-  return [first]
-}
-
-// Convert an OMap-native `line-symbols` render layer into the OCAD-flat
-// `line-elements` shape. Preserves all mid/start/end/dashSymbol decorations
-// by flattening each nested xmap tree into OCD-style element records. The
-// resulting layer is what OCD-sourced maps emit directly, so both dialects
-// agree on the canonical form; the xmap writer's `buildXmapLineSymbol`
-// already rebuilds the nested tree from `primSymElements` via
-// `ocadElementsToXmapPointSymbol`, so the reverse path works without change.
-//
-// Deliberately omits `mainLength`/`endLength`/`primSymDist`/`nPrimSym` —
-// these duplicate the primary stroke's `segmentLength`/`endLength`/
-// `midSymbolDistance`/`midSymbolsPerSpot`, which the writers already use
-// as the primary source. Storing them here too creates a per-reader-default
-// diff (OCAD carries the actual mainLength; OMap emits its 400 default).
-export function lineSymbolsToLineElements(layer: RenderLayer): RenderLayer[] {
-  const l = layer as {
-    type?: string
-    lineSymbol?: {
-      midSymbol?: unknown
-      startSymbol?: unknown
-      endSymbol?: unknown
-      dashSymbol?: unknown
-    }
-  }
-  if (l.type !== 'line-symbols' || !l.lineSymbol) return [layer]
-  const ls = l.lineSymbol
-  const primSymElements = ls.midSymbol
-    ? flattenXmapDecorSymbol(ls.midSymbol)
-    : []
-  const startSymElements = ls.startSymbol
-    ? flattenXmapDecorSymbol(ls.startSymbol)
-    : []
-  const endSymElements = ls.endSymbol
-    ? flattenXmapDecorSymbol(ls.endSymbol)
-    : []
-  const cornerSymElements = ls.dashSymbol
-    ? flattenXmapDecorSymbol(ls.dashSymbol)
-    : []
-  // Drop entirely if no sub-symbol carries visible geometry — OMap emits
-  // `line-symbols` on any line with a lineSymbol block (e.g. butlers-bush
-  // 202.4 Cliff, where lineSymbol has only `minimumLength: 60`) but OCD
-  // never emits a layer for that. The OCD writer's `useSymbolFlags` path
-  // gates on the presence of sub-symbols, so dropping is safe.
-  if (
-    primSymElements.length === 0 &&
-    startSymElements.length === 0 &&
-    endSymElements.length === 0 &&
-    cornerSymElements.length === 0
-  ) {
-    return []
-  }
-  return [
-    {
-      type: 'line-elements',
-      primSymElements,
-      cornerSymElements,
-      startSymElements,
-      endSymElements,
-    } as unknown as RenderLayer,
-  ]
-}
-
-// Strip redundant rhythm fields from any `line-elements` layer — see
-// `lineSymbolsToLineElements` for rationale. Both OCD-sourced (via its
-// reader) and OMap-sourced (via the flattener above) reach this filter.
+// Strip redundant rhythm fields from any `line-elements` layer. Both
+// dialects reach this filter — OCD-sourced from its reader, OMap-sourced
+// from `formats/omap/reader/flatten-line-decor.ts` which flattens the
+// xmap nested subtree into the canonical line-elements shape.
 //
 // Also strips xFlags/yFlags from element coords: OCD-sourced elements have
 // them (decoded from stored flag byte), OMap-sourced ones don't (the OMap
@@ -921,37 +609,6 @@ export function canonicaliseBorderShift(layer: RenderLayer): RenderLayer {
   } as unknown as RenderLayer
 }
 
-// OCAD stores a structure/point-pattern's geometry at integer resolution (0.01
-// mm), while Mapper's xmap keeps sub-integer precision (e.g. a pattern element
-// coord `-93.6` vs OCAD's `-94`, `lineSpacing 399.6` vs `400`). Snap the pattern
-// tree's geometry to the OCAD grid — the same lossy-to-OCAD canonicalisation
-// already applied to rotation and CMYK — so the OCD-synthesised and OMap-native
-// patterns converge. Angles (radians) are left untouched. Writer-only.
-export function canonicalisePointPatternGeometry(
-  layer: RenderLayer,
-): RenderLayer {
-  const l = layer as { type?: string; pattern?: unknown }
-  if (l.type !== 'point-pattern-fill' || !l.pattern) return layer
-  return {
-    ...layer,
-    pattern: roundGeometryToOcadGrid(l.pattern, ''),
-  } as RenderLayer
-}
-function roundGeometryToOcadGrid(node: unknown, key: string): unknown {
-  if (typeof node === 'number') {
-    return key === 'angle' || key === 'rotation' ? node : Math.round(node)
-  }
-  if (Array.isArray(node)) return node.map(v => roundGeometryToOcadGrid(v, key))
-  if (node && typeof node === 'object') {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-      out[k] = roundGeometryToOcadGrid(v, k)
-    }
-    return out
-  }
-  return node
-}
-
 // OCAD stores line widths at integer resolution; Mapper keeps sub-integer (a
 // 112.5 stroke vs OCAD's 113, a 67.5 vs 68). Snap a stroke's width to the OCAD
 // grid — the same lossy-to-OCAD rule as rotation/CMYK/pattern geometry — so the
@@ -1047,7 +704,6 @@ const LAYER_ORDER_GROUPS: Record<string, number> = {
   'point-elements': 7,
   text: 8,
   'line-elements': 9,
-  'line-symbols': 9,
   'border-symbol': 10,
   'double-line': 4,
 }

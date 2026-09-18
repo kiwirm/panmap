@@ -6,7 +6,6 @@
 import type {
   DoubleLineLayer,
   LineElementsLayer,
-  LineSymbolsLayer,
   StrokeLayer,
 } from '../../../../panmap/render-layers.js'
 import type { OmapLineBorder, OmapLineSymbol } from '../../native.js'
@@ -19,7 +18,6 @@ function buildXmapLineSymbol(
   strokes: StrokeLayer[],
   doubleLine: DoubleLineLayer | undefined,
   lineElements: LineElementsLayer | undefined,
-  lineSymbolsLayer: LineSymbolsLayer | undefined,
   colorIds: Map<string | number, number>,
 ): OmapLineSymbol {
   // Pick the primary stroke — visible ones first, then anything. When a
@@ -38,31 +36,46 @@ function buildXmapLineSymbol(
       : {}
 
   const dash = primary?.dash
-  const isDashed =
-    dash && (dash.mainGap || dash.secGap || dash.dashLength || dash.breakLength)
+  const isDashed = !!(dash && (dash.dashLength || dash.breakLength))
 
-  // Dash geometry: xmap has dashLength/breakLength (main dash + gap) and
-  // dashesInGroup/inGroupBreakLength (secondary intra-group). OCD stores
-  // mainLength/mainGap/secGap/endLength/endGap. Xmap-sourced dashes come
-  // through with dashLength/breakLength/... directly; OCD-sourced ones
-  // arrive as mainLength+mainGap and we map those to dashLength+breakLength.
-  const dashLength = dash?.dashLength ?? dash?.mainLength ?? 4
-  const breakLength = dash?.breakLength ?? dash?.mainGap ?? 1
+  // Dash geometry: model uses Mapper's semantic vocab (both readers
+  // canonicalise to this — see ocad/reader/to-panmap.ts:dashFromOcd for
+  // the OCD-side translation). Defaults match Mapper's built-ins
+  // (internal 400/100/50 → XML 4000/1000/500 via dim() * 10).
+  const dashLength = dash?.dashLength ?? 400
+  const breakLength = dash?.breakLength ?? 100
   const dashesInGroup = dash?.dashesInGroup ?? 1
-  const inGroupBreakLength = dash?.inGroupBreakLength ?? dash?.secGap ?? 0.5
+  const inGroupBreakLength = dash?.inGroupBreakLength ?? 50
 
   // segmentLength / endLength — used for mid-symbol placement even on
-  // non-dashed lines. Try `segmentLength` first (xmap-native field
-  // stashed on the stroke), then fall back to a line-elements layer's
-  // mainLength (OCD-sourced). Only fall back to `dashLength` when the
-  // line is actually dashed — for a plain solid line with no
-  // decorations, Mapper writes `mainLength=0` and we should match.
+  // non-dashed lines. Only surface `segment_length`/`end_length` when
+  // the line actually has mid-symbol decoration to place; on a plain
+  // dashed line Mapper writes `segment_length="4000"` (UI default,
+  // unused by the renderer) and on a plain solid line writes 0.
+  const hasMidDecor =
+    ((lineElements?.primSymElements as unknown[] | undefined)?.length ?? 0) >
+      0 ||
+    ((lineElements?.startSymElements as unknown[] | undefined)?.length ?? 0) >
+      0 ||
+    ((lineElements?.endSymElements as unknown[] | undefined)?.length ?? 0) >
+      0 ||
+    ((lineElements?.cornerSymElements as unknown[] | undefined)?.length ?? 0) >
+      0
+  // segment_length: prefer the explicit model value (xmap-sourced
+  // strokes carry it verbatim; OCD-sourced only carry a value when the
+  // line has mid-symbol content, via line-elements.spacing). Fall back
+  // to Mapper's UI default (400 internal → xmap 4000) when the model
+  // has no value.
   const segmentLength =
     primary?.segmentLength ??
-    (lineElements?.mainLength as number | undefined) ??
-    (isDashed ? dashLength : 0)
+    (lineElements?.spacing as number | undefined) ??
+    400
   const endLength =
-    primary?.endLength ?? (lineElements?.endLength as number | undefined) ?? 0
+    primary?.endLength ??
+    (lineElements?.endOffset as number | undefined) ??
+    0
+
+  const halfOuterDashes = isDashed && !!dash?.halfOuterDashes
 
   // Borders: xmap-sourced carries `borders` on the stroke;
   // OCD-sourced carries a separate `double-line` layer.
@@ -77,17 +90,33 @@ function buildXmapLineSymbol(
   // collapses to a zero-width line on ocd→xmap→ocd.
   const primaryWidth = (primary?.width ?? 0) || (doubleLine?.centerWidth ?? 0)
 
+  // Line-decoration builders enable the single-dot inline
+  // canonicalisation — Mapper writes a cliff/bank/etc. mid_symbol as
+  // an inline <point_symbol inner_radius=X inner_color=Y elements="0"/>
+  // rather than as a wrapped <point_symbol><element><symbol>
+  // <point_symbol/></symbol></element></point_symbol>. Both forms are
+  // semantically identical, but only the inline form byte-matches the
+  // Mapper-authored source on xmap→gitmap→xmap round-trips.
+  //
+  // Both OMap-native and OCD-sourced line symbols reach this builder
+  // through the SAME canonical `line-elements` layer (OMap reader
+  // flattens `<mid_symbol>` etc. into `primSymElements` at read time;
+  // OCD reader ships them there directly). No source-format branching.
+  const inlineOpts = { inlineSingleDot: true }
   const midSymbol = ocadElementsToXmapPointSymbol(
     (lineElements?.primSymElements as unknown[]) ?? [],
     colorIds,
+    inlineOpts,
   )
   const startSymbol = ocadElementsToXmapPointSymbol(
     (lineElements?.startSymElements as unknown[]) ?? [],
     colorIds,
+    inlineOpts,
   )
   const endSymbol = ocadElementsToXmapPointSymbol(
     (lineElements?.endSymElements as unknown[]) ?? [],
     colorIds,
+    inlineOpts,
   )
   // OCAD's `cornerSymElements` = xmap's `<dash_symbol>` (used by power
   // lines 510/511 to draw a per-corner tick). Without this, Mapper's
@@ -95,6 +124,7 @@ function buildXmapLineSymbol(
   const dashSymbol = ocadElementsToXmapPointSymbol(
     (lineElements?.cornerSymElements as unknown[]) ?? [],
     colorIds,
+    inlineOpts,
   )
 
   return {
@@ -107,19 +137,33 @@ function buildXmapLineSymbol(
     dashesInGroup,
     inGroupBreakLength,
     endLength,
+    halfOuterDashes,
     segmentLength,
     startOffset: primary?.startOffset ?? 0,
     endOffset: primary?.endOffset ?? 0,
     showAtLeastOneSymbol: primary?.showAtLeastOneSymbol ?? true,
     midSymbolsPerSpot: primary?.midSymbolsPerSpot ?? 1,
     midSymbolDistance: primary?.midSymbolDistance ?? 0,
-    midSymbolPlacement: 0,
+    // Mapper's default for `mid_symbol_placement` depends on whether the
+    // line has a mid_symbol at all: lines with mid-decoration default to
+    // 2 (centre on segment), lines without to 0. Mapper writes the value
+    // explicitly on every ocd→xmap export, so match by inspecting the
+    // presence of a midSymbol. If a canonical OMap-side value is carried
+    // (from an xmap round-trip), prefer it.
+    midSymbolPlacement:
+      (primary as { midSymbolPlacement?: number })?.midSymbolPlacement ??
+      (midSymbol ? 2 : 0),
     minimumMidSymbolCount: primary?.minimumMidSymbolCount ?? 0,
     minimumMidSymbolCountWhenClosed: 0,
     suppressDashSymbolAtEnds: false,
     scaleDashSymbol: true,
     capStyle: cap ?? decoded.capStyle ?? 0,
     joinStyle: join ?? decoded.joinStyle ?? 0,
+    // Pointed-cap length only makes sense with cap_style=3; still emit
+    // it verbatim when the source set it, and let the emitter skip the
+    // attribute when 0 (the encode-side default suppression).
+    pointedCapLength: (primary as { pointedCapLength?: number })
+      ?.pointedCapLength,
     midSymbol,
     startSymbol,
     endSymbol,

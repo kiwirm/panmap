@@ -4,26 +4,25 @@ import type {
   HatchLayer,
   PointPatternLayer,
 } from '../../../../../panmap/render-layers.js'
-import { DotElementType } from '../../../native/symbol-element-types.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
-import { pointElementFromXmap } from './point.js'
 
 export function areaBody(
   symbol: MapSymbol,
   colorNumber: ColorNumber,
-  flipY: boolean,
+  _flipY: boolean,
   borderSymNum?: number,
 ) {
   const { fill, hatches, pointPatterns: patterns } = classifyAreaLayers(symbol)
   const fillColorId = fill?.colorId
+  const structFields = encodePatternStructure(patterns, colorNumber)
   return {
     fillColor: fillColorId != null ? colorNumber(fillColorId) : 0,
     ...encodeHatchMode(hatches, colorNumber),
     fillOn: fillColorId != null,
     borderSym: borderSymNum ?? 0,
     borderOn: borderSymNum !== undefined,
-    ...encodePatternStructure(patterns, colorNumber, flipY),
+    ...structFields,
   }
 }
 
@@ -61,16 +60,17 @@ function encodeHatchMode(
 }
 
 /**
- * OCAD's structure fields (structMode / structWidth / structHeight /
- * structAngle / structDraw + elements). Two point-pattern layers form
- * OCAD `StructureShiftedRows` (structMode=2) when their spacing matches
- * and the second's offsets are exactly half of the first's; anything
- * else falls back to structMode=1 with offset elements.
+ * Canonical `point-pattern-fill` render layer -> OCD struct fields
+ * (structMode / structWidth / structHeight / structAngle / structDraw +
+ * elements). The layer already carries the semantic shape both readers
+ * produce, so this is a direct encode with no shape sniffing.
+ *
+ * OCAD's `structHeight` is the ROW PITCH: for a shifted-rows layout the
+ * canonical `height` spans two rows, so halve it back.
  */
 function encodePatternStructure(
   patterns: PointPatternLayer[],
   colorNumber: ColorNumber,
-  flipY: boolean,
 ): {
   structMode: number
   structDraw: number
@@ -83,140 +83,41 @@ function encodePatternStructure(
   structRes: number
   elements: unknown[]
 } {
-  const pattern = patterns[0]
-  const shiftedRows = isShiftedRows(patterns[0], patterns[1])
-  const patternElements = pattern
-    ? extractPatternElements(pattern, colorNumber, flipY, null)
-    : []
-  const secondPatternElements =
-    !shiftedRows && patterns[1]
-      ? extractPatternElements(
-          patterns[1],
-          colorNumber,
-          flipY,
-          patternOffset(patterns[0], patterns[1]),
-        )
-      : []
-  const structHeight = patternElements.length
-    ? shiftedRows
-      ? normUnits(patterns[1]?.pattern?.lineOffset ?? 0)
-      : patternMetric(pattern, 'lineSpacing', pattern?.height, 100)
-    : 0
+  const p = patterns[0]
+  if (!p) {
+    return {
+      structMode: 0,
+      structDraw: 0,
+      structWidth: 0,
+      structHeight: 0,
+      structAngle: 0,
+      structIrregularVarX: 0,
+      structIrregularVarY: 0,
+      structIrregularMinDist: 0,
+      structRes: 0,
+      elements: [],
+    }
+  }
+  const shifted = !!p.shiftedRows
+  const height = Number(p.height) || 0
   return {
-    structMode: shiftedRows ? 2 : patterns.length ? 1 : 0,
-    structDraw: patternElements.length ? patternClipMode(pattern) : 0,
-    structWidth: patternElements.length
-      ? patternMetric(pattern, 'pointDistance', pattern?.width, 100)
-      : 0,
-    structHeight,
-    structAngle: Math.round((pattern?.angle ?? 0) * 10) % 3600,
+    structMode: shifted ? 2 : 1,
+    structDraw: (p.noClipping ?? 0) & 0x03,
+    structWidth: normUnits(p.width),
+    structHeight: normUnits(shifted ? height / 2 : height),
+    structAngle: Math.round((p.angle ?? 0) * 10) % 3600,
     structIrregularVarX: 0,
     structIrregularVarY: 0,
     structIrregularMinDist: 0,
     structRes: 0,
-    elements: [...patternElements, ...secondPatternElements],
+    // Gitmap-sourced elements carry `color` as a string colorId; rewrite
+    // to numeric OCD palette slots. Without this, structure-fill dots
+    // (rough-open sand, boulder-field boulders) render as slot 0 (black).
+    elements: (Array.isArray(p.elements) ? p.elements : []).map(el => {
+      if (!el || typeof el !== 'object') return el
+      const e = el as { color?: unknown }
+      if (typeof e.color === 'number' || e.color === undefined) return el
+      return { ...(el as object), color: colorNumber(e.color) }
+    }),
   }
-}
-
-function isShiftedRows(
-  a: PointPatternLayer | undefined,
-  b: PointPatternLayer | undefined,
-): boolean {
-  if (!a || !b) return false
-  const pa = a.pattern
-  const pb = b.pattern
-  if (!pa || !pb) return false
-  const ls = pa.lineSpacing
-  const pd = pa.pointDistance
-  if (!ls || !pd) return false
-  if (pa.lineSpacing !== pb.lineSpacing) return false
-  if (pa.pointDistance !== pb.pointDistance) return false
-  const dLine = Math.abs(
-    (((pa.lineOffset ?? 0) - (pb.lineOffset ?? 0) + ls) % ls) - ls / 2,
-  )
-  const dAlong = Math.abs(
-    (((pa.offsetAlongLine ?? 0) - (pb.offsetAlongLine ?? 0) + pd) % pd) -
-      pd / 2,
-  )
-  return dLine <= 1 && dAlong <= 1
-}
-
-function patternOffset(
-  a: PointPatternLayer | undefined,
-  b: PointPatternLayer | undefined,
-): { dx: number; dy: number } | null {
-  if (!a || !b) return null
-  const pa = a.pattern
-  const pb = b.pattern
-  if (!pa || !pb) return null
-  return {
-    dx: (pb.offsetAlongLine ?? 0) - (pa.offsetAlongLine ?? 0),
-    dy: (pb.lineOffset ?? 0) - (pa.lineOffset ?? 0),
-  }
-}
-
-function patternMetric(
-  layer: PointPatternLayer | undefined,
-  key: 'pointDistance' | 'lineSpacing',
-  fallback: unknown,
-  ultimate: number,
-): number {
-  const v = layer?.pattern?.[key]
-  if (typeof v === 'number' && Number.isFinite(v) && v > 0) return normUnits(v)
-  if (typeof fallback === 'number' && fallback > 0) return normUnits(fallback)
-  return ultimate
-}
-
-function patternClipMode(layer: PointPatternLayer | undefined): number {
-  const nc = layer?.pattern?.noClipping
-  return typeof nc === 'number' ? Math.max(0, Math.min(2, nc)) : 2
-}
-
-function extractPatternElements(
-  layer: PointPatternLayer,
-  colorNumber: ColorNumber,
-  flipY: boolean,
-  offset: { dx: number; dy: number } | null = null,
-): unknown[] {
-  const pattern = layer.pattern
-  if (!pattern?.symbol) return []
-  const ps = pattern.symbol.pointSymbol
-  if (!ps) return []
-  const out: unknown[] = []
-  const yScale = flipY ? -1 : 1
-  const anchor = {
-    0: normUnits(offset?.dx ?? 0),
-    1: normUnits((offset?.dy ?? 0) * yScale),
-    xFlags: 0,
-    yFlags: 0,
-  }
-  const inner = normUnits(ps.innerRadius)
-  if (inner > 0 && ps.innerColor !== undefined && ps.innerColor !== null) {
-    const c = colorNumber(ps.innerColor)
-    if (c > 0) {
-      out.push({
-        type: DotElementType,
-        flags: 0,
-        color: c,
-        lineWidth: 0,
-        diameter: inner * 2,
-        numberCoords: 1,
-        coords: [anchor],
-      })
-    }
-  }
-  for (const sub of ps.elements ?? []) {
-    const emitted = pointElementFromXmap(sub, colorNumber, flipY)
-    if (offset) {
-      for (const el of emitted) {
-        for (const c of el.coords) {
-          const coord = c as { 0: number; 1: number }
-          coord[0] += anchor[0]
-          coord[1] += anchor[1]
-        }
-      }
-    }
-    out.push(...emitted)
-  }
-  return out
 }

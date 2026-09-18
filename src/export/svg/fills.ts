@@ -1,13 +1,11 @@
 import { escapeXmlAttr as escapeAttr } from '../../util/xml.js'
 import type {
   HatchLayer,
-  StructureLayer,
   PointPatternLayer,
   RenderElement,
-  DecorationSymbol,
 } from '../../panmap/render-layers.js'
 import { getColor, type ColorLookup } from './colors.js'
-import { ocadPointElementToSvg, xmapPointSymbolToSvg } from './point-symbols.js'
+import { ocadPointElementToSvg } from './point-symbols.js'
 
 function hatchPatternToSvg(
   id: string,
@@ -23,36 +21,11 @@ function hatchPatternToSvg(
   )}" /></pattern>`
 }
 
-function structurePatternToSvg(
-  id: string,
-  layer: StructureLayer,
-  colors: ColorLookup,
-): string {
-  const width = Math.max(layer.width || layer.symbolWidth || 1, 1)
-  const height = Math.max(layer.height || layer.symbolHeight || 1, 1)
-  const symbolWidth = Math.max(layer.symbolWidth || width, 1)
-  const symbolHeight = Math.max(layer.symbolHeight || height, 1)
-  const anchors = [[symbolWidth * 0.5, -symbolHeight * 0.5]]
-
-  if (layer.mode === 2) {
-    anchors.push([symbolWidth, -symbolHeight * 1.5])
-    anchors.push([0, -symbolHeight * 1.5])
-  }
-
-  const content = anchors
-    .flatMap(anchor =>
-      ((layer.elements as RenderElement[]) || []).map(element =>
-        ocadPointElementToSvg(element, anchor, colors, coord => coord),
-      ),
-    )
-    .filter(Boolean)
-    .join('\n')
-
-  return `<pattern id="${id}" patternUnits="userSpaceOnUse" patternTransform="rotate(${
-    layer.angle || 0
-  })" width="${width}" height="${height}">${content}</pattern>`
-}
-
+/**
+ * Tiled stamp pattern. `width` is the spacing along a row, `height`
+ * between rows; `shiftedRows` offsets alternate rows by half a tile.
+ * `elements` is the stamp, in the flat icon-primitive shape.
+ */
 function pointPatternToSvg(
   id: string,
   layer: PointPatternLayer,
@@ -60,25 +33,34 @@ function pointPatternToSvg(
 ): string {
   const width = Math.max(layer.width || 1, 1)
   const height = Math.max(layer.height || width, 1)
-  const pattern = layer.pattern || {}
-  const content = pattern.symbol
-    ? xmapPointSymbolToSvg(
-        pattern.symbol as DecorationSymbol,
-        width / 2,
-        height / 2,
-        colors,
-      )
-    : ''
-  const translateX = pattern.offsetAlongLine || 0
-  const translateY = pattern.lineOffset || 0
+  const elements = (layer.elements as RenderElement[]) || []
+  // One stamp per tile, centred. A shifted-rows layout repeats the stamp
+  // half a tile across on the alternate row, so the SVG tile spans both
+  // rows and carries the extra anchors.
+  const anchors: number[][] = layer.shiftedRows
+    ? [
+        [width * 0.5, -height * 0.25],
+        [width, -height * 0.75],
+        [0, -height * 0.75],
+      ]
+    : [[width * 0.5, -height * 0.5]]
+  const content = anchors
+    .flatMap(anchor =>
+      elements.map(element =>
+        ocadPointElementToSvg(element, anchor, colors, coord => coord),
+      ),
+    )
+    .filter(Boolean)
+    .join('\n')
+  const translateX = layer.columnOffset || 0
+  const translateY = layer.rowOffset || 0
   const transforms = [
     translateX || translateY ? `translate(${translateX} ${translateY})` : '',
     layer.angle ? `rotate(${layer.angle})` : '',
   ].filter(Boolean)
-
   return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${width}" height="${height}"${
     transforms.length ? ` patternTransform="${transforms.join(' ')}"` : ''
   }>${content}</pattern>`
 }
 
-export { hatchPatternToSvg, structurePatternToSvg, pointPatternToSvg }
+export { hatchPatternToSvg, pointPatternToSvg }

@@ -22,8 +22,6 @@ export interface GitmapFile {
   symbols: any[]
   objects: any[]
   privateData?: Record<string, unknown>
-  /** Human-readable origin (directory path or "bundle") for `sourceFile`. */
-  label: string
 }
 
 /** A colour record as it appears in a gitmap `colors.ndjson` line. */
@@ -71,7 +69,7 @@ interface GitmapObject {
 }
 
 export default function gitmapToPanmap(file: GitmapFile): Panmap {
-  const { manifest, colors, symbols, objects, privateData, label } = file
+  const { manifest, colors, symbols, objects, privateData } = file
 
   // `view` / `print` live under `private/` for gitignoring editor state.
   const view = pickObject(privateData?.view)
@@ -92,10 +90,12 @@ export default function gitmapToPanmap(file: GitmapFile): Panmap {
     : undefined
 
   return new Panmap({
-    sourceFormat: 'gitmap',
-    sourceFile: { directory: label, manifest },
     metadata: { gitmap: manifest },
     colors: colors.map(colorFromGitmap),
+    // Print separations live inline in the manifest (see the writer).
+    spotColors: Array.isArray(manifest.spotColors)
+      ? (manifest.spotColors as Panmap['spotColors'])
+      : [],
     symbols: symbols.map((symbol, i) => symbolFromGitmap(symbol, i)),
     // Preserve source rendering order: gitmap files are sorted by
     // (partId, symbolId, id) for deterministic git diffs, which loses
@@ -335,8 +335,8 @@ function ringsFromGitmap(outer: unknown[], holes: unknown): CoordArray[] {
   return flat
 }
 
-// Parse a coord list of tuples: `[x, y]` or `[x, y, {control?, corner?, hole?,
-// dash?}]`. Both object coordinates and element (icon) coords use this shape.
+// Parse a coord list of tuples: `[x, y]` or `[x, y, {control?, hole?, dash?}]`.
+// Both object coordinates and element (icon) coords use this shape.
 // Semantic flags translate back to OCAD's xFlags/yFlags; `control` points come in
 // pairs, so the first in a run is cp1 (0x01), the second cp2 (0x02). Object coords
 // never carry `hole` (their rings are structural); element coords may.
@@ -354,9 +354,12 @@ function coordsFromGitmap(coords: unknown[]): CoordArray[] {
       controlRun += 1
       xFlags |= controlRun % 2 === 1 ? 0x01 : 0x02
     } else controlRun = 0
-    if (flags?.corner) yFlags |= 0x01
     if (flags?.hole) yFlags |= 0x02
-    if (flags?.dash) yFlags |= 0x08
+    // `dash` re-encodes to OCAD's corner byte (0x01) — the dominant source
+    // encoding, and the one that places the corner symbol. `corner` was the
+    // pre-collapse name for the same flag; still read so packages written
+    // before v2 keep their marked vertices.
+    if (flags?.dash || flags?.corner) yFlags |= 0x01
     const tuple = [Number(c[0]), Number(c[1])] as CoordArray
     if (xFlags) tuple.xFlags = xFlags
     if (yFlags) tuple.yFlags = yFlags

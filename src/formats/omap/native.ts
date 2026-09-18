@@ -64,6 +64,10 @@ export interface OmapColor {
   cmyk?: [number, number, number, number]
   /** Per-color opacity in [0, 1], from the `opacity` XML attribute. */
   opacity?: number
+  /** Text of `<spotcolors><namedcolor>` when this record names a print
+   *  separation. When it equals `name`, the record is a DEDICATED
+   *  separation definition rather than a palette colour. */
+  spotName?: string
 }
 
 export interface OmapRgb {
@@ -122,6 +126,14 @@ export interface OmapLineSymbol {
   scaleDashSymbol: boolean
   capStyle: number
   joinStyle: number
+  /** Length of the point on cap_style="3" (pointed) endings. Used by
+   * ISOM 107 erosion gullies and similar; only meaningful when
+   * capStyle === 3. */
+  pointedCapLength?: number
+  /** Mapper's `half_outer_dashes` flag — outermost dashes at each end
+   *  of the line are drawn at half length. In OCAD this is encoded as
+   *  `endLength = mainLength / 2`. */
+  halfOuterDashes?: boolean
   midSymbol?: OmapSymbol
   midSymbolDistance: number
   midSymbolPlacement: number

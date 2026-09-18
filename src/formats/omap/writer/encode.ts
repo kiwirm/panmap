@@ -104,11 +104,21 @@ function xmapLineSymbolToXml(symbol: OmapLineSymbol): string {
     minimum_length: dim(symbol.minimumLength || 0),
     join_style: symbol.joinStyle ?? 0,
     cap_style: symbol.capStyle ?? 0,
+    // Only meaningful with cap_style=3 (pointed); omit otherwise so
+    // Mapper-authored round tips (cap_style=1) don't sprout a spurious
+    // pointed_cap_length=0 attribute they didn't have.
+    pointed_cap_length: symbol.pointedCapLength
+      ? dim(symbol.pointedCapLength)
+      : undefined,
     start_offset: dim(symbol.startOffset || 0),
     end_offset: dim(symbol.endOffset || 0),
     dashed: boolAttr(symbol.dashed),
     segment_length: dim(symbol.segmentLength ?? 400),
     end_length: dim(symbol.endLength || 0),
+    half_outer_dashes: (symbol as { halfOuterDashes?: boolean })
+      .halfOuterDashes
+      ? 'true'
+      : undefined,
     show_at_least_one_symbol:
       symbol.showAtLeastOneSymbol === false ? 'false' : 'true',
     minimum_mid_symbol_count: symbol.minimumMidSymbolCount ?? 0,
@@ -179,17 +189,40 @@ function xmapPatternToXml(pattern: OmapAreaPattern): string {
     : []
   const open = `<pattern${attrs({
     type: pattern.type ?? 0,
-    angle: pattern.angle ?? 0,
-    // no_clipping is a numeric enum (0/1/2), not a bool
-    no_clipping: pattern.noClipping,
-    rotatable: boolAttr(pattern.rotatable),
+    // Mapper writes angles rounded to 6 decimals (e.g. `0.785398`);
+    // JS's default toString produces `0.7853981633974483`. Match the
+    // shortened form so ocd→xmap byte-parity holds for 45°/90°/135°
+    // structure/hatch angles common in ISOM patterns (bushes, vineyards,
+    // hatch fills, etc.).
+    angle: roundAngle(pattern.angle ?? 0),
+    // no_clipping is a numeric enum (0/1/2/3); Mapper omits the default
+    // 0 rather than emitting it, so match to keep byte parity.
+    no_clipping: pattern.noClipping ? pattern.noClipping : undefined,
+    // Mapper omits `rotatable="false"` (only emits when true), matching
+    // the Boolean-attribute convention Mapper uses on other omittable
+    // false-defaults.
+    rotatable: pattern.rotatable ? 'true' : undefined,
     line_spacing: dim(pattern.lineSpacing || 0),
     line_offset: dim(pattern.lineOffset || 0),
     offset_along_line: dim(pattern.offsetAlongLine || 0),
-    point_distance: dim(pattern.pointDistance || 0),
-    color: pattern.color,
+    // Mapper omits `point_distance="0"` on hatch patterns (type=1) where
+    // it's semantically unused; keep the attribute for point-patterns
+    // (type=2) where 0 would be a legitimate distinct value.
+    point_distance: pattern.pointDistance
+      ? dim(pattern.pointDistance)
+      : pattern.type === 2
+        ? dim(0)
+        : undefined,
+    // color / line_width on `<pattern>` describe hatch stripes; for a
+    // point-pattern (type=2) the render color/width lives on the nested
+    // <symbol> and Mapper omits both top-level attributes. Emit only
+    // when this is a hatch pattern (type=1) or explicitly present with
+    // no nested symbol.
+    color: pattern.type === 1 || !pattern.symbol ? pattern.color : undefined,
     line_width:
-      pattern.lineWidth !== undefined ? dim(pattern.lineWidth) : undefined,
+      (pattern.type === 1 || !pattern.symbol) && pattern.lineWidth !== undefined
+        ? dim(pattern.lineWidth)
+        : undefined,
   })}`
   if (!children.length) return `${open}/>`
   return [`${open}>`, ...children, '</pattern>'].join('\n')
@@ -217,8 +250,21 @@ function xmapTextSymbolToXml(symbol: OmapTextSymbol): string {
       paragraph_spacing: symbol.paragraphSpacing ?? 0,
       character_spacing: symbol.characterSpacing ?? 0,
     })}/>`,
+    ...xmapTabsToXml((symbol as { tabs?: number[] }).tabs),
     '</text_symbol>',
   ].join('\n')
+}
+
+// Serialise paragraph tab stops back to the `<tabs count="N"><tab>V</tab>…`
+// shape XMap uses. Returns [] when there are no tabs so the parent
+// symbol emits without a trailing `<tabs>` element (Mapper omits it too).
+function xmapTabsToXml(tabs: number[] | undefined): string[] {
+  if (!Array.isArray(tabs) || tabs.length === 0) return []
+  return [
+    `  <tabs count="${tabs.length}">`,
+    ...tabs.map(v => `    <tab>${dim(v)}</tab>`),
+    `  </tabs>`,
+  ]
 }
 
 function xmapCombinedSymbolToXml(symbol: OmapCombinedSymbol): string {
@@ -240,6 +286,15 @@ function xmapCombinedSymbolToXml(symbol: OmapCombinedSymbol): string {
     }),
     '</combined_symbol>',
   ].join('\n')
+}
+
+// Mapper writes pattern angles via C's default `%g` (6 significant
+// digits, trailing zeros stripped): pi/4 → `0.785398`, pi/2 → `1.5708`,
+// 0 → `0`. Match so ocd→xmap byte-parity holds for the common 45°/90°/
+// 135° angles in ISOM hatch/structure patterns.
+function roundAngle(a: number): number {
+  if (!Number.isFinite(a) || a === 0) return 0
+  return Number(a.toPrecision(6))
 }
 
 function xmapNestedSymbolXml(tag: string, symbol: RawOmapSymbol): string {
@@ -275,3 +330,4 @@ function xmapObjectToXml(object: OmapObject): string {
   lines.push('</object>')
   return lines.join('\n')
 }
+

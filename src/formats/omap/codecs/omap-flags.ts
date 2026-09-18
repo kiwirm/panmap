@@ -43,7 +43,14 @@ export function normaliseOmapFlags(coords: FlaggedCoord[]): void {
     if (i >= 1 && omapFlagsOf(coords[i - 1]) & 0x01) xFlags |= 0x01 // cp1
     if (i >= 2 && omapFlagsOf(coords[i - 2]) & 0x01) xFlags |= 0x02 // cp2
     if (own & 0x10) yFlags |= 0x02 // hole start
-    if (own & 0x20) yFlags |= 0x08 // dash point
+    // DashPoint decodes to OCAD's CORNER byte (0x01), not dash (0x08).
+    // Mapper has one marked-vertex flag where OCAD has two, and the
+    // encode side below already folds both back to 0x20 — so decoding to
+    // 0x08 made the pair asymmetric. 0x01 is the right target: it is what
+    // OCAD sources overwhelmingly use (15324 vs 2377 across the corpus),
+    // it is what places the corner symbol (cliff/bank tags), and it is
+    // the mapping the icon path already uses (`mapXmapCoordsToOcadElement`).
+    if (own & 0x20) yFlags |= 0x01 // dash/corner point
     // 0x04 GapPoint and 0x02 ClosePoint don't have OCAD-side twins; OOM stops
     // paths at end-of-array (no explicit close flag on the OCAD side), and gap
     // points affect line rendering only if a renderer looks at them separately.

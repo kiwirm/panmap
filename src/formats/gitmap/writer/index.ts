@@ -95,7 +95,7 @@ async function writeGitmap(
 
   const manifest: Record<string, unknown> = {
     format: 'gitmap',
-    version: 1,
+    version: 2,
     units: 'map-units',
     precision: 3,
     // Parts are inline. Single-part maps carry the default 'part_main';
@@ -104,6 +104,19 @@ async function writeGitmap(
     parts: map.parts?.length
       ? map.parts.map(part => ({ id: part.id, name: part.name ?? part.id }))
       : [{ id: 'part_main', name: 'Main' }],
+  }
+  // Print separations. Inline (like `parts`) rather than a fourth ndjson
+  // file: it's a small fixed table — under a dozen entries — that doesn't
+  // churn, so it costs nothing in a diff and keeps the file set stable.
+  // Deliberately NOT merged into colors.ndjson: a separation isn't a
+  // palette colour, and the two source formats disagree about whether it
+  // also appears there (see `MapSpotColor`).
+  if (map.spotColors?.length) {
+    manifest.spotColors = map.spotColors.map(s => ({
+      name: s.name,
+      cmyk: s.cmyk,
+      rgb: s.rgb,
+    }))
   }
   if (map.notes) manifest.notes = map.notes
   if (map.extensions && Object.keys(map.extensions).length > 0) {

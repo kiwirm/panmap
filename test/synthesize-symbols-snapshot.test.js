@@ -84,7 +84,7 @@ const XMAP_FIXTURES = ['ara-c122f2d.xmap']
 for (const fixture of XMAP_FIXTURES) {
   test(`synthesizeSymbols snapshot: ${fixture}`, async t => {
     const map = await readMapFromXmap(fixture)
-    const records = synthesizeSymbols(map.symbols, map.colors, map.sourceFormat)
+    const records = synthesizeSymbols(map.symbols, map.colors)
     const json = JSON.stringify(records, replacer, 2) + '\n'
     await compareOrWrite(t, `${fixture}.json`, json)
   })

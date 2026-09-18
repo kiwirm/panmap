@@ -36,7 +36,6 @@ test('can write and read a GitMap package deterministically', async (/** @type {
   }
 
   const roundTrip = await readGitmap(first)
-  t.is(roundTrip.sourceFormat, 'gitmap')
   t.is(roundTrip.objects.length, map.objects.length)
   t.is(roundTrip.symbols.length, map.symbols.length)
   t.is(mapToSvg(roundTrip).tagName, 'svg')
@@ -50,7 +49,6 @@ test('readMap supports GitMap package directories', async (/** @type {ExecutionC
   await writeGitmap(ocadFileToMap(ocadFile), directory)
 
   const map = await readMap(directory)
-  t.is(map.sourceFormat, 'gitmap')
   t.true(map.objects.length > 0)
 })
 

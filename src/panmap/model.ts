@@ -114,6 +114,28 @@ export interface MapColor {
   sourceColor?: unknown
 }
 
+/**
+ * A print separation ("Process Black", "PMS299_Blue", …) — the named
+ * inks a map is separated onto when printed.
+ *
+ * Deliberately NOT a `MapColor`: a separation isn't part of the drawing
+ * palette, and the two source formats disagree about whether it also
+ * appears there. OCAD keeps a dedicated table (parameter-string record
+ * 10). Mapper's xmap either appends a dedicated `<color>` per separation
+ * (whose `name` equals its own `<namedcolor>`), or tags an existing
+ * palette colour with a `<namedcolor>` and adds no record at all —
+ * depending on how the map was authored. Folding separations into
+ * `colors` therefore makes the palette differ between two exports of
+ * the same map.
+ */
+export interface MapSpotColor {
+  /** Separation name — the stable identity a colour references. */
+  name: string
+  /** CMYK components in [0, 1]. */
+  cmyk?: [number, number, number, number]
+  rgb?: string
+}
+
 export interface TextTypography {
   fontFamily?: string
   /** Font size in map units (mm). */
@@ -132,6 +154,10 @@ export interface TextTypography {
   paraSpace?: number
   indentFirst?: number
   indentOther?: number
+  /** Paragraph tab stops, in the same map units as `paraSpace`. Populated
+   *  by both OCD (`nTabs` + `tabs[32]`) and OMap (`<tabs>/<tab>`) readers
+   *  so the field survives xmap ↔ ocd conversion. */
+  tabs?: number[]
 }
 
 /**
@@ -278,10 +304,10 @@ export interface MapPrint {
 }
 
 export interface MapOptions {
-  sourceFormat: string
-  sourceFile?: unknown
   metadata?: Record<string, unknown>
   colors?: MapColor[]
+  /** Print separations. See `MapSpotColor` — not part of `colors`. */
+  spotColors?: MapSpotColor[]
   symbols?: MapSymbol[]
   objects?: MapObject[]
   /** Named object groupings. Absent/single-element = single-part map. */
@@ -309,10 +335,10 @@ const identity: Projection = v => v
  * escape hatch. A new xmap/ocad element that matters gets modelled here.
  */
 export default class Panmap {
-  sourceFormat: string
-  sourceFile?: unknown
   metadata: Record<string, unknown>
   colors: MapColor[]
+  /** Print separations. See `MapSpotColor` — not part of `colors`. */
+  spotColors: MapSpotColor[]
   symbols: MapSymbol[]
   objects: MapObject[]
   /** Named object groupings. See `MapPart`. Single-part maps may omit it. */
@@ -332,10 +358,9 @@ export default class Panmap {
   notes: string
 
   constructor(options: MapOptions) {
-    this.sourceFormat = options.sourceFormat
-    this.sourceFile = options.sourceFile
     this.metadata = options.metadata ?? {}
     this.colors = options.colors ?? []
+    this.spotColors = options.spotColors ?? []
     this.symbols = options.symbols ?? []
     this.objects = options.objects ?? []
     this.parts = options.parts

@@ -21,6 +21,7 @@ function buildXmapTextSymbol(
         lineSpace?: number
         paraSpace?: number
         charSpace?: number
+        tabs?: number[]
       }
     | undefined
   const family =
@@ -42,6 +43,10 @@ function buildXmapTextSymbol(
     lineSpacing: typo?.lineSpace,
     paragraphSpacing: typo?.paraSpace,
     characterSpacing: typo?.charSpace,
+    // Paragraph tab stops — reader stashes them on the text render
+    // layer's `text.tabs`; pass through so the encoder emits
+    // `<tabs count="N"><tab>V</tab>…</tabs>`.
+    tabs: typo?.tabs,
   } as OmapTextSymbol
 }
 

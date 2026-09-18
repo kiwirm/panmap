@@ -48,32 +48,53 @@ const BASELINES = {
   // Filled lazily — see "IMPROVEMENT" log lines / the ratchet summary in
   // test output for the exact numbers to paste here.
   //
-  // Current corpus (2026-09-09): objects/colors DO NOT fully converge —
-  // the eventual goal is 100% on all three but for now this ratchet is
-  // the drift budget. Any regression here means a canonicalisation
-  // change lost ground; investigate before lowering.
-  ara: { colors: 8, objects: 1116, symbols: 164 },
+  // Current corpus (2026-09-17): colors are CLOSED — 100% on every map,
+  // held by this ratchet. Objects and symbols do not fully converge yet;
+  // the eventual goal is 100% on all three but for now this is the drift
+  // budget. Any regression here means a canonicalisation change lost
+  // ground; investigate before lowering.
+  //
+  // One deliberate decrease is recorded here: butlers-bush.objects went
+  // 6817 → 6812 when coordinate rounding moved to half-away-from-zero (how
+  // OCAD stores half units). The same change took castle-hill-village
+  // 1940 → 2107 and ara to 100% — net +177.
+  //
+  // butlers-bush's residue is source divergence, verified rather than
+  // assumed: 164 of its 165 unpaired objects differ by exactly dx=1, the
+  // two files placing the same vertex 0.01 mm apart. The count barely moved
+  // across the rounding change (~160 → 165), so these are not half-unit
+  // cases that a rounding rule could reconcile.
+  ara: { colors: 33, objects: 1190, symbols: 180 },
   'basic-1': { colors: 0, objects: 0, symbols: 0 },
-  'bottle-lake': { colors: 44, objects: 14221, symbols: 209 },
-  'butlers-bush': { colors: 10, objects: 5387, symbols: 179 },
-  'castle-hill-village': { colors: 8, objects: 1311, symbols: 164 },
+  'bottle-lake': { colors: 44, objects: 15443, symbols: 205 },
+  'butlers-bush': { colors: 33, objects: 6812, symbols: 184 },
+  'castle-hill-village': { colors: 33, objects: 2107, symbols: 178 },
   'double-line': { colors: 0, objects: 0, symbols: 0 },
-  hillmorton: { colors: 4, objects: 1340, symbols: 185 },
+  hillmorton: { colors: 41, objects: 1914, symbols: 190 },
   jarnvag: { colors: 0, objects: 0, symbols: 0 },
-  'kura-tawhiti': { colors: 12, objects: 4201, symbols: 151 },
-  laidmore: { colors: 10, objects: 6715, symbols: 178 },
-  leithfield: { colors: 39, objects: 4393, symbols: 188 },
-  'lincoln-university': { colors: 15, objects: 1744, symbols: 173 },
+  'kura-tawhiti': { colors: 37, objects: 4892, symbols: 170 },
+  laidmore: { colors: 33, objects: 6912, symbols: 183 },
+  leithfield: { colors: 39, objects: 5669, symbols: 191 },
+  'lincoln-university': { colors: 43, objects: 3420, symbols: 189 },
   myggfritt: { colors: 0, objects: 0, symbols: 0 },
-  'nga-puna-wai-canterbury-park': { colors: 8, objects: 3232, symbols: 167 },
-  'orua-paeroa': { colors: 8, objects: 1293, symbols: 148 },
-  'port-hills': { colors: 50, objects: 1, symbols: 251 },
-  rangiora: { colors: 8, objects: 998, symbols: 164 },
+  'nga-puna-wai-canterbury-park': { colors: 33, objects: 3883, symbols: 183 },
+  'orua-paeroa': { colors: 33, objects: 1481, symbols: 167 },
+  'port-hills': { colors: 50, objects: 1, symbols: 255 },
+  rangiora: { colors: 33, objects: 1727, symbols: 180 },
   tahunanui: { colors: 0, objects: 0, symbols: 0 },
-  'university-of-canterbury': { colors: 9, objects: 5173, symbols: 173 },
-  woodend: { colors: 11, objects: 9933, symbols: 204 },
+  'university-of-canterbury': { colors: 37, objects: 9099, symbols: 189 },
+  woodend: { colors: 35, objects: 10437, symbols: 200 },
 }
 const METRICS = ['colors', 'objects', 'symbols']
+
+// Maps excluded from every parity/convergence suite. The fixture corpus
+// is fetched (`npm run fetch:test-data`), so deleting the files locally
+// wouldn't stick — exclude by name here instead, with the reason.
+//
+//   port-hills — the source pair is corrupt; its OCD and XMap disagree
+//   about the map's own content, so neither can serve as ground truth
+//   and its numbers were noise in every suite.
+const EXCLUDED_MAPS = new Set(['port-hills'])
 
 function discover() {
   if (!fs.existsSync(FIX)) return []
@@ -81,6 +102,7 @@ function discover() {
     .readdirSync(FIX)
     .filter(name => {
       if (name.startsWith('.')) return false // skip dotfiles / macOS ._ AppleDouble
+      if (EXCLUDED_MAPS.has(name)) return false
       try {
         return fs.statSync(path.join(FIX, name)).isDirectory()
       } catch {
@@ -170,7 +192,20 @@ function measureLines(endpoints, metric) {
   })
   const allIds = new Set()
   for (const m of byId) for (const id of m.keys()) allIds.add(id)
-  const total = allIds.size
+  // Denominator. For id-keyed metrics the union of ids is right: a symbol
+  // present in one endpoint but not the other is a real difference and
+  // belongs in the total.
+  //
+  // Objects have no id, so their "key" IS the whole line — which makes the
+  // union double-count: one diverging object contributes TWO keys and zero
+  // matches, so a map where every object differs by a single unit scored 0%
+  // rather than 0-of-N, and the reported share was a distorted x/(2-x)
+  // instead of x. Use the endpoint record count instead, which is the real
+  // object count and makes the share linear.
+  const isIdKeyed = metric !== 'objects'
+  const total = isIdKeyed
+    ? allIds.size
+    : Math.max(...byId.map(m => m.size))
   if (names.length < 2) return { identical: total, total }
   let identical = 0
   for (const id of allIds) {
@@ -190,11 +225,18 @@ if (cases.length === 0) {
 // Per-map best-across-revisions measurement, populated by the per-case
 // tests and inspected by the ratchet summary test at the end.
 const perMapBest = new Map() // map → { colors, objects, symbols } (identical counts)
+// Denominator for each best count, so the summary can show a share
+// rather than a bare number. A raw `colors: 8` reads like a pass; `20%
+// (8/41)` reads like the gap it actually is.
+const perMapTotal = new Map()
 
-function updateBest(map, metric, identical) {
+function updateBest(map, metric, identical, total) {
   const cur = perMapBest.get(map) ?? { colors: 0, objects: 0, symbols: 0 }
   if (identical > (cur[metric] ?? 0)) cur[metric] = identical
   perMapBest.set(map, cur)
+  const tot = perMapTotal.get(map) ?? { colors: 0, objects: 0, symbols: 0 }
+  if (total > (tot[metric] ?? 0)) tot[metric] = total
+  perMapTotal.set(map, tot)
 }
 
 for (const c of cases) {
@@ -214,7 +256,7 @@ for (const c of cases) {
     for (const metric of METRICS) {
       const m = measureLines(ep, metric)
       parts.push(`${metric}=${m.identical}/${m.total}`)
-      updateBest(c.map, metric, m.identical)
+      updateBest(c.map, metric, m.identical, m.total)
     }
     t.log(parts.join('  '))
     t.pass()
@@ -231,23 +273,30 @@ test.after('convergence: ratchet summary', t => {
   }
   const maps = [...new Set(cases.map(c => c.map))].sort()
   const rows = [
-    `  ${'map'.padEnd(40)}  ${METRICS.map(m => m.padStart(9)).join(' ')}`,
-    `  ${'-'.repeat(40)}  ${METRICS.map(() => '-'.repeat(9)).join(' ')}`,
+    `  ${'map'.padEnd(34)}  ${METRICS.map(m => m.padStart(15)).join(' ')}`,
+    `  ${'-'.repeat(34)}  ${METRICS.map(() => '-'.repeat(15)).join(' ')}`,
   ]
   const missing = [],
     regressed = [],
     improved = []
   for (const map of maps) {
     const best = perMapBest.get(map) ?? {}
+    const totals = perMapTotal.get(map) ?? {}
     const baseline = BASELINES[map]
+    // Show the SHARE converged, not just the count. The ratchet compares
+    // counts (a map can gain records between revisions), but a bare count
+    // hides how far from done a metric is — `colors 8` looks settled until
+    // you see it's 8 of 41.
     const cells = METRICS.map(metric => {
       const got = best[metric] ?? 0
+      const total = totals[metric] ?? 0
       const base = baseline?.[metric]
       const mark =
         base === undefined ? '?' : got < base ? '↓' : got > base ? '↑' : '='
-      return `${mark}${String(got).padStart(8)}`
+      const pct = total ? `${Math.round((got / total) * 100)}%` : '—'
+      return `${mark}${`${pct} ${got}/${total}`.padStart(14)}`
     })
-    rows.push(`  ${map.padEnd(40)}  ${cells.join(' ')}`)
+    rows.push(`  ${map.padEnd(34)}  ${cells.join(' ')}`)
     if (baseline === undefined) {
       missing.push({ map, best })
       continue

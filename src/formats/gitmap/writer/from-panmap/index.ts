@@ -23,10 +23,7 @@ import {
   canonicaliseStrokeWidth,
   canonicalisePointRadius,
   dereferenceBorderSymbol,
-  lineSymbolsToLineElements,
   stripLineElementsRedundancy,
-  structureFillToPointPattern,
-  canonicalisePointPatternGeometry,
   canonicalLayerOrder,
   mergePrimaryStrokeWithBorders,
   isPhantomStroke,
@@ -93,6 +90,17 @@ function rgbToArray(rgb: unknown): [number, number, number] | undefined {
   return undefined
 }
 
+// Layer lengths that OCAD can only hold as whole 0.01 mm units, so the
+// canonical value is rounded to that grid (see the call site). Deliberately
+// narrow: only fields observed to diverge by sub-unit amounts across the
+// corpus, not every numeric — angles, ratios and opacities must not round.
+const OCD_GRID_LENGTHS = new Set([
+  'endOffset',
+  'startOffset',
+  'pointedCapLength',
+  'height',
+])
+
 function toGitmapSymbol(
   symbol: MapSymbol,
   colorIds: Map<string | number, string>,
@@ -124,10 +132,7 @@ function toGitmapSymbol(
       .map(canonicaliseStrokeWidth)
       .map(canonicalisePointRadius)
       .map(l => dereferenceBorderSymbol(l, symbolsById))
-      .flatMap(lineSymbolsToLineElements)
       .map(stripLineElementsRedundancy)
-      .flatMap(structureFillToPointPattern)
-      .map(canonicalisePointPatternGeometry)
       .sort(canonicalLayerOrder),
   )
   return {
@@ -146,7 +151,7 @@ function toGitmapSymbol(
     // (no duplicate top-level fontSize / per-layer fontSize+fontFamily).
     textSymbol: toJsonSafe(symbol.textSymbol),
     layers: canonLayers.map(layer =>
-      renderLayerToGitmap(layer, colorIds, symbolIds),
+      renderLayerToGitmap(layer, colorIds, symbolIds, canonLayers),
     ),
   }
 }
@@ -219,14 +224,33 @@ function renderLayerToGitmap(
   layer: RenderLayer,
   colorIds: Map<string | number, string>,
   symbolIds: Map<string | number, string> = new Map(),
+  siblingLayers: RenderLayer[] = [],
 ) {
   const output: Record<string, unknown> = {}
-  const drop = strokeCanonicalDrops(layer)
+  // Normalise cap+join per OCD's lineStyle-byte pairing rules BEFORE
+  // dropping / mapping — OCD can't represent every combination, so
+  // Mapper's OCAD export collapses `flat+round` → `flat+miter`,
+  // `pointed+bevel` → `pointed+round`, and `round+*` → `round+round`.
+  // Apply here so both source paths' gitmap output agrees even when
+  // the source xmap set an "impossible" (cap, join) pair. Kept out of
+  // the reader so xmap→panmap→xmap round-trips stay idempotent.
+  layer = normaliseStrokeCapJoinForGitmap(layer)
+  const drop = strokeCanonicalDrops(layer, siblingLayers)
   const layerType = (layer as { type?: string }).type
 
   Object.entries(layer).forEach(([key, value]) => {
     if (value === undefined) return
     if (drop.has(key)) return
+    // OCAD stores symbol lengths as whole 0.01 mm units; Mapper stores µm
+    // and so can express halves — the same decoration reaches us as
+    // `endOffset: 188` from OCD and `187.5` from xmap. Round to OCAD's
+    // grid, the coarser of the two and the only one both formats can
+    // represent. Mapper does the same on its own OCD export (`qRound`),
+    // which is why the OCD file holds 188 rather than 187.
+    if (OCD_GRID_LENGTHS.has(key) && typeof value === 'number') {
+      output[key] = Math.round(value)
+      return
+    }
     // Canonical colour reference is `colorId` everywhere; a layer that mirrored
     // its source with a bare `color` is renamed here.
     if (key === 'colorId' || key === 'color') {
@@ -266,6 +290,18 @@ function renderLayerToGitmap(
     if (layerType === 'text' && (key === 'fontSize' || key === 'fontFamily')) {
       return
     }
+    // OCD encodes end/segment lengths as whole integers; OMap stores them
+    // as floats (`endLength: 187.5` from xmap `end_length="1875"`). Round
+    // for gitmap so both dialects agree — kura 105 Small earth wall was
+    // otherwise diverging OCD 188 vs OMap 187.5 every round-trip.
+    if (
+      layerType === 'stroke' &&
+      (key === 'endLength' || key === 'segmentLength') &&
+      typeof value === 'number'
+    ) {
+      output[key] = Math.round(value)
+      return
+    }
     if (layerType === 'stroke' && key === 'dash') {
       output[key] = toJsonSafe(canonicaliseDash(value))
       return
@@ -294,6 +330,45 @@ function renderLayerToGitmap(
   })
 
   return output
+}
+
+/**
+ * OCD's `lineStyle` byte encodes a fixed set of cap+join pairs, and
+ * Mapper's OCD export additionally collapses several xmap join values
+ * onto the byte's DEFAULT (bevel). Normalise on gitmap serialize so
+ * the two source paths converge; kept out of the reader so
+ * xmap→panmap→xmap round-trips remain idempotent.
+ *
+ * Rules (from Mapper's own ocd↔xmap corpus):
+ *   • cap=round (1)                        → forces join=round (2)
+ *   • cap=flat (0), join=round (2)         → substitutes join=miter (1)
+ *   • cap=pointed (3), join=bevel (0)      → substitutes join=round (2)
+ *   • join=miter (1) collapses to bevel (0) when the byte value would
+ *     be the "default" (byte 0 for flat cap, byte 2 for pointed cap):
+ *     Mapper's OCD-write picks the bevel-slot byte for many miter
+ *     settings, so canonicalise both to bevel at the shared boundary.
+ */
+function normaliseStrokeCapJoinForGitmap(layer: RenderLayer): RenderLayer {
+  if ((layer as { type?: string }).type !== 'stroke') return layer
+  const l = layer as { capStyle?: number; joinStyle?: number } & Record<
+    string,
+    unknown
+  >
+  if (typeof l.capStyle !== 'number' || typeof l.joinStyle !== 'number') {
+    return layer
+  }
+  let cap = l.capStyle
+  let join = l.joinStyle
+  if (cap === 1) join = 2
+  else if (cap === 0 && join === 2) join = 1
+  else if (cap === 3 && join === 0) join = 2
+  // Miter → bevel collapse. Mapper's OCD export writes miter (join 1)
+  // into the bevel-slot byte for most symbols in the corpus, so an
+  // OCD-sourced sibling reads back as bevel (join 0) where the xmap
+  // says miter. Canonicalise to bevel so both sources agree.
+  if (join === 1) join = 0
+  if (cap === l.capStyle && join === l.joinStyle) return layer
+  return { ...l, capStyle: cap, joinStyle: join } as RenderLayer
 }
 
 export {

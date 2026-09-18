@@ -221,8 +221,6 @@ function diffMaps(
   }
 
   return new Panmap({
-    sourceFormat: 'diff',
-    sourceFile: { before, after },
     metadata: {
       before: before.metadata,
       after: after.metadata,

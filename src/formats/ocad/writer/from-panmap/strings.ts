@@ -253,7 +253,9 @@ function viewParamString(map: Panmap): ParameterStringValues {
  */
 function objectCentreMm(map: Panmap): { x: number; y: number } {
   const objects: MapObject[] = map.objects ?? []
-  const flipY = map.sourceFormat !== 'ocad'
+  // Object coords are canonical y-down in the model (a93c61a); OCD stores
+  // y-up. Always flip on write — no source-format branching.
+  const flipY = true
   let minX = Infinity
   let minY = Infinity
   let maxX = -Infinity

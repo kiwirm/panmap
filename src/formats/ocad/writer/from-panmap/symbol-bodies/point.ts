@@ -49,20 +49,28 @@ export function pointElementsFor(
   for (const layer of layers) {
     switch (layer.type) {
       case 'point-fill': {
-        const radius = normUnits(layer.radius)
-        if (radius <= 0) break
+        const r = Number(layer.radius)
+        if (!(r > 0)) break
         const cid = layer.colorId
         if (typeof cid === 'number' && cid < 0) break
-        out.push(dotElement(colorNumber(cid), radius * 2))
+        // Round AFTER multiplying so a half-integer model radius (e.g.
+        // xmap inner_radius=375 → model 37.5) lands on the correct
+        // whole-integer OCD diameter (75, not 76 = round(37.5)*2).
+        out.push(dotElement(colorNumber(cid), normUnits(r * 2)))
         break
       }
       case 'point-stroke': {
-        const radius = normUnits(layer.radius)
-        const width = normUnits(layer.width)
-        if (radius <= 0 || width <= 0) break
+        const r = Number(layer.radius)
+        const w = Number(layer.width)
+        if (!(r > 0) || !(w > 0)) break
         const cid = layer.colorId
         if (typeof cid === 'number' && cid < 0) break
-        out.push(circleElement(colorNumber(cid), radius * 2, width))
+        // OCAD Circle `diameter` is the OUTER diameter (2*radius +
+        // lineWidth). Emitting 2*radius produced a ring one stroke-width
+        // too small — e.g. Prominent large tree (417): xmap
+        // inner_radius=350 + outer_width=250 should encode as diameter=95,
+        // not 70. Matches Mapper's own xmap→ocd conversion.
+        out.push(circleElement(colorNumber(cid), normUnits(r * 2 + w), normUnits(w)))
         break
       }
       case 'point-elements': {
@@ -70,17 +78,38 @@ export function pointElementsFor(
         for (const el of elements) {
           // OCAD-sourced elements already have the target shape
           // (`type` as a numeric OCAD element code, `numberCoords`,
-          // etc.); pass them through unchanged. Xmap-sourced elements
-          // carry a nested `symbol.{point,line,area}Symbol` shape and
-          // need the xmap→OCAD translation.
-          if (isOcadShapedElement(el)) out.push(el as OcadElement)
-          else out.push(...pointElementFromXmap(el, colorNumber, flipY))
+          // etc.). Xmap-sourced elements carry a nested
+          // `symbol.{point,line,area}Symbol` shape and need the
+          // xmap→OCAD translation. Elements coming out of gitmap are
+          // OCD-shape too but their `color` field is a string colorId
+          // (e.g. "color_brown_100_line_symbols_16") — translate to
+          // OCD's numeric slot via `colorNumber` so the OCD file
+          // encodes the correct palette slot instead of defaulting
+          // to slot 0 (black).
+          if (isOcadShapedElement(el)) {
+            out.push(normaliseOcadElementColor(el, colorNumber))
+          } else out.push(...pointElementFromXmap(el, colorNumber, flipY))
         }
         break
       }
     }
   }
   return out
+}
+
+/** OCD-shape elements from gitmap carry `color` as a string colorId
+ *  (e.g. "color_brown_100_line_symbols_16"). Rewrite to the OCD palette
+ *  slot number so the file encodes the intended color instead of
+ *  defaulting to slot 0 (black). Pass through OCAD-sourced numeric
+ *  colors unchanged. */
+function normaliseOcadElementColor(
+  el: unknown,
+  colorNumber: ColorNumber,
+): OcadElement {
+  const e = el as { color?: unknown }
+  const c = e.color
+  if (typeof c === 'number') return el as OcadElement
+  return { ...(el as object), color: colorNumber(c) } as OcadElement
 }
 
 export function dotElement(color: number, diameter: number): OcadElement {
@@ -170,7 +199,16 @@ export function translateXmapCoords(
     if (readFlags(c) & 0x02) yFlags |= YFLAG_DASH_POINT
     const x = Array.isArray(c) ? c[0] : (c.x ?? 0)
     const y = Array.isArray(c) ? c[1] : (c.y ?? 0)
-    return { 0: Number(x) | 0, 1: (Number(y) * yScale) | 0, xFlags, yFlags }
+    // Round to nearest integer rather than truncating (`| 0`) — Mapper
+    // rounds half-integer element coords (xmap x=166 → 16.6) to the
+    // nearest OCD integer (17), so truncation shifts every rounded
+    // coord one unit toward zero on knolls/depressions etc.
+    return {
+      0: Math.round(Number(x)),
+      1: Math.round(Number(y) * yScale),
+      xFlags,
+      yFlags,
+    }
   })
 }
 
@@ -198,12 +236,17 @@ export function pointSymbolToElements(
   const outer = normUnits(ps.outerWidth)
   const outerSlot = colorNumber(ps.outerColor)
   if (outer > 0 && outerSlot > 0) {
+    // Diameter is the OUTER diameter: 2*innerRadius + outerWidth. Keep
+    // the raw units on both sides of the addition before running through
+    // `normUnits` once — the previous form mixed raw and already-divided
+    // values (`innerRaw*2 + outer` where `outer = normUnits(outerWidth)`)
+    // and rounded off by ~1 at every scale.
     out.push({
       type: CircleElementType,
       flags: 0,
       color: outerSlot,
       lineWidth: outer,
-      diameter: normUnits(innerRaw * 2 + outer),
+      diameter: normUnits(innerRaw * 2 + Number(ps.outerWidth)),
       numberCoords: 1,
       coords: [anchor],
     })

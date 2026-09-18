@@ -56,15 +56,15 @@ export interface SynthesizedOcadSymbol {
 export function synthesizeSymbols(
   symbols: MapSymbol[],
   colors: MapColor[],
-  sourceFormat?: string,
   symNums?: Map<MapSymbol['id'], number>,
 ): SynthesizedOcadSymbol[] {
   const colorNumber = colorNumberLookup(colors)
-  // OCAD uses Y-up (north = positive Y). Xmap / gitmap sources store
-  // paper Y-down; flip on the way out. OCAD-sourced maps arrive Y-up
-  // already — but the sidecar preserving that has been removed, so the
-  // sourceFormat check remains as the sole signal.
-  const flipY = sourceFormat !== 'ocad'
+  // Element coords (symbol-internal offsets) are canonical y-up in the
+  // model — same as both OCD binary and XMap XML on disk. Never flip.
+  // Verified against bottle-lake 101.2 minimum-knoll where the horseshoe
+  // arc opening at y=-380 marks downslope in both source formats and
+  // Mapper's UI.
+  const flipY = false
   const out: SynthesizedOcadSymbol[] = []
   const symNumFor = (s: MapSymbol): number =>
     symNums?.get(s.id) ?? parseSymbolCode(s.code || String(s.sourceId ?? s.id))
@@ -81,7 +81,13 @@ export function synthesizeSymbols(
   const usedSymNums = new Set(symbols.map(symNumFor))
   const borderRegistry = new Map<MapSymbol, number>()
   let borderCounter = 990000
-  const nextBorderNum = () => {
+  // Mapper's own xmap→OCD writer allocates the paired border helper
+  // in the base symbol's sub-symbol range (e.g. 301.0 → 301.4, 302.0
+  // → 302.2), but the specific offset depends on Mapper-internal
+  // allocation state we don't fully reproduce. Fall back to a global
+  // synthetic 99xxxx range — matches OCD-source-parity (round-trip
+  // safe) and only differs from Mapper on the byte-parity metric.
+  const nextBorderNum = (_base: number) => {
     while (usedSymNums.has(borderCounter)) borderCounter++
     const n = borderCounter++
     usedSymNums.add(n)
@@ -118,7 +124,7 @@ export function synthesizeSymbols(
     // Allocating one here just emits an orphan 990.x border line that nothing
     // uses and inflates the symbol count. Skip it.
     if (inferOcadTypeFromLayers(symbol) === 'line') continue
-    borderRegistry.set(symbol, nextBorderNum())
+    borderRegistry.set(symbol, nextBorderNum(symNumFor(symbol)))
   }
   for (const symbol of symbols) {
     const borderSymNum =
@@ -380,7 +386,7 @@ function inferOcadTypeFromLayers(symbol: MapSymbol): string {
   ) {
     return 'area'
   }
-  if (types.has('stroke') || types.has('line-symbols')) return 'line'
+  if (types.has('stroke') || types.has('line-elements')) return 'line'
   if (
     types.has('point-fill') ||
     types.has('point-stroke') ||
@@ -455,7 +461,6 @@ function isRotatable(symbol: MapSymbol): boolean {
   if (symbol.textSymbol?.rotatable) return true
   for (const layer of symbol.layers ?? []) {
     if (layer.rotatable) return true
-    if (isPatternLayer(layer) && layer.pattern?.rotatable) return true
     for (const key of ['pointSymbol', 'symbol'] as const) {
       const inner = (layer as Record<string, unknown>)[key] as
         { rotatable?: boolean } | undefined

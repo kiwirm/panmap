@@ -14,7 +14,6 @@ test('extensions round-trip through the gitmap package', async t => {
   const dir = await tempDir('gitmap-ext-')
   try {
     const original = new Panmap({
-      sourceFormat: 'test',
       colors: [],
       symbols: [],
       objects: [],
@@ -46,7 +45,6 @@ test('gitmap package omits extensions when empty', async t => {
   const dir = await tempDir('gitmap-noext-')
   try {
     const original = new Panmap({
-      sourceFormat: 'test',
       colors: [],
       symbols: [],
       objects: [],

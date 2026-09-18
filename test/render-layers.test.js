@@ -24,8 +24,8 @@ test('classifyAreaLayers buckets by type', t => {
     { type: 'stroke', colorId: 3, width: 50 },
     { type: 'hatch-fill', colorId: 4, angle: 45 },
     { type: 'hatch-fill', colorId: 4, angle: 135 },
-    { type: 'structure-fill', colorId: 5, pattern: { lineSpacing: 100 } },
-    { type: 'point-pattern-fill', colorId: 6, pattern: { pointDistance: 200 } },
+    { type: 'point-pattern-fill', colorId: 5, width: 100, height: 100 },
+    { type: 'point-pattern-fill', colorId: 6, width: 200, height: 200 },
     { type: 'border-symbol', symbolId: 42 },
     // unrelated types should be ignored
     { type: 'text', colorId: 7 },
@@ -40,8 +40,7 @@ test('classifyAreaLayers buckets by type', t => {
     [2, 3],
   )
   t.is(buckets.hatches.length, 2)
-  t.is(buckets.structures.length, 1)
-  t.is(buckets.pointPatterns.length, 1)
+  t.is(buckets.pointPatterns.length, 2)
   t.is(buckets.border?.symbolId, 42)
 })
 
@@ -72,7 +71,6 @@ test('classifyAreaLayers on an empty symbol', t => {
   t.deepEqual(buckets.fills, [])
   t.deepEqual(buckets.strokes, [])
   t.deepEqual(buckets.hatches, [])
-  t.deepEqual(buckets.structures, [])
   t.deepEqual(buckets.pointPatterns, [])
 })
 
@@ -93,17 +91,15 @@ test('classifyLineLayers buckets by type', t => {
     { type: 'stroke', colorId: 2 },
     { type: 'double-line', fillColorId: 3 },
     { type: 'line-elements' },
-    { type: 'line-symbols', lineSymbol: { dashSymbol: {} } },
     { type: 'fill' }, // ignored
   ])
   const buckets = classifyLineLayers(s)
   t.is(buckets.strokes.length, 2)
   t.is(buckets.doubleLine?.fillColorId, 3)
   t.truthy(buckets.lineElements)
-  t.truthy(buckets.lineSymbols)
 })
 
-test('classifyLineLayers keeps only the first double-line / line-elements / line-symbols', t => {
+test('classifyLineLayers keeps only the first double-line / line-elements', t => {
   const s = symbol([
     { type: 'double-line', fillColorId: 1 },
     { type: 'double-line', fillColorId: 2 },
@@ -149,8 +145,7 @@ test('classifyTextLayers on a symbol with no text', t => {
   t.is(classifyTextLayers(symbol([{ type: 'fill' }])).text, undefined)
 })
 
-test('isPatternLayer narrows only pattern-holding types', t => {
-  t.true(isPatternLayer({ type: 'structure-fill' }))
+test('isPatternLayer narrows only tiled-stamp layers', t => {
   t.true(isPatternLayer({ type: 'point-pattern-fill' }))
   t.false(isPatternLayer({ type: 'fill' }))
   t.false(isPatternLayer({ type: 'hatch-fill' }))

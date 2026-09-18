@@ -368,7 +368,6 @@ export function diffChanges(
       if (change.kind === 'modified') {
         const { objects, symbols } = modifiedRenderObjects(feats, true)
         mini = new Panmap({
-          sourceFormat: 'diff',
           georeferencing,
           colors: modColors,
           symbols: [...modSymbols, ...symbols],
@@ -377,7 +376,6 @@ export function diffChanges(
         })
       } else {
         mini = new Panmap({
-          sourceFormat: 'diff',
           georeferencing,
           colors: diffMap.colors,
           symbols: diffMap.symbols,
@@ -407,7 +405,6 @@ export function diffChanges(
         }
       }
       const overallMap = new Panmap({
-        sourceFormat: 'diff',
         georeferencing,
         colors: modColors,
         symbols: [...modSymbols, ...overallExtraSymbols],

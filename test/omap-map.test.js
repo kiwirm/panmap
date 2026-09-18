@@ -67,8 +67,6 @@ test('can normalize XMap file to canonical Map', async (/** @type {ExecutionCont
   const map = omapFileToMap(xmapFile)
 
   t.true(map instanceof Map)
-  t.is(map.sourceFormat, 'xmap')
-  t.is(map.sourceFile, xmapFile)
   t.is(map.colors.length, 2)
   t.is(map.symbols.length, 3)
   t.is(map.objects.length, 3)
@@ -116,8 +114,6 @@ test('readMap supports XMap XML strings and buffers', async (/** @type {Executio
 
   t.true(fromString instanceof Map)
   t.true(fromBuffer instanceof Map)
-  t.is(fromString.sourceFormat, 'xmap')
-  t.is(fromBuffer.sourceFormat, 'xmap')
   t.is(fromString.objects.length, 3)
   t.is(fromBuffer.objects.length, 3)
 })

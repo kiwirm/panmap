@@ -10,12 +10,19 @@ import type {
   MapTemplates,
   MapView,
   RenderLayer,
+  MapSpotColor,
 } from '../../../panmap/model.js'
+import type { RenderElement } from '../../../panmap/render-layers.js'
 import TdPoly from '../../ocad/reader/decode/td-poly.js'
 import { parseNotes } from '../../codecs/index.js'
 import { boundsForCoords, type FlaggedCoord } from '../../../panmap/coord.js'
 import { normaliseOmapFlags } from '../codecs/index.js'
+import {
+  flattenXmapDecorSubtree,
+  normalisePointElementsYUp,
+} from './flatten-line-decor.js'
 import type {
+  OmapAreaPattern,
   OmapColor,
   OmapCoord,
   OmapFile,
@@ -66,10 +73,13 @@ function omapFileToMap(xmapFile: OmapFile): Panmap {
   )
 
   return new Panmap({
-    sourceFormat: 'xmap',
-    sourceFile: xmapFile,
     metadata: {},
-    colors: xmapFile.colors.map(toMapColor),
+    // A DEDICATED separation record (its `name` IS the separation name)
+    // isn't a palette colour — route it to `spotColors` so the palette
+    // matches an OCD-sourced copy of the same map. A palette colour
+    // merely TAGGED with a separation stays in the palette.
+    colors: paletteColors(xmapFile.colors).map(toMapColor),
+    spotColors: spotColorsFromXmap(xmapFile.colors),
     symbols: xmapFile.symbols.map(symbol => toMapSymbol(symbol, symbolsById)),
     objects,
     parts,
@@ -371,6 +381,55 @@ function extractNotesText(notes: unknown): string {
   return ''
 }
 
+/**
+ * Indices of the records that exist only to define a print separation.
+ *
+ * Two conditions, both required:
+ *   • the display name IS the separation name — an ordinary palette
+ *     colour tagged with a separation ("Black 100%" → "Black") fails
+ *     this and stays in the palette;
+ *   • the record sits in the contiguous run at the END of the list,
+ *     where Mapper appends dedicated definitions (hillmorton: 41–47).
+ *
+ * The tail condition is load-bearing. kura-tawhiti has a genuine palette
+ * colour named "Black" tagged with separation "Black" at priority 2,
+ * with ordinary colours after it; name-equality alone would drop it and
+ * leave the palette one short of the OCD-sourced copy.
+ */
+function spotDefinitionIndices(colors: OmapColor[]): Set<number> {
+  const out = new Set<number>()
+  for (let i = colors.length - 1; i >= 0; i--) {
+    const c = colors[i]
+    if (!c.spotName || c.spotName !== c.name) break
+    out.add(i)
+  }
+  return out
+}
+
+/** The drawing palette: every colour record that isn't a dedicated
+ *  separation definition. */
+function paletteColors(colors: OmapColor[]): OmapColor[] {
+  const spots = spotDefinitionIndices(colors)
+  return colors.filter((_, i) => !spots.has(i))
+}
+
+/** Collect every separation named anywhere in the palette — dedicated
+ *  record or inline tag — in first-seen order. */
+function spotColorsFromXmap(colors: OmapColor[]): MapSpotColor[] {
+  const seen = new Set<string>()
+  const out: MapSpotColor[] = []
+  for (const c of colors) {
+    if (!c.spotName || seen.has(c.spotName)) continue
+    seen.add(c.spotName)
+    out.push({
+      name: c.spotName,
+      cmyk: c.cmyk,
+      rgb: c.rgb ? `rgb(${c.rgb.r}, ${c.rgb.g}, ${c.rgb.b})` : undefined,
+    })
+  }
+  return out
+}
+
 function toMapColor(color: OmapColor) {
   // reader/decode.ts already normalises RGB into 0–255 bytes via
   // rgbValuesToBytes / cmykFractionToRgb — no further scaling needed.
@@ -422,6 +481,93 @@ function toMapSymbol(
  * @param {OmapSymbol} symbol
  * @returns {import('../../../panmap/model').RenderLayer[]}
  */
+/**
+ * Build canonical `point-pattern-fill` layers from an xmap area
+ * symbol's `<pattern>` list.
+ *
+ * XMap expresses OCAD's "shifted rows" (brick-bond) layout as a PAIR of
+ * `<pattern>` records: identical spacing and stamp, with the second
+ * offset by half a tile in both axes. The canonical model carries that
+ * as a single layer with `shiftedRows: true` (the same shape the OCD
+ * reader produces from `structMode=2`), so collapse the pair here.
+ *
+ * `noClipping` is per-`<pattern>` in xmap but a single value per symbol
+ * in OCD. On a collapsed pair, keep the strongest (max) value — OCD
+ * can only carry one, and Mapper writes 0 on the first sub-pattern with
+ * the real value on the second.
+ */
+function pointPatternLayersFromXmap(
+  patterns: OmapAreaPattern[] | undefined,
+): RenderLayer[] {
+  const stamps = (patterns ?? []).filter(p => p.type !== 1 && p.symbol)
+  const out: RenderLayer[] = []
+  for (let i = 0; i < stamps.length; i++) {
+    const p = stamps[i]
+    const next = stamps[i + 1]
+    const paired = next ? isShiftedRowsPair(p, next) : false
+    const lineSpacing = p.lineSpacing || p.pointDistance || 1
+    const elements = flattenXmapDecorSubtree(p.symbol) as RenderElement[]
+    out.push({
+      type: 'point-pattern-fill',
+      // Dominant ink of the stamp. The OCD reader derives this from the
+      // stamp's elements (lowest colour slot), so do the same rather
+      // than reading the xmap wrapper's own colour — a wrapper with
+      // `inner_color="-1"` (208 Boulder field) would otherwise report
+      // -1 where the OCD side reports the boulders' black.
+      colorId:
+        elements.length > 0
+          ? (elements[0] as { color?: unknown }).color
+          : (p.symbol?.pointSymbol?.innerColor ??
+            p.symbol?.areaSymbol?.innerColor ??
+            p.symbol?.lineSymbol?.color),
+      // `width` is spacing ALONG a row (xmap `point_distance`),
+      // `height` between rows (xmap `line_spacing`). A shifted-rows pair
+      // shares one row pitch but the tile spans BOTH rows, matching the
+      // OCD reader's `structHeight * 2`.
+      width: Math.max(p.pointDistance || 1, 1),
+      height: Math.max(paired ? lineSpacing : lineSpacing, 1),
+      // XMap stores angles in radians; the model uses degrees.
+      angle: p.angle ? (p.angle * 180) / Math.PI : 0,
+      shiftedRows: paired,
+      rowOffset: p.lineOffset || 0,
+      columnOffset: p.offsetAlongLine || 0,
+      // `no_clipping` is per-`<pattern>` in xmap but a single value per
+      // symbol in OCD. On a collapsed pair take the FIRST record's value:
+      // that's the one Mapper's OCD export carries into `structDraw`
+      // (it writes the pair's second value for its own renderer only).
+      noClipping: p.noClipping ?? 0,
+      rotatable: p.rotatable ?? false,
+      // The stamp, flattened to the same icon-primitive array shape
+      // `point-elements` and `line-elements` use.
+      elements: elements as RenderLayer['elements'],
+    } as RenderLayer)
+    if (paired) i++ // consume the second half of the pair
+  }
+  return out
+}
+
+/** Two `<pattern>` records form one shifted-rows layout when they share
+ *  spacing and the second sits half a tile away in both axes. */
+function isShiftedRowsPair(
+  a: OmapAreaPattern,
+  b: OmapAreaPattern,
+): boolean {
+  const ls = a.lineSpacing
+  const pd = a.pointDistance
+  if (!ls || !pd) return false
+  if (a.lineSpacing !== b.lineSpacing || a.pointDistance !== b.pointDistance) {
+    return false
+  }
+  const dRow = Math.abs(
+    ((((b.lineOffset ?? 0) - (a.lineOffset ?? 0)) % ls) + ls) % ls - ls / 2,
+  )
+  const dCol = Math.abs(
+    ((((b.offsetAlongLine ?? 0) - (a.offsetAlongLine ?? 0)) % pd) + pd) % pd -
+      pd / 2,
+  )
+  return dRow <= 1 && dCol <= 1
+}
+
 function symbolToRenderLayers(
   symbol: OmapSymbol,
   symbolsById: Record<number, OmapSymbol>,
@@ -429,6 +575,20 @@ function symbolToRenderLayers(
 ): RenderLayer[] {
   if (seen.has(symbol.id)) return []
   seen.add(symbol.id)
+
+  // XMap element XML stores point-symbol element coords y-DOWN, but
+  // the canonical model contract is y-UP (matching OCD binary +
+  // flatten-line-decor.ts's already-flipped output). Normalise the
+  // nested `{symbol, object}` tree once up front so downstream
+  // consumers (both writers, SVG render, gitmap canonicalise) all
+  // see the same orientation. Called exactly once per xmap symbol
+  // — the layers array below can then reference the elements without
+  // further mutation.
+  //
+  // Area-symbol `<pattern>` stamps get the same y-up treatment, but via
+  // `flattenXmapDecorSubtree` in `pointPatternLayersFromXmap` (which
+  // negates as it flattens) — doing it here as well would double-flip.
+  normalisePointElementsYUp(symbol.pointSymbol?.elements)
 
   if (symbol.combinedSymbol?.parts?.length) {
     // Special case — "area + line-ref" combined: the OCAD-style
@@ -493,14 +653,30 @@ function symbolToRenderLayers(
             breakLength: symbol.lineSymbol.breakLength,
             dashesInGroup: symbol.lineSymbol.dashesInGroup,
             inGroupBreakLength: symbol.lineSymbol.inGroupBreakLength,
+            // Only hoist `halfOuterDashes` when true; both readers
+            // (OCD via derivation from `endLength ≈ mainLength / 2`;
+            // OMap via this hoist) canonicalise to the same shape so
+            // gitmap convergence isn't broken by attribute presence.
+            halfOuterDashes:
+              (symbol.lineSymbol as { halfOuterDashes?: boolean })
+                .halfOuterDashes || undefined,
           }
         : undefined,
       // Persist join / cap so OCAD's `lineStyle` byte can be
       // recovered. xmap encoding: join_style 0=miter, 1=round, 2=bevel;
-      // cap_style 0=flat, 1=round, 2=square. OCAD `lineStyle` packs
-      // them into one byte: bit 0 = round join, bit 2 = round cap.
+      // cap_style 0=flat, 1=round, 2=square, 3=pointed. OCAD `lineStyle`
+      // packs them into one byte: bit 0 = round join, bit 2 = round cap.
       joinStyle: (symbol.lineSymbol as { joinStyle?: number }).joinStyle,
       capStyle: (symbol.lineSymbol as { capStyle?: number }).capStyle,
+      // Pointed-cap length (only meaningful when capStyle=3, e.g. ISOM
+      // 107 erosion gully). Now that the OCD reader stashes the equivalent
+      // OCD field (`distFromStart`/`distToEnd` on pointed-cap lines) as
+      // `pointedCapLength` too, hoisting on both sides no longer breaks
+      // gitmap convergence — but only when the value is non-zero, since
+      // the OCD reader also only emits it when present.
+      pointedCapLength:
+        (symbol.lineSymbol as { pointedCapLength?: number }).pointedCapLength ||
+        undefined,
       // Dash bookkeeping used to compute OCAD's `mainLength`,
       // `endLength`, and `nPrimSym` — even non-dashed lines carry a
       // `segment_length` used for mid-symbol placement.
@@ -546,14 +722,52 @@ function symbolToRenderLayers(
           )
         : undefined,
     },
-    symbol.lineSymbol &&
-      (symbol.lineSymbol.dashSymbol ||
-        symbol.lineSymbol.midSymbol ||
-        symbol.lineSymbol.startSymbol ||
-        symbol.lineSymbol.endSymbol) && {
-        type: 'line-symbols',
-        lineSymbol: symbol.lineSymbol,
-      },
+    // xmap-native line decorations (<mid_symbol>, <start_symbol>,
+    // <end_symbol>, <dash_symbol>) flatten HERE — at read time — into
+    // the canonical `line-elements` shape that OCD-sourced maps also
+    // produce. Previously we stashed the raw xmap subtree on a
+    // `line-symbols` layer and flattened at gitmap-write time, but that
+    // let source-specific data leak into the model and gave the OMap
+    // writer a private "prefer nativeSyms over canonical" fast path —
+    // the model wasn't actually canonical. Flattening on read means
+    // there's exactly one shape both writers consume.
+    (() => {
+      const ls = symbol.lineSymbol
+      if (!ls) return undefined
+      const primSymElements = ls.midSymbol
+        ? flattenXmapDecorSubtree(ls.midSymbol)
+        : []
+      const startSymElements = ls.startSymbol
+        ? flattenXmapDecorSubtree(ls.startSymbol)
+        : []
+      const endSymElements = ls.endSymbol
+        ? flattenXmapDecorSubtree(ls.endSymbol)
+        : []
+      const cornerSymElements = ls.dashSymbol
+        ? flattenXmapDecorSubtree(ls.dashSymbol)
+        : []
+      if (
+        primSymElements.length === 0 &&
+        startSymElements.length === 0 &&
+        endSymElements.length === 0 &&
+        cornerSymElements.length === 0
+      ) {
+        return undefined
+      }
+      return {
+        type: 'line-elements' as const,
+        // Same semantic-name placement fields as the OCD reader emits.
+        // See `ocad/reader/to-panmap.ts` for rationale — duplicated on
+        // line-elements only so the SVG renderer doesn't have to walk
+        // sibling layers.
+        spacing: ls.segmentLength || undefined,
+        endOffset: ls.endLength || undefined,
+        primSymElements,
+        cornerSymElements,
+        startSymElements,
+        endSymElements,
+      }
+    })(),
     symbol.areaSymbol &&
       symbol.areaSymbol.innerColor >= 0 && {
         type: 'fill',
@@ -586,39 +800,24 @@ function symbolToRenderLayers(
             rotatable: (pattern as { rotatable?: boolean }).rotatable ?? false,
           }))
       : []),
-    ...(symbol.areaSymbol && symbol.areaSymbol.patterns
-      ? symbol.areaSymbol.patterns
-          .filter(pattern => pattern.type !== 1 && pattern.symbol)
-          .map(pattern => ({
-            type: 'point-pattern-fill',
-            colorId:
-              pattern.symbol?.pointSymbol?.innerColor ??
-              pattern.symbol?.areaSymbol?.innerColor ??
-              pattern.symbol?.lineSymbol?.color,
-            width: Math.max(
-              pattern.pointDistance || pattern.lineSpacing || 1,
-              1,
-            ),
-            height: Math.max(
-              pattern.pointDistance || pattern.lineSpacing || 1,
-              1,
-            ),
-            angle: pattern.angle ? (pattern.angle * 180) / Math.PI : 0,
-            pattern,
-          }))
-      : []),
+    ...pointPatternLayersFromXmap(symbol.areaSymbol?.patterns),
     // Preserve inner disc / outer ring even when the color is
     // "invisible" (-1) as long as a real radius or width was set —
     // xmap uses these zero-visibility structs to encode hit-box radii
     // and structural markers, and dropping them here loses data that
     // won't survive a write. Renderers (SVG, OCAD synth) gate on
     // color validity themselves, so they still won't paint anything.
-    symbol.pointSymbol &&
-      symbol.pointSymbol.innerRadius > 0 && {
-        type: 'point-fill',
-        colorId: symbol.pointSymbol.innerColor,
-        radius: symbol.pointSymbol.innerRadius,
-      },
+    // Emit `point-fill` whenever the source has a `<point_symbol>` so
+    // an explicit `inner_radius="0"` (butlers-bush 110 etc) reaches the
+    // writer as radius=0 rather than being dropped and defaulted to
+    // Mapper's gizmo radius on output. Renderers gate on color validity
+    // (invisible when innerColor=-1) so this doesn't cause spurious
+    // painting.
+    symbol.pointSymbol && {
+      type: 'point-fill',
+      colorId: symbol.pointSymbol.innerColor,
+      radius: symbol.pointSymbol.innerRadius,
+    },
     symbol.pointSymbol &&
       symbol.pointSymbol.outerWidth > 0 && {
         type: 'point-stroke',
@@ -646,6 +845,12 @@ function symbolToRenderLayers(
         lineSpace: symbol.textSymbol.lineSpacing,
         paraSpace: symbol.textSymbol.paragraphSpacing,
         charSpace: symbol.textSymbol.characterSpacing,
+        // Paragraph tab stops — OMap XMap serialises as
+        // `<tabs count="N"><tab>V</tab>…</tabs>` (decoded on the raw
+        // omap symbol at `decode.ts`); OCD reader populates the same
+        // array from `nTabs`+`tabs[]`. Surface here so both source
+        // formats reach the canonical `layer.text.tabs` slot.
+        tabs: (symbol.textSymbol as { tabs?: number[] }).tabs,
       },
     },
   ].filter(Boolean) as RenderLayer[]
