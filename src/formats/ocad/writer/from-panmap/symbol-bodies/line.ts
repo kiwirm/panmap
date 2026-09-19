@@ -270,7 +270,14 @@ export function lineBody(
       ) || 0,
     ...rhythm,
     minSym: primary?.showAtLeastOneSymbol === false ? -1 : 0,
-    nPrimSym: primary?.midSymbolsPerSpot ?? 0,
+    // Reconstruct the default rather than falling back to 0. The canonical
+    // model omits `midSymbolsPerSpot` when it is 1 (Mapper's default, which
+    // the OCD side often leaves absent), so an absent value on a line that
+    // HAS mid-symbol geometry means "one per spot", not "none". Writing 0
+    // here left the element in the symbol but told OCAD to draw zero of
+    // them — 104 Earth bank and 108 Small erosion gully exported with their
+    // tick geometry present and invisible.
+    nPrimSym: primary?.midSymbolsPerSpot ?? (hasMidSymbol ? 1 : 0),
     primSymDist: normUnits(primary?.midSymbolDistance) || 0,
     doubleLine,
     decrease: {
