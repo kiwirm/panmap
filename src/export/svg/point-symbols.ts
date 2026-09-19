@@ -12,6 +12,7 @@ import type {
   DecorationSymbol,
 } from '../../panmap/render-layers.js'
 import type { FlaggedCoord } from '../../panmap/coord.js'
+import { coordX, coordY } from '../../panmap/coord.js'
 import { escapeXmlAttr as escapeAttr } from '../../util/xml.js'
 import { coordsToPath, type Transform } from './path.js'
 import { dashToSvg } from './style.js'
@@ -173,9 +174,13 @@ function pointElementToSvg(
   // local coords, then translate into map space via the transformed
   // anchor. Without this, mid/dash/start/end symbols on rotated line
   // objects render axis-aligned instead of following the line angle.
+  // Element coords are symbol-internal and canonically y-UP (the OMap reader
+  // canonicalises them in normalisePointElementsYUp; the xmap writer negates
+  // on the way out for the same reason). SVG's y axis points DOWN, so negate
+  // here too — without it every icon renders mirrored about its anchor.
   const transformedAnchor = transform(anchor)
   const coords = (element.object.coords || []).map(coord =>
-    addRotatedCoord(transformedAnchor, [coord.x, coord.y], angle),
+    addRotatedCoord(transformedAnchor, [coord.x, -coord.y], angle),
   )
   if (coords.length === 0) return []
 
@@ -240,8 +245,12 @@ function ocadPointElementToSvg(
   transform: Transform,
   angle = 0,
 ): string | null {
+  // Same y-up → y-down negation as the xmap-shaped branch above; OCAD
+  // element coords are y-up natively and reach the model unchanged.
   const coords = (element.coords || []).map(coord =>
-    transform(addRotatedCoord(anchor, coord, angle)),
+    transform(
+      addRotatedCoord(anchor, [coordX(coord), -coordY(coord)], angle),
+    ),
   )
 
   switch (element.type) {
