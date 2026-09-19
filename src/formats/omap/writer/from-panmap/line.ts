@@ -76,10 +76,9 @@ function buildXmapLineSymbol(
     primary?.segmentLength ??
     (lineElements?.spacing as number | undefined) ??
     (hasMidDecor || isDashed ? 400 : 0)
-  const endLength =
-    primary?.endLength ??
-    (lineElements?.endOffset as number | undefined) ??
-    0
+  const endLength = hasMidDecor
+    ? (primary?.endLength ?? (lineElements?.endOffset as number | undefined) ?? 0)
+    : 0
 
   const halfOuterDashes = isDashed && !!dash?.halfOuterDashes
 
