@@ -224,7 +224,7 @@
 <barrier version="6" required="0.6.0">
   <symbols count="207" id="panmap">
   <symbol type="2" id="101000" code="101.0" name="Höjdkurva">
-    <line_symbol color="14" line_width="140" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="14" line_width="140" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="101001" code="101.1" name="Lutningsstreck för höjdkurva">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
@@ -305,7 +305,7 @@
     </point_symbol>
   </symbol>
   <symbol type="2" id="102000" code="102.0" name="Stödkurva">
-    <line_symbol color="14" line_width="250" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="14" line_width="250" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="102001" code="102.1" name="Stödkurva (höjd, minimimått)">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
@@ -576,7 +576,7 @@
     </point_symbol>
   </symbol>
   <symbol type="2" id="104004" code="104.4" name="Skärning (tagg)">
-    <line_symbol color="14" line_width="140" minimum_length="0" join_style="2" cap_style="3" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="14" line_width="140" minimum_length="0" join_style="2" cap_style="3" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="105000" code="105.0" name="Jordvall">
     <line_symbol color="14" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2000" end_length="1000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
@@ -671,10 +671,10 @@
     <point_symbol inner_radius="75" inner_color="1" outer_width="0" outer_color="-1" elements="0"/>
   </symbol>
   <symbol type="2" id="10600003" code="10600.3" name="Minimum line distance conflict">
-    <line_symbol color="1" line_width="150" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="1" line_width="150" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="107000" code="107.0" name="Erosionsfåra">
-    <line_symbol color="14" line_width="250" minimum_length="0" join_style="2" cap_style="3" pointed_cap_length="750" start_offset="750" end_offset="750" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="14" line_width="250" minimum_length="0" join_style="2" cap_style="3" pointed_cap_length="750" start_offset="750" end_offset="750" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="108000" code="108.0" name="Liten fåra">
     <line_symbol color="-1" line_width="0" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="450" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
@@ -901,10 +901,10 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="201002" code="201.2" name="Opasserbar brant (utan taggar)">
-    <line_symbol color="8" line_width="350" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="350" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="201003" code="201.3" name="Opasserbar brant (tagg)">
-    <line_symbol color="8" line_width="120" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="120" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="201004" code="201.4" name="Opasserbar brant (minimimått med taggar)">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="3">
@@ -1050,7 +1050,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="202001" code="202.1" name="Brant (utan taggar)">
-    <line_symbol color="8" line_width="250" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="250" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="202002" code="202.2" name="Brant (minimimått med taggar)">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="3">
@@ -1639,7 +1639,7 @@
     <area_symbol inner_color="34" min_area="0" patterns="0"/>
   </symbol>
   <symbol type="2" id="215000" code="215.0" name="Skyttegrav/bergsspricka">
-    <line_symbol color="-1" line_width="100" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+    <line_symbol color="-1" line_width="100" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
       <borders>
         <border color="8" width="100" shift="0"/>
         <border color="8" width="100" shift="0"/>
@@ -1660,7 +1660,7 @@
     <area_symbol inner_color="21" min_area="0" patterns="0"/>
   </symbol>
   <symbol type="2" id="301002" code="301.2" name="Opasserbar vattenyta (konturlinje)">
-    <line_symbol color="8" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="301003" code="301.3" name="Opasserbar vattenyta (minimimått)">
     <point_symbol inner_radius="170" inner_color="-1" outer_width="180" outer_color="8" elements="1">
@@ -1716,7 +1716,7 @@
     <point_symbol inner_radius="350" inner_color="21" outer_width="0" outer_color="-1" elements="0"/>
   </symbol>
   <symbol type="2" id="302004" code="302.4" name="Grund vattenyta (konturlinje)">
-    <line_symbol color="21" line_width="100" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="21" line_width="100" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="303000" code="303.0" name="Vattenhål">
     <point_symbol inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
@@ -1739,10 +1739,10 @@
     </point_symbol>
   </symbol>
   <symbol type="2" id="304000" code="304.0" name="Passerbart vattendrag">
-    <line_symbol color="12" line_width="300" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="12" line_width="300" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="305000" code="305.0" name="Passerbart litet vattendrag">
-    <line_symbol color="12" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="12" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="306000" code="306.0" name="Mindre dike">
     <line_symbol color="12" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="1250" end_length="1250" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1250" break_length="250" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
@@ -2088,7 +2088,7 @@
     </area_symbol>
   </symbol>
   <symbol type="2" id="410002" code="410.2" name="Häck">
-    <line_symbol color="30" line_width="250" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="30" line_width="250" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="4" id="412000" code="412.0" name="Odlad mark">
     <area_symbol inner_color="37" min_area="0" patterns="1">
@@ -2150,7 +2150,7 @@
     </area_symbol>
   </symbol>
   <symbol type="2" id="415000" code="415.0" name="Exakt begränsningslinje">
-    <line_symbol color="8" line_width="100" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="100" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="416000" code="416.0" name="Beståndsgräns">
     <line_symbol color="-1" line_width="0" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="450" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
@@ -2264,13 +2264,13 @@
     <area_symbol inner_color="25" min_area="0" patterns="0"/>
   </symbol>
   <symbol type="2" id="501002" code="501.2" name="Belagd yta (konturlinje)">
-    <line_symbol color="8" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="16" id="502000" code="502.0" name="Bred väg/motorväg">
     <combined_symbol parts="2">
       <part private="true">
         <symbol type="2" code="502.0" name="Bred väg/motorväg - main line">
-          <line_symbol color="16" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+          <line_symbol color="16" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
         </symbol>
       </part>
       <part private="true">
@@ -2289,7 +2289,7 @@
     <combined_symbol parts="2">
       <part private="true">
         <symbol type="2" code="502.1" name="Bred väg &gt;7m - main line">
-          <line_symbol color="25" line_width="640" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+          <line_symbol color="25" line_width="640" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
         </symbol>
       </part>
       <part private="true">
@@ -2308,7 +2308,7 @@
     <combined_symbol parts="2">
       <part private="true">
         <symbol type="2" code="502.2" name="Bred väg 5-7m - main line">
-          <line_symbol color="25" line_width="440" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+          <line_symbol color="25" line_width="440" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
         </symbol>
       </part>
       <part private="true">
@@ -2324,7 +2324,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="503000" code="503.0" name="Väg">
-    <line_symbol color="8" line_width="350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="504000" code="504.0" name="Körväg">
     <line_symbol color="8" line_width="350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="3000" end_length="3000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="3000" break_length="250" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
@@ -2401,16 +2401,16 @@
     <line_symbol color="8" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="2000" end_length="2000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="2000" break_length="250" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="508006" code="508.6" name="Rågång/drivningsväg, god löpbarhet (linje)">
-    <line_symbol color="26" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="26" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="508007" code="508.7" name="Rågång/drivningsväg, löphindrande (linje)">
-    <line_symbol color="28" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="28" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="508008" code="508.8" name="Rågång/drivningsväg, svårlöpt (linje)">
-    <line_symbol color="27" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="27" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="508009" code="508.9" name="Rågång/drivningsväg, normal löpbarhet (linje)">
-    <line_symbol color="24" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="24" line_width="450" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="16" id="509000" code="509.0" name="Järnväg">
     <combined_symbol parts="2">
@@ -2427,7 +2427,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="509001" code="509.1" name="Järnväg, Förbjudet område (linje)">
-    <line_symbol color="29" line_width="1350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="29" line_width="1350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="510000" code="510.0" name="Kraftledning/linbana/skidlift">
     <line_symbol color="8" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
@@ -2740,7 +2740,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="520001" code="520.1" name="Förbjudet område (konturlinje)">
-    <line_symbol color="8" line_width="180" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="180" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="16" id="520002" code="520.2" name="Förbjudet område (svart linjeraster med konturlinje)">
     <combined_symbol parts="2">
@@ -2755,7 +2755,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="520003" code="520.3" name="Förbjudet område (konturlinje för linjeraster)">
-    <line_symbol color="8" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="350" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="4" id="520004" code="520.4" name="Förbjudet område (yta)">
     <area_symbol inner_color="29" min_area="0" patterns="0"/>
@@ -2774,7 +2774,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="521002" code="521.2" name="Mycket stor byggnad (konturlinje)">
-    <line_symbol color="8" line_width="200" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="200" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="521003" code="521.3" name="Byggnad (minimimått)">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
@@ -2805,7 +2805,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="522001" code="522.1" name="Skärmtak (konturlinje)">
-    <line_symbol color="8" line_width="100" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="100" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="523000" code="523.0" name="Ruin">
     <line_symbol color="8" line_width="160" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="500" end_length="500" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="500" break_length="250" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
@@ -3064,10 +3064,10 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="601000" code="601.0" name="Magnetisk nordlinje (svart)">
-    <line_symbol color="8" line_width="100" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="8" line_width="100" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="601001" code="601.1" name="Magnetisk nordlinje (blå)">
-    <line_symbol color="9" line_width="120" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="9" line_width="120" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="4" id="601002" code="601.2" name="Magnetisk nordlinje (svart - yta)">
     <area_symbol inner_color="-1" min_area="0" patterns="1">
@@ -3156,7 +3156,7 @@
     </text_symbol>
   </symbol>
   <symbol type="2" id="705000" code="705.0" name="Sammanbindningslinje">
-    <line_symbol color="15" line_width="350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="15" line_width="350" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="706000" code="706.0" name="Mål">
     <point_symbol inner_radius="1820" inner_color="-1" outer_width="350" outer_color="15" elements="1">
@@ -3194,7 +3194,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="708000" code="708.0" name="Förbjudet område (konturlinje)">
-    <line_symbol color="15" line_width="700" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="15" line_width="700" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="4" id="709000" code="709.0" name="Förbjudet område utan konturlinje (yta)">
     <area_symbol inner_color="-1" min_area="0" patterns="2">
@@ -3232,7 +3232,7 @@
     </combined_symbol>
   </symbol>
   <symbol type="2" id="709004" code="709.4" name="Förbjudet område (heldragen konturlinje)">
-    <line_symbol color="15" line_width="250" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="15" line_width="250" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="710100" code="710.100" name="Genomgång/passage">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="2">

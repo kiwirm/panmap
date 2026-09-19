@@ -66,10 +66,16 @@ function buildXmapLineSymbol(
   // line has mid-symbol content, via line-elements.spacing). Fall back
   // to Mapper's UI default (400 internal → xmap 4000) when the model
   // has no value.
+  // The fallback is conditional, per the rule above: Mapper writes its
+  // 4000 UI default on a line that has mid-symbol decoration to place or
+  // is dashed, and 0 on a plain solid line. `hasMidDecor` was computed
+  // here but never consulted, so every plain solid line exported with
+  // segment_length="4000" where Mapper writes "0" — 122 of the
+  // ocd→xmap parity mismatches.
   const segmentLength =
     primary?.segmentLength ??
     (lineElements?.spacing as number | undefined) ??
-    400
+    (hasMidDecor || isDashed ? 400 : 0)
   const endLength =
     primary?.endLength ??
     (lineElements?.endOffset as number | undefined) ??
