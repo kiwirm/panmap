@@ -60,25 +60,28 @@ function buildXmapPointSymbol(
     }
   }
 
-  // OCD-sourced compound point symbols where the FIRST element is a
-  // stroke-ring (OCD Circle at origin) — 417 Prominent large tree, 418
-  // Prominent bush — get folded so Mapper's own ocd→xmap output matches.
-  // The Circle's stroke ends up on the outer wrapper's outer_width /
-  // outer_color, its "hole" radius on inner_radius, and all remaining
-  // elements pass through as nested `<element>`s untouched (each
-  // Dot/Line/Area already carries its own point/line/area_symbol shape,
-  // Mapper doesn't re-fold at the nested level).
+  // OCD-sourced compound point symbols whose FIRST element sits on the
+  // origin — 417 Prominent large tree, 418 Prominent bush, 526 and
+  // 301.5 — get folded so Mapper's own ocd→xmap output matches. Mapper
+  // inlines that leading element into the `<point_symbol>` wrapper
+  // itself and all remaining elements pass through as nested
+  // `<element>`s untouched (each Dot/Line/Area already carries its own
+  // point/line/area_symbol shape; Mapper doesn't re-fold at the nested
+  // level).
+  //
+  // Both shapes Mapper folds are handled:
+  //   * a stroke-ring Circle — stroke onto outer_width / outer_color,
+  //     its "hole" radius onto inner_radius;
+  //   * a bare filled Dot — radius onto inner_radius, colour onto
+  //     inner_color, no outer stroke.
+  //
+  // Rejecting the Dot case used to shift every remaining child by one
+  // position, so a positional comparison lined Mapper's element[1] up
+  // against our element[0] and reported a wave of spurious mismatches.
   if (!pointFill && !pointStroke && elementsRaw.length >= 2) {
-    const first = elementsRaw[0] as
-      | {
-          type?: number
-          diameter?: number
-          lineWidth?: number
-          color?: number
-          coords?: unknown[]
-        }
-      | undefined
-    if (isFoldableCircle(first)) {
+    const first = elementsRaw[0] as FoldableElement | undefined
+    const dot = isFoldableDot(first)
+    if (dot || isFoldableCircle(first)) {
       const dia = Number(first!.diameter ?? 0)
       const lw = Number(first!.lineWidth ?? 0)
       const nestedRest = ocadElementsToXmapPointSymbol(
@@ -86,10 +89,10 @@ function buildXmapPointSymbol(
         colorIds,
       )
       return {
-        innerColor: -1,
-        innerRadius: Math.max(0, (dia - lw) / 2),
-        outerColor: colorRef(first!.color, colorIds),
-        outerWidth: lw,
+        innerColor: dot ? colorRef(first!.color, colorIds) : -1,
+        innerRadius: dot ? dia / 2 : Math.max(0, (dia - lw) / 2),
+        outerColor: dot ? -1 : colorRef(first!.color, colorIds),
+        outerWidth: dot ? 0 : lw,
         rotatable,
         elements: nestedRest?.pointSymbol?.elements,
       } as OmapPointSymbol
@@ -107,20 +110,22 @@ function buildXmapPointSymbol(
   } as OmapPointSymbol
 }
 
-/** OCD element is a stroke-ring circle at origin (type=3=Circle, single
- *  coord, real color, positive diameter/lineWidth). */
-function isFoldableCircle(el: unknown): boolean {
+type FoldableElement = {
+  type?: number
+  diameter?: number
+  lineWidth?: number
+  color?: number
+  numberCoords?: number
+  coords?: unknown[]
+}
+
+/** OCD element is a single-coord shape sitting exactly on the symbol
+ *  origin, with a real colour and a positive diameter — the common
+ *  prerequisite for Mapper inlining it into the `<point_symbol>`. */
+function isOriginShape(el: unknown): el is FoldableElement {
   if (!el || typeof el !== 'object') return false
-  const e = el as {
-    type?: number
-    diameter?: number
-    lineWidth?: number
-    color?: number
-    numberCoords?: number
-    coords?: unknown[]
-  }
-  if (e.type !== 3) return false
-  if (!(Number(e.diameter) > 0) || !(Number(e.lineWidth) > 0)) return false
+  const e = el as FoldableElement
+  if (!(Number(e.diameter) > 0)) return false
   if (typeof e.color !== 'number' || e.color < 0) return false
   const nCoords = e.numberCoords ?? e.coords?.length ?? 0
   if (nCoords !== 1) return false
@@ -131,6 +136,18 @@ function isFoldableCircle(el: unknown): boolean {
   const x = (c[0] ?? c.x ?? 0) as number
   const y = (c[1] ?? c.y ?? 0) as number
   return x === 0 && y === 0
+}
+
+/** …and it is a stroke-ring circle (type=3=Circle), so it also needs a
+ *  positive lineWidth to have any stroke to fold. */
+function isFoldableCircle(el: unknown): boolean {
+  return isOriginShape(el) && el.type === 3 && Number(el.lineWidth) > 0
+}
+
+/** …or a bare filled dot (type=4=Dot), which has no stroke at all — its
+ *  radius and colour fold onto inner_radius / inner_color. */
+function isFoldableDot(el: unknown): boolean {
+  return isOriginShape(el) && el.type === 4
 }
 
 export { buildXmapPointSymbol }

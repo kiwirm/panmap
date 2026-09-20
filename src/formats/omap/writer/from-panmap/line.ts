@@ -47,11 +47,9 @@ function buildXmapLineSymbol(
   const dashesInGroup = dash?.dashesInGroup ?? 1
   const inGroupBreakLength = dash?.inGroupBreakLength ?? 50
 
-  // segmentLength / endLength — used for mid-symbol placement even on
-  // non-dashed lines. Only surface `segment_length`/`end_length` when
-  // the line actually has mid-symbol decoration to place; on a plain
-  // dashed line Mapper writes `segment_length="4000"` (UI default,
-  // unused by the renderer) and on a plain solid line writes 0.
+  // `end_length` is only meaningful when there is mid-symbol decoration
+  // to place, so it stays gated on `hasMidDecor`. (`segment_length` is
+  // NOT — see the rule below.)
   const hasMidDecor =
     ((lineElements?.primSymElements as unknown[] | undefined)?.length ?? 0) >
       0 ||
@@ -61,21 +59,23 @@ function buildXmapLineSymbol(
       0 ||
     ((lineElements?.cornerSymElements as unknown[] | undefined)?.length ?? 0) >
       0
-  // segment_length: prefer the explicit model value (xmap-sourced
-  // strokes carry it verbatim; OCD-sourced only carry a value when the
-  // line has mid-symbol content, via line-elements.spacing). Fall back
-  // to Mapper's UI default (400 internal → xmap 4000) when the model
-  // has no value.
-  // The fallback is conditional, per the rule above: Mapper writes its
-  // 4000 UI default on a line that has mid-symbol decoration to place or
-  // is dashed, and 0 on a plain solid line. `hasMidDecor` was computed
-  // here but never consulted, so every plain solid line exported with
-  // segment_length="4000" where Mapper writes "0" — 122 of the
-  // ocd→xmap parity mismatches.
-  const segmentLength =
-    primary?.segmentLength ??
-    (lineElements?.spacing as number | undefined) ??
-    (hasMidDecor || isDashed ? 400 : 0)
+  // segment_length turns only on DASHED vs SOLID — not on decoration.
+  // Established across 14 fixture pairs / 951 paired line symbols
+  // (945/951 = 99.4% agreement with Mapper):
+  //
+  //   * DASHED → Mapper's OCD importer consumes the OCD `mainLength` as
+  //     `dash_length` and never assigns `segment_length`, so the field
+  //     keeps its constructor default of 4000 (internal 400). True in
+  //     151/157 dashed lines.
+  //   * SOLID → Mapper assigns the real `mainLength`, so emit our
+  //     equivalent unconditionally. True in 794/794 solid lines —
+  //     including 423 that carry no decoration at all, which is why
+  //     this must NOT be gated on `hasMidDecor`.
+  const segmentLength = isDashed
+    ? 400
+    : (primary?.segmentLength ??
+      (lineElements?.spacing as number | undefined) ??
+      0)
   const endLength = hasMidDecor
     ? (primary?.endLength ?? (lineElements?.endOffset as number | undefined) ?? 0)
     : 0

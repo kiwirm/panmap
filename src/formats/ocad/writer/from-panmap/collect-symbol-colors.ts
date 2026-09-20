@@ -29,6 +29,41 @@ const COLOR_KEYS = new Set([
   'rightColorId',
 ])
 
+/**
+ * Colour slots a layer carries but never paints with. Mapper's own
+ * symbol colour set omits these (verified across the whole .ocd corpus),
+ * so counting them makes our `nColors` disagree with the ground truth.
+ *
+ *  • `double-line.fillColorId` — OCAD gates the centre fill on
+ *    `dblFlags & 1`; with the bit clear the `dblFillColor` slot is a
+ *    leftover from an earlier config and nothing is painted with it.
+ *    (Same rule the gitmap canonicaliser already applies in
+ *    `doubleLineToStroke`.) Every corpus symbol with `dblFlags=1` has
+ *    its fill colour in Mapper's set; every `dblFlags=0` one either
+ *    doesn't, or the value coincides with a border colour counted anyway.
+ *  • `point-pattern-fill.colorId` with no `elements` — the layer's
+ *    colour is a derived "dominant ink of the stamp" hint, and the OCD
+ *    reader falls back to the area's `fillColor` when the structure is
+ *    empty. An empty stamp paints nothing (jarnvag / tahunanui 308
+ *    Marsh, basic-1 404.3).
+ */
+function withoutInertColors(layer: unknown): unknown {
+  if (!layer || typeof layer !== 'object') return layer
+  const l = layer as Record<string, unknown>
+  if (l.type === 'double-line' && (((l.flags as number) ?? 0) & 1) === 0) {
+    const { fillColorId: _drop, ...rest } = l
+    return rest
+  }
+  if (
+    l.type === 'point-pattern-fill' &&
+    !(Array.isArray(l.elements) && l.elements.length > 0)
+  ) {
+    const { colorId: _drop, ...rest } = l
+    return rest
+  }
+  return layer
+}
+
 export function collectSymbolColors(
   symbol: MapSymbol,
   colorNumber: (id: unknown) => number,
@@ -59,6 +94,6 @@ export function collectSymbolColors(
       }
     }
   }
-  for (const layer of symbol.layers ?? []) walk(layer)
+  for (const layer of symbol.layers ?? []) walk(withoutInertColors(layer))
   return [...seen].sort((a, b) => a - b).slice(0, 14)
 }

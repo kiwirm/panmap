@@ -41,6 +41,24 @@ const parser = new XMLParser({
 // one means geometry silently stops being drawn.
 const DECOR = ['mid_symbol', 'dash_symbol', 'start_symbol', 'end_symbol']
 
+// Does this subtree draw any ink? True when some node references a real
+// colour — xmap uses -1 for "no colour", so anything >= 0 paints. Walks the
+// whole subtree because the ink usually lives on a nested <element>, not on
+// the block's own wrapper.
+function paintsInk(node) {
+  if (!node || typeof node !== 'object') return false
+  for (const [key, value] of Object.entries(node)) {
+    if (key.startsWith('@_') && /color$/i.test(key.slice(2))) {
+      if (Number(value) >= 0) return true
+      continue
+    }
+    for (const child of Array.isArray(value) ? value : [value]) {
+      if (paintsInk(child)) return true
+    }
+  }
+  return false
+}
+
 // Tally decoration blocks across the WHOLE file, keyed by type only.
 //
 // Deliberately not keyed by symbol code: Mapper formats a three-component
@@ -62,11 +80,16 @@ function decorTally(xml) {
             if (!child[d]) continue
             const blocks = Array.isArray(child[d]) ? child[d] : [child[d]]
             for (const blk of blocks) {
-              const ps = blk?.symbol?.point_symbol
-              const n = ps ? Number(ps['@_elements'] ?? 0) : 0
-              // Only count blocks carrying real geometry — a block with
-              // zero elements draws nothing either way.
-              if (!Number.isFinite(n) || n < 1) continue
+              // Count a block only if it actually PAINTS. A declared
+              // element count is not enough: Mapper authors blocks whose
+              // children are all `inner_color="-1" outer_width="0"`, so
+              // they render nothing. OCAD cannot express a present-but-
+              // blank block (`cornerDSize`/`startDSize`/`endDSize` = 0,
+              // no `useSymbolFlags` bit), which makes it single-format
+              // data the canonical model deliberately drops. Requiring
+              // ink keeps this guard aimed at visible loss rather than
+              // at a round-trip of invisible structure.
+              if (!paintsInk(blk)) continue
               totals.set(d, (totals.get(d) ?? 0) + 1)
             }
           }

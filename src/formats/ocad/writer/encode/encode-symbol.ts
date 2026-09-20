@@ -211,7 +211,11 @@ function writeSymbol11Description(
   writer: BufferWriter,
   symbol: Symbol11Like,
 ): void {
-  // 64 words = 128 bytes UTF-16 (Mapper's Utf16PascalString<64>).
+  // 64 words = 128 bytes of plain null-padded UTF-16. (It is NOT a
+  // Pascal string — an older comment here claimed word[0] was a length
+  // prefix, but real Mapper-written files put the first character
+  // there: word[0]=67 ('C') for "Contour".)
+  //
   // Prefer `descriptionWords` (captured raw) so trailing / embedded
   // zero bytes round-trip; fall back to re-encoding the JS string if
   // a caller built the symbol from scratch. Anything shorter than 64
@@ -224,7 +228,26 @@ function writeSymbol11Description(
     for (let i = 0; i < 64; i++) writer.writeWord(words[i])
     return
   }
-  const desc = symbol.description || ''
+  // Capacity, established against the ground-truth corpus (9766 v11+
+  // symbols across 49 files):
+  //
+  //   * 64 characters ARE representable — the field simply carries no
+  //     NUL terminator. OCAD itself writes that: jarnvag.ocd's symbol
+  //     301004 ("Dominant uncrossable body of water 70% Blue (Area &
+  //     Border line)") is the one symbol in the corpus with a non-zero
+  //     word[63]. Our reader already handles it (`indexOf(0) === -1`
+  //     means "all 64 words are text"), so nothing is lost.
+  //   * Mapper's OCD exporter, by contrast, truncates to 63 and keeps
+  //     the terminator. Its output tops out at exactly 63 characters,
+  //     cut mid-word — e.g. 501.4 "…footprint: 1.6 m, minim" and
+  //     501.4.4 "…footprint: 1.6 m minimu", whose xmap originals run to
+  //     71 and 70 characters.
+  //
+  // So truncate only when the text genuinely cannot fit, and when it
+  // can't, cut where Mapper cuts. Blanket-slicing to 63 silently ate
+  // the closing ")" of legitimately-64-character descriptions.
+  const raw = symbol.description || ''
+  const desc = raw.length > 64 ? raw.slice(0, 63) : raw
   for (let i = 0; i < 64; i++) {
     if (words && i < words.length) writer.writeWord(words[i])
     else writer.writeWord(i < desc.length ? desc.charCodeAt(i) : 0)
