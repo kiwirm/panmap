@@ -22,6 +22,12 @@ function buildXmapTextSymbol(
         paraSpace?: number
         charSpace?: number
         tabs?: number[]
+        lineBelow?: {
+          visible?: boolean
+          color?: number
+          width?: number
+          distance?: number
+        }
       }
     | undefined
   const family =
@@ -47,6 +53,20 @@ function buildXmapTextSymbol(
     // layer's `text.tabs`; pass through so the encoder emits
     // `<tabs count="N"><tab>V</tab>…</tabs>`.
     tabs: typo?.tabs,
+    // Canonical lineBelow → xmap `<line_below>`; only emit when
+    // `visible` (matches Mapper's write convention, and OCD-side
+    // lbOn=false suppresses the element).
+    lineBelow:
+      typo?.lineBelow?.visible &&
+      (typo.lineBelow.color !== undefined ||
+        typo.lineBelow.width !== undefined ||
+        typo.lineBelow.distance !== undefined)
+        ? {
+            color: typo.lineBelow.color,
+            width: typo.lineBelow.width,
+            distance: typo.lineBelow.distance,
+          }
+        : undefined,
   } as OmapTextSymbol
 }
 

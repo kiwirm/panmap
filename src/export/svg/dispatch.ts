@@ -34,14 +34,8 @@ import {
   type ColorLookup,
   type SymbolLookup,
 } from './colors.js'
-import {
-  lineElementsLayerToSvg,
-  doubleLineLayerToSvg,
-} from './line-render.js'
-import {
-  hatchPatternToSvg,
-  pointPatternToSvg,
-} from './fills.js'
+import { lineElementsLayerToSvg, doubleLineLayerToSvg } from './line-render.js'
+import { hatchPatternToSvg, pointPatternToSvg } from './fills.js'
 import { pointLayerToSvg } from './point-symbols.js'
 import { textLayerToSvg } from './text-render.js'
 

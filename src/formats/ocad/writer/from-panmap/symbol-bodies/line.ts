@@ -12,7 +12,6 @@ import {
 } from '../../../../../panmap/stroke-classifier.js'
 import type { ColorNumber } from './shared.js'
 import { normUnits } from './shared.js'
-import { pointElementFromXmap } from './point.js'
 
 function frameFields(
   primary: StrokeLayer | undefined,
@@ -53,9 +52,25 @@ function frameFields(
   // as a frame (Mapper's `<combined_symbol>` path/road symbols like
   // hillmorton 501.11 Paved footpath have a dashed main line PLUS a
   // solid double-line border, no frame).
+  // frColor-only sidecar (frWidth=0): the OCD reader stashes Mapper's
+  // authored frColor on the primary stroke when frWidth=0 (jarnvag /
+  // tahunanui contour lines). Emit those fields even without a visible
+  // frame stroke so the OCD round-trip keeps the value.
+  const sidecarColor = (
+    primary as (StrokeLayer & { frColor?: number | string }) | undefined
+  )?.frColor
+  const sidecarStyle = (
+    primary as (StrokeLayer & { frStyle?: number }) | undefined
+  )?.frStyle
+  if (sidecarColor !== undefined && sidecarColor !== null) {
+    return {
+      frColor: colorNumber(sidecarColor),
+      frWidth: 0,
+      frStyle: sidecarStyle ?? 0,
+    }
+  }
   if (!primary?.dash) return { frColor: 0, frWidth: 0, frStyle: 0 }
-  if (doubleLine.dblFillColor > 0)
-    return { frColor: 0, frWidth: 0, frStyle: 0 }
+  if (doubleLine.dblFillColor > 0) return { frColor: 0, frWidth: 0, frStyle: 0 }
   const frame = strokes.find(
     s => s !== primary && strokeColorValid(s) && !s.dash,
   )
@@ -183,7 +198,32 @@ export function deriveDoubleLine(
     borderStroke !== primary && strokeColorValid(borderStroke)
   if (!leftValid && !rightValid && !borderStrokeVisible) return empty
 
-  const fillWidth = normUnits(borderStroke?.width)
+  // Mapper's OCD export rule for dblWidth (ocd_file_export.cpp:1747):
+  //   both borders: line_width - (lW+rW)/2 + lShift + rShift
+  //   one border:   line_width - borderW  + borderShift * 2
+  //   no borders:   line_width
+  // Panmap's default `fillWidth = normUnits(borderStroke.width)` was
+  // ignoring the border-width offset, producing dblWidth=line_width
+  // even when a border subtracted from it (Tramway 509.2 has
+  // line_width=300, border=100/shift=0 → Mapper writes 20, panmap
+  // wrote 30).
+  const singleBorder = Array.isArray(borders) && borders.length === 1
+  const strokeWidthRaw = borderStroke?.width ?? 0
+  let dblWidthRaw = strokeWidthRaw
+  if (singleBorder && borders?.[0]) {
+    const b = borders[0]
+    dblWidthRaw =
+      strokeWidthRaw - (Number(b.width) || 0) + 2 * (Number(b.shift) || 0)
+  } else if (borders && borders.length >= 2) {
+    const l = borders[0]
+    const r = borders[1]
+    dblWidthRaw =
+      strokeWidthRaw -
+      ((Number(l.width) || 0) + (Number(r.width) || 0)) / 2 +
+      (Number(l.shift) || 0) +
+      (Number(r.shift) || 0)
+  }
+  const fillWidth = normUnits(Math.max(0, dblWidthRaw))
   let fillColor = 0
   const borderStrokeIsPrimary = borderStroke === primary
   if (!borderStrokeIsPrimary || !primaryVisible) {
@@ -376,12 +416,25 @@ function encodeDashRhythm(
     //     for the mid-dot at the centre — see butlers 106 Ruined earth wall).
     const dashLen = normUnits(dashLenRaw)
     if (ctx.hasMidSymbol) {
-      const spacing =
-        typeof ctx.spacing === 'number'
+      // For xmap-sourced lines with mid_symbol_placement=1
+      // (CenterOfDashGroup / gaps_swapped case): Mapper's OCD encoding
+      // uses mainLength = dashLen + breakLen (bottle-lake 106 Ruined
+      // earth wall: dash=165, break=35 → mainLength=200), NOT the
+      // xmap-authored segment_length which would give 400 (Mapper's UI
+      // default 4000). Fall back to that derivation whenever the source
+      // marked placement=1; the ctx.spacing (segment_length) branch
+      // still fires for other placement values and for OCD-sourced
+      // lines that carry mainLength on the stroke.
+      const midPlacement = (primary as { midSymbolPlacement?: number })
+        ?.midSymbolPlacement
+      const preferDerived = midPlacement === 1
+      const spacing = preferDerived
+        ? normUnits(dashLenRaw + breakLenRaw)
+        : typeof ctx.spacing === 'number'
           ? normUnits(ctx.spacing)
           : normUnits(dashLenRaw + breakLenRaw)
       const endOffset =
-        typeof ctx.endOffset === 'number'
+        typeof ctx.endOffset === 'number' && !preferDerived
           ? normUnits(ctx.endOffset)
           : normUnits(spacing / 2)
       return {
@@ -424,10 +477,7 @@ function encodePrimaryLineStyle(
 
 /** Rewrite string colorIds (from gitmap) on OCD-shape decoration elements
  *  to numeric OCD palette slots. See point-body's `normaliseOcadElementColor`. */
-function mapElementColors(
-  els: unknown,
-  colorNumber: ColorNumber,
-): unknown[] {
+function mapElementColors(els: unknown, colorNumber: ColorNumber): unknown[] {
   if (!Array.isArray(els)) return []
   return els.map(el => {
     if (!el || typeof el !== 'object') return el

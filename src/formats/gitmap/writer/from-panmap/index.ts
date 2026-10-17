@@ -122,6 +122,11 @@ function toGitmapSymbol(
   })
   const canonLayers = mergePrimaryStrokeWithBorders(
     layers
+      // `combined-refs` is an OMap-only sidecar the reader emits alongside
+      // the flattened per-part layers so the direct xmap writer can re-emit
+      // `<combined_symbol>`. Drop for gitmap so OCD-vs-OMap convergence
+      // stays on the flattened form.
+      .filter(layer => (layer as { type?: string }).type !== 'combined-refs')
       .filter(layer => !isPhantomFillLayer(layer))
       .filter(layer => !(hasDoubleLineCompanion && isPhantomStroke(layer)))
       .flatMap(canonicalisePointElementsLayer)
@@ -146,10 +151,19 @@ function toGitmapSymbol(
     // Omit boolean fields that equal their default so a semantic toggle
     // shows up in `git diff` as a real field add, not a value swap.
     hidden: symbol.hidden ? true : undefined,
+    // `protected` is a canonical MapSymbol field derived by BOTH readers
+    // (OCAD from status byte bit 0; OMap from `is_protected="true"`),
+    // so it converges through gitmap. Emit only when true so the file
+    // stays lean.
+    protected: symbol.protected ? true : undefined,
     rotatable: symbol.rotatable || undefined,
     // Text typography lives once, in the `text` render layer's `text` object
     // (no duplicate top-level fontSize / per-layer fontSize+fontFamily).
-    textSymbol: toJsonSafe(symbol.textSymbol),
+    // The `symbol.textSymbol` bag on MapSymbol currently only carries
+    // xmap-only fields (iconText) that OCD has no equivalent for —
+    // dropping preserves OCD ↔ OMap convergence, and the direct xmap
+    // round-trip preserves iconText via the writer's applyNativePassthroughs.
+    // Same story for `symbol.areaSymbol.minArea`.
     layers: canonLayers.map(layer =>
       renderLayerToGitmap(layer, colorIds, symbolIds, canonLayers),
     ),
@@ -357,7 +371,7 @@ function normaliseStrokeCapJoinForGitmap(layer: RenderLayer): RenderLayer {
   if (typeof l.capStyle !== 'number' || typeof l.joinStyle !== 'number') {
     return layer
   }
-  let cap = l.capStyle
+  const cap = l.capStyle
   let join = l.joinStyle
   if (cap === 1) join = 2
   else if (cap === 0 && join === 2) join = 1

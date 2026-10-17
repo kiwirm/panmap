@@ -130,8 +130,7 @@ function isOriginShape(el: unknown): el is FoldableElement {
   const nCoords = e.numberCoords ?? e.coords?.length ?? 0
   if (nCoords !== 1) return false
   const c = e.coords?.[0] as
-    | { 0?: number; 1?: number; x?: number; y?: number }
-    | undefined
+    { 0?: number; 1?: number; x?: number; y?: number } | undefined
   if (!c) return false
   const x = (c[0] ?? c.x ?? 0) as number
   const y = (c[1] ?? c.y ?? 0) as number

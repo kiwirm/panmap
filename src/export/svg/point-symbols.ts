@@ -248,9 +248,7 @@ function ocadPointElementToSvg(
   // Same y-up → y-down negation as the xmap-shaped branch above; OCAD
   // element coords are y-up natively and reach the model unchanged.
   const coords = (element.coords || []).map(coord =>
-    transform(
-      addRotatedCoord(anchor, [coordX(coord), -coordY(coord)], angle),
-    ),
+    transform(addRotatedCoord(anchor, [coordX(coord), -coordY(coord)], angle)),
   )
 
   switch (element.type) {

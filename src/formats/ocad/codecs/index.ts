@@ -6,10 +6,12 @@
  * out of sync — the class of bug where a writer applies a transform no reader
  * undoes. Add a new detail as its own file.
  *
- *   ocad-coord  — OCAD 32-bit packed ordinate ↔ value + flag byte
- *   ocad-angle  — OCAD tenths-of-a-degree ↔ radians
- *   hole-flags  — hole-ring flag position (last-of-prev ↔ first-of-new)
- *   text-box    — OCAD 5-coord text box ↔ canonical anchor
+ *   ocad-coord     — OCAD 32-bit packed ordinate ↔ value + flag byte
+ *   ocad-angle     — OCAD tenths-of-a-degree ↔ radians
+ *   hole-flags     — hole-ring flag position (last-of-prev ↔ first-of-new)
+ *   text-box       — OCAD 5-coord text box ↔ canonical anchor
+ *   text-symbol    — text align byte ↔ enum, font size ↔ mm
+ *   element-flags  — OCAD point-symbol element `flags` byte ↔ cap/join style
  */
 export {
   packOcadOrdinate,
@@ -29,3 +31,8 @@ export {
   ocadFontSizeToMm,
   mmToOcadFontSize,
 } from './text-symbol.js'
+export {
+  decodeOcadElementFlags,
+  encodeOcadElementFlags,
+  type CapJoin,
+} from './element-flags.js'

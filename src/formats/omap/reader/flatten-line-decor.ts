@@ -21,6 +21,8 @@
  * `ocadElementToXmapElement` re-negates on the way out.
  */
 
+import { encodeOcadElementFlags } from '../../ocad/codecs/element-flags.js'
+
 interface XmapLineDecorInput {
   symbol?: {
     pointSymbol?: {
@@ -56,14 +58,6 @@ interface XmapLineDecorInput {
 // y=110/-110 → snapped to 100/-100 = wrong OCD y=10/-10 instead of 11/-11).
 function snapSymCoord(v: number): number {
   return Math.round(v)
-}
-
-function mapAndRoundCoord(
-  c: { x?: number; y?: number } | [number?, number?],
-): { x: number; y: number } {
-  const x = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
-  const y = Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0)
-  return { x: snapSymCoord(x), y: -snapSymCoord(y) }
 }
 
 /**
@@ -148,19 +142,14 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
     return out
   }
   if (sym.lineSymbol) {
-    const coords = rawCoords.map((c, i) =>
-      mapAndFlagCoord(c, i, rawCoords),
-    )
-    const cap = sym.lineSymbol.capStyle ?? 0
-    const join = sym.lineSymbol.joinStyle ?? 0
-    // OCD line-element flags byte: bit 0 (0x01) round cap,
-    // bit 2 (0x04) miter join — the values Mapper's own OCD export
-    // writes for the same nested symbol.
-    const flags = (cap === 1 ? 0x01 : 0) | (join === 1 ? 0x04 : 0)
+    const coords = rawCoords.map((c, i) => mapAndFlagCoord(c, i, rawCoords))
     return [
       {
         type: 1,
-        flags,
+        flags: encodeOcadElementFlags(
+          sym.lineSymbol.capStyle,
+          sym.lineSymbol.joinStyle,
+        ),
         color: sym.lineSymbol.color,
         lineWidth: sym.lineSymbol.lineWidth ?? 0,
         diameter: 0,
@@ -170,9 +159,7 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
     ]
   }
   if (sym.areaSymbol) {
-    const coords = rawCoords.map((c, i) =>
-      mapAndFlagCoord(c, i, rawCoords),
-    )
+    const coords = rawCoords.map((c, i) => mapAndFlagCoord(c, i, rawCoords))
     return [
       {
         type: 2,

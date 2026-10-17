@@ -8,10 +8,7 @@ import type {
   HatchLayer,
   PointPatternLayer,
 } from '../../../../panmap/render-layers.js'
-import type {
-  OmapAreaPattern,
-  OmapAreaSymbol,
-} from '../../native.js'
+import type { OmapAreaPattern, OmapAreaSymbol } from '../../native.js'
 import { colorRef } from './colors.js'
 import { ocadElementsToXmapPointSymbol } from './elements.js'
 
@@ -33,8 +30,8 @@ function buildXmapAreaSymbol(
       angle: ((h.angle ?? 0) * Math.PI) / 180,
       lineSpacing: h.spacing ?? 0,
       pointDistance: 0,
-      lineOffset: 0,
-      offsetAlongLine: 0,
+      lineOffset: h.lineOffset ?? 0,
+      offsetAlongLine: h.offsetAlongLine ?? 0,
       color: colorRef(h.colorId, colorIds),
       lineWidth: h.lineWidth ?? 0,
       rotatable: !!h.rotatable,
@@ -54,7 +51,14 @@ function buildXmapAreaSymbol(
     const stamp = ocadElementsToXmapPointSymbol(
       (p.elements as unknown[]) ?? [],
       colorIds,
-      { inlineSingleDot: true },
+      {
+        inlineSingleDot: true,
+        // Preserve xmap-authored wrapper metadata on the stamp (kura-
+        // tawhiti 208 boulder-field has inner_radius=1200 on the outer;
+        // 414/414.1 have inner_radius=0). Undefined for OCD-sourced
+        // patterns, where the writer default applies.
+        wrapper: (p as { stampWrapper?: unknown }).stampWrapper as never,
+      },
     )
     const base = {
       type: 2,
@@ -96,6 +100,11 @@ function buildXmapAreaSymbol(
   return {
     innerColor,
     patterns: patterns.length ? patterns : undefined,
+    // Preserve Mapper's `min_area` when the reader carried it on the
+    // primary fill layer. OCD-sourced maps have no equivalent slot;
+    // `primaryFill?.minArea` is undefined for them and we fall through
+    // to encoder default 0.
+    minArea: primaryFill?.minArea,
   }
 }
 

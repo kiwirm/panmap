@@ -304,9 +304,7 @@ for (const { name, ocd, xmap } of FIXTURES) {
           fieldCount: mismatches.comparisons,
           what: "panmap's xmap→ocd conversion",
           against: "Mapper's own xmap→ocd",
-        })}\n${formatDiff(
-          mismatches.slice(0, 500),
-        )}`,
+        })}\n${formatDiff(mismatches.slice(0, 500))}`,
       )
     } finally {
       await fs.unlink(tmp).catch(() => {})

@@ -95,7 +95,7 @@ async function writeGitmap(
 
   const manifest: Record<string, unknown> = {
     format: 'gitmap',
-    version: 2,
+    version: 3,
     units: 'map-units',
     precision: 3,
     // Parts are inline. Single-part maps carry the default 'part_main';

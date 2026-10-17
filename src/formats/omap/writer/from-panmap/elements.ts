@@ -12,6 +12,7 @@ import type {
 import { coordX, coordY, coordFlags } from '../../../../panmap/coord.js'
 import type { Coord } from '../../../../panmap/coord.js'
 import { colorRef, rewriteSymbolColors } from './colors.js'
+import { decodeOcadElementFlags } from '../../../ocad/codecs/element-flags.js'
 
 /**
  * Turn a flat array of OCAD point-elements (from `primSymElements` /
@@ -40,6 +41,18 @@ function ocadElementsToXmapPointSymbol(
     // line_symbol) DO want inlining — Mapper writes cliff/bank/etc.
     // tag decorations as an inline dot without a nested <element>.
     inlineSingleDot?: boolean
+    // Mapper-authored outer-wrapper metadata surfaced from the reader
+    // (see `LineElementsLayer.primSymWrapper` etc.). When present the
+    // fields override the wrapper defaults below so the direct xmap
+    // round-trip preserves what Mapper wrote (butlers-bush 104 with
+    // inner_radius=0; kura-tawhiti 208 with inner_radius=1200).
+    wrapper?: {
+      innerRadius?: number
+      innerColor?: number | string | null
+      outerWidth?: number
+      outerColor?: number | string | null
+      rotatable?: boolean
+    }
   } = {},
 ): OmapSymbol | undefined {
   if (!elements?.length) return undefined
@@ -92,7 +105,7 @@ function ocadElementsToXmapPointSymbol(
   // xmap→gitmap→xmap round-trips through mapwall land on Mapper's
   // canonical form.
   if (options.inlineSingleDot && converted.length === 1) {
-    const inlined = tryInlineSingleDotCircle(converted[0])
+    const inlined = tryInlineSingleDotCircle(converted[0], options.wrapper)
     if (inlined) return inlined
   }
   // Line-decoration wrappers (mid_symbol / start_symbol / end_symbol /
@@ -102,16 +115,23 @@ function ocadElementsToXmapPointSymbol(
   // such wrapper by convention, plus `inner_radius="1000"` as the rotation-
   // gizmo hint. Match to avoid drift and keep decorations pointing the
   // right way after ocd→xmap round-trip.
+  //
+  // When `options.wrapper` is supplied (xmap-sourced round-trip), prefer
+  // Mapper's authored value for each field over the defaults so the
+  // direct cycle preserves e.g. inner_radius=0 or 1200 exactly.
+  const w = options.wrapper
   return {
     id: -1,
     code: '',
     type: 1,
     pointSymbol: {
-      innerColor: -1,
-      innerRadius: 100,
-      outerColor: -1,
-      outerWidth: 0,
-      rotatable: true,
+      innerColor:
+        w?.innerColor !== undefined ? (w.innerColor as number | null) : -1,
+      innerRadius: w?.innerRadius !== undefined ? w.innerRadius : 100,
+      outerColor:
+        w?.outerColor !== undefined ? (w.outerColor as number | null) : -1,
+      outerWidth: w?.outerWidth !== undefined ? w.outerWidth : 0,
+      rotatable: w?.rotatable !== undefined ? w.rotatable : true,
       elements: converted,
     },
   }
@@ -126,6 +146,9 @@ function ocadElementsToXmapPointSymbol(
  */
 function tryInlineSingleDotCircle(
   child: { symbol: OmapSymbol; object: OmapObject },
+  wrapper?: {
+    rotatable?: boolean
+  },
 ): OmapSymbol | null {
   const s = child.symbol
   const ps = s?.pointSymbol
@@ -138,6 +161,22 @@ function tryInlineSingleDotCircle(
     return null
   }
   if (ps.elements && ps.elements.length > 0) return null
+  // Skip inlining phantom sole-children — invisible point symbols
+  // (inner_radius=0, inner_color=-1, outer_width=0, outer_color=-1) that
+  // Mapper writes as position markers wrapped inside a line-decoration
+  // wrapper (butlers-bush 201 start_symbol / laidmore 104.2 dash_symbol).
+  // Inlining would collapse the nested `<element>` to a bare wrapper and
+  // lose the source's structure on the direct xmap round-trip.
+  const innerR = Number((ps as { innerRadius?: number }).innerRadius ?? 0)
+  const outerW = Number((ps as { outerWidth?: number }).outerWidth ?? 0)
+  const innerC = (ps as { innerColor?: number | null }).innerColor
+  const outerC = (ps as { outerColor?: number | null }).outerColor
+  const isPhantom =
+    innerR === 0 &&
+    outerW === 0 &&
+    (innerC === undefined || innerC === null || innerC === -1) &&
+    (outerC === undefined || outerC === null || outerC === -1)
+  if (isPhantom) return null
   const coords = child.object?.coords
   if (Array.isArray(coords) && coords.length > 0) {
     const c = coords[0] as { x?: number; y?: number } | number[]
@@ -155,9 +194,12 @@ function tryInlineSingleDotCircle(
       innerRadius: ps.innerRadius ?? 0,
       outerColor: ps.outerColor ?? -1,
       outerWidth: ps.outerWidth ?? 0,
-      // Mapper always sets rotatable=true on line-decoration wrappers,
-      // which is what our caller is emitting; preserve.
-      rotatable: true,
+      // Prefer the wrapper's authored `rotatable` (Mapper omits the attr
+      // on many pattern stamps — butlers-bush 412's cultivated-land dot
+      // pattern has no rotatable="true"). Fall back to true, which
+      // matches Mapper's default for line-decoration wrappers built
+      // fresh by OCD import.
+      rotatable: wrapper?.rotatable !== undefined ? wrapper.rotatable : true,
     } as OmapPointSymbol,
   }
 }
@@ -218,13 +260,7 @@ function ocadElementToXmapElement(
     flags: coordFlags(c) || derived[i] || undefined,
   }))
   const c = colorRef(e.color, colorIds)
-  // OCAD line-element `flags` byte packs cap+join style:
-  //   bit 0 (0x01) = RoundCap, bit 2 (0x04) = MiterJoin
-  // Decode so xmap emits cap_style/join_style and Mapper's re-export
-  // reconstructs the same OCAD flags.
-  const elFlags = e.flags ?? 0
-  const elCap = elFlags & 0x01 ? 1 : 0
-  const elJoin = elFlags & 0x04 ? 1 : 0
+  const { capStyle: elCap, joinStyle: elJoin } = decodeOcadElementFlags(e.flags)
 
   if (e.type === 1) {
     // line

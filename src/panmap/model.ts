@@ -158,6 +158,23 @@ export interface TextTypography {
    *  by both OCD (`nTabs` + `tabs[32]`) and OMap (`<tabs>/<tab>`) readers
    *  so the field survives xmap ↔ ocd conversion. */
   tabs?: number[]
+  /** Underline / rule drawn below the text. OCAD stores as `lb*` fields
+   *  on the text symbol; XMap serialises as `<line_below>` under
+   *  `<text_symbol>`. Populated by both readers so a diff sees the
+   *  same shape whichever source produced it. `visible` is OCAD's
+   *  `lbOn` flag; XMap infers `visible: true` from element presence. */
+  lineBelow?: {
+    visible?: boolean
+    color?: number
+    width?: number
+    distance?: number
+  }
+  /** OCAD-only framing fields (`frMode`/`frStyle`/`frColor`/`frWidth`/
+   *  `frLeft`/`frBottom`/`frRight`/`frTop`) stash here so an OCD→OCD
+   *  round-trip preserves them. Dropped at gitmap-serialize because
+   *  XMap's `<framing>` element uses a different sub-schema and we
+   *  don't yet share a canonical shape. */
+  [key: string]: unknown
 }
 
 /**
@@ -210,13 +227,21 @@ export interface MapSymbol {
   name?: string
   type: string
   hidden: boolean
+  /** Mapper's per-symbol `is_protected="true"` flag — marks a symbol
+   *  as UI-locked (edits blocked). XMap-only; OCAD has no equivalent
+   *  slot, so this survives xmap round-trips but not xmap → OCD → xmap. */
+  protected?: boolean
   /** Whether the symbol rotates with its object (OCAD flags bit 0; xmap `<point_symbol rotatable="true">` / `<text_symbol rotatable="true">` / any pattern with `rotatable="true"` on an area). */
   rotatable?: boolean
   fontSize?: number
   /** Format-native text-symbol payload (OCAD TextSymbol11 / XMap
    *  text_symbol). Only the fields consumed cross-format are typed
    *  here; format-specific extras fall through. */
-  textSymbol?: { rotatable?: boolean; fontSize?: number }
+  textSymbol?: { rotatable?: boolean; fontSize?: number; iconText?: string }
+  /** Format-native area-symbol payload. Currently only carries Mapper's
+   *  `min_area` — the render layers don't have a natural home for it
+   *  on pattern-only areas (innerColor=-1) so it lives here. XMap-only. */
+  areaSymbol?: { minArea?: number }
   layers: RenderLayer[]
 }
 

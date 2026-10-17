@@ -32,6 +32,7 @@ export type RenderLayer =
   | HatchLayer
   | PointPatternLayer
   | BorderSymbolLayer
+  | CombinedRefsLayer
   | DoubleLineLayer
   | LineElementsLayer
   | PointFillLayer
@@ -41,14 +42,15 @@ export type RenderLayer =
   | BaseRenderLayer
 
 /** True when `layer` is a tiled stamp pattern. */
-export function isPatternLayer(
-  layer: RenderLayer,
-): layer is PointPatternLayer {
+export function isPatternLayer(layer: RenderLayer): layer is PointPatternLayer {
   return layer.type === 'point-pattern-fill'
 }
 
 export interface FillLayer extends BaseRenderLayer {
   type: 'fill'
+  /** Minimum area (mm²) below which Mapper suppresses the fill. XMap
+   *  only; OCAD has no equivalent slot. */
+  minArea?: number
 }
 
 /**
@@ -133,10 +135,38 @@ export interface StrokeLayer extends BaseRenderLayer {
   showAtLeastOneSymbol?: boolean
   startOffset?: number
   endOffset?: number
+  minimumLength?: number
+  suppressDashSymbolAtEnds?: boolean
+  scaleDashSymbol?: boolean
+  /** Mapper's `dash_length` / `break_length` on a NON-dashed line —
+   *  a per-symbol Mapper setting the user picks even when the line
+   *  isn't dashed. On dashed lines these live inside `dash` and the
+   *  values coincide; here we carry them separately so the writer can
+   *  emit them on both. XMap-only; dropped at gitmap-serialize time. */
+  dashLength?: number
+  breakLength?: number
+  /** Same story for `in_group_break_length` — Mapper stores a per-
+   *  symbol value even when dashes_in_group=1 makes it semantically
+   *  unused (butlers-bush/laidmore 408.2 with in_group_break_length=750). */
+  inGroupBreakLength?: number
+  /** OCAD-only framing colour on a line — Mapper stores frColor even
+   *  when frWidth=0 (jarnvag/tahunanui contours 101/102/103/…). We
+   *  can't surface as a separate frame stroke without it being
+   *  reinterpreted as a doubleLine at write time, so preserve as a
+   *  sidecar on the primary stroke and let the OCAD writer emit
+   *  fr* from here when no visible frame stroke exists. */
+  frColor?: number | string
+  frStyle?: number
 }
 
 export interface HatchLayer extends BaseRenderLayer {
   type: 'hatch-fill'
+  /** Perpendicular offset of the first hatch line from the anchor.
+   *  Mapper preserves this per-pattern; OCD has no equivalent so this
+   *  round-trips on the direct xmap path only. */
+  lineOffset?: number
+  /** Offset ALONG the hatch line direction. Same OMap-only story. */
+  offsetAlongLine?: number
 }
 
 /**
@@ -164,11 +194,32 @@ export interface PointPatternLayer extends BaseRenderLayer {
   rotatable?: boolean
   /** The stamp drawn at each grid point, as flat icon primitives. */
   elements?: RenderElement[]
+  /** OMap wrapper metadata for the stamp's `<point_symbol>` — Mapper's
+   *  inner_radius can carry a non-default value (e.g. 1200 on
+   *  boulder-field 208 in kura-tawhiti). Dropped at gitmap-serialize
+   *  time. XMap-only. */
+  stampWrapper?: DecorationWrapper
+  /** OCAD-only "irregular scatter" fields — control random perturbation
+   *  of a structure fill (Stony ground 210 etc.). XMap has no
+   *  equivalent so these round-trip on OCD → OCD only. */
+  structIrregularVarX?: number
+  structIrregularVarY?: number
+  structIrregularMinDist?: number
 }
 
 export interface BorderSymbolLayer extends BaseRenderLayer {
   type: 'border-symbol'
   symbolId?: number | string
+}
+
+/** OMap `<combined_symbol parts="N">` where every part is a bare
+ *  `<part symbol="…"/>` reference (no inline symbol body). Cultivated
+ *  land 412 in kura-tawhiti/orua-paeroa is the canonical example: two
+ *  area refs stacked as a compound area. Preserved through the direct
+ *  xmap round-trip; dropped at gitmap-serialize time (no OCD equivalent). */
+export interface CombinedRefsLayer extends BaseRenderLayer {
+  type: 'combined-refs'
+  refs: Array<number | string>
 }
 
 export interface DoubleLineLayer extends BaseRenderLayer {
@@ -200,6 +251,27 @@ export interface LineElementsLayer extends BaseRenderLayer {
   startSymElements?: RenderElement[]
   /** Decoration elements placed at the line end. */
   endSymElements?: RenderElement[]
+  /** Metadata for the OUTER xmap wrapper `<point_symbol>` that holds the
+   *  elements on the xmap side. Mapper varies inner_radius across sources
+   *  (default 1000 for OCD-import, sometimes 0 for hand-authored xmap),
+   *  so preserving on the direct round-trip requires carrying the value.
+   *  Dropped at gitmap-serialize time. XMap-only. */
+  primSymWrapper?: DecorationWrapper
+  startSymWrapper?: DecorationWrapper
+  endSymWrapper?: DecorationWrapper
+  cornerSymWrapper?: DecorationWrapper
+}
+
+/** OMap `<point_symbol>` wrapper metadata for line-decoration and
+ *  area-pattern stamps. Preserves what Mapper wrote on the outer
+ *  wrapper (inner_radius / inner_color / outer_width / outer_color)
+ *  so the direct xmap round-trip is lossless. */
+export interface DecorationWrapper {
+  innerRadius?: number
+  innerColor?: number | string | null
+  outerWidth?: number
+  outerColor?: number | string | null
+  rotatable?: boolean
 }
 
 export interface PointFillLayer extends BaseRenderLayer {

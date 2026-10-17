@@ -203,9 +203,7 @@ function measureLines(endpoints, metric) {
   // instead of x. Use the endpoint record count instead, which is the real
   // object count and makes the share linear.
   const isIdKeyed = metric !== 'objects'
-  const total = isIdKeyed
-    ? allIds.size
-    : Math.max(...byId.map(m => m.size))
+  const total = isIdKeyed ? allIds.size : Math.max(...byId.map(m => m.size))
   if (names.length < 2) return { identical: total, total }
   let identical = 0
   for (const id of allIds) {

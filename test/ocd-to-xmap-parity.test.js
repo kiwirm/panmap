@@ -277,7 +277,9 @@ for (const { name, ocd, xmap } of FIXTURES) {
     // Ground truth: Mapper's own .xmap for this map revision.
     const groundTruthXml = await fs.readFile(fixtureFile(xmap), 'utf-8')
     // Panmap's conversion: read the .ocd, run through the model, write xmap.
-    const map = ocadFileToMap(await readOcad(await fs.readFile(fixtureFile(ocd))))
+    const map = ocadFileToMap(
+      await readOcad(await fs.readFile(fixtureFile(ocd))),
+    )
     const regen = await mapToOmapXml(map)
 
     const expected = parseXml(groundTruthXml)
@@ -322,9 +324,7 @@ for (const { name, ocd, xmap } of FIXTURES) {
         fieldCount: mismatches.comparisons,
         what: "panmap's ocd→xmap conversion",
         against: "Mapper's own ocd→xmap",
-      })}\n${formatDiff(
-        mismatches.slice(0, 500),
-      )}`,
+      })}\n${formatDiff(mismatches.slice(0, 500))}`,
     )
   })
 }

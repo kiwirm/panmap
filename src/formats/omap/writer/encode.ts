@@ -27,6 +27,7 @@ export function xmapSymbolToXml(symbol: RawOmapSymbol, id?: number): string {
     // Round-trip Mapper's UI-hide flag. Only emit when true so the
     // XML stays clean for the (much more common) unhidden case.
     symbol.isHidden ? `is_hidden="true"` : '',
+    symbol.isProtected ? `is_protected="true"` : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -115,19 +116,23 @@ function xmapLineSymbolToXml(symbol: OmapLineSymbol): string {
     dashed: boolAttr(symbol.dashed),
     segment_length: dim(symbol.segmentLength ?? 400),
     end_length: dim(symbol.endLength || 0),
-    half_outer_dashes: (symbol as { halfOuterDashes?: boolean })
-      .halfOuterDashes
+    half_outer_dashes: (symbol as { halfOuterDashes?: boolean }).halfOuterDashes
       ? 'true'
       : undefined,
-    show_at_least_one_symbol:
-      symbol.showAtLeastOneSymbol === false ? 'false' : 'true',
+    // Mapper's convention (line_symbol.cpp:1834): only emit when true;
+    // omit otherwise. The reader mirrors the inverse (undefined → false),
+    // so a Mapper-authored omit round-trips as omit-again.
+    show_at_least_one_symbol: symbol.showAtLeastOneSymbol ? 'true' : undefined,
     minimum_mid_symbol_count: symbol.minimumMidSymbolCount ?? 0,
     minimum_mid_symbol_count_when_closed:
       symbol.minimumMidSymbolCountWhenClosed ?? 0,
-    dash_length: dim(symbol.dashLength || 400),
-    break_length: dim(symbol.breakLength || 100),
+    // `??` (not `||`) so an explicit 0 (butlers-bush 108 with
+    // break_length="0") round-trips as 0 instead of being replaced by
+    // Mapper's UI default.
+    dash_length: dim(symbol.dashLength ?? 400),
+    break_length: dim(symbol.breakLength ?? 100),
     dashes_in_group: symbol.dashesInGroup ?? 1,
-    in_group_break_length: dim(symbol.inGroupBreakLength || 50),
+    in_group_break_length: dim(symbol.inGroupBreakLength ?? 50),
     mid_symbols_per_spot: symbol.midSymbolsPerSpot ?? 1,
     mid_symbol_distance: dim(symbol.midSymbolDistance || 0),
     mid_symbol_placement: symbol.midSymbolPlacement,
@@ -167,7 +172,7 @@ function xmapAreaSymbolToXml(symbol: OmapAreaSymbol): string {
   if (!patterns.length) {
     return `<area_symbol${attrs({
       inner_color: symbol.innerColor ?? -1,
-      min_area: 0,
+      min_area: dim(symbol.minArea || 0),
       patterns: 0,
     })}/>`
   }
@@ -175,7 +180,7 @@ function xmapAreaSymbolToXml(symbol: OmapAreaSymbol): string {
   return [
     `<area_symbol${attrs({
       inner_color: symbol.innerColor ?? -1,
-      min_area: 0,
+      min_area: dim(symbol.minArea || 0),
       patterns: patterns.length,
     })}>`,
     ...patterns.map(pattern => indent(xmapPatternToXml(pattern), 2)),
@@ -251,8 +256,28 @@ function xmapTextSymbolToXml(symbol: OmapTextSymbol): string {
       character_spacing: symbol.characterSpacing ?? 0,
     })}/>`,
     ...xmapTabsToXml((symbol as { tabs?: number[] }).tabs),
+    ...xmapLineBelowToXml(
+      (
+        symbol as {
+          lineBelow?: { color?: number; width?: number; distance?: number }
+        }
+      ).lineBelow,
+    ),
     '</text_symbol>',
   ].join('\n')
+}
+
+function xmapLineBelowToXml(
+  lb: { color?: number; width?: number; distance?: number } | undefined,
+): string[] {
+  if (!lb) return []
+  return [
+    `  <line_below${attrs({
+      color: lb.color,
+      width: lb.width !== undefined ? dim(lb.width) : undefined,
+      distance: lb.distance !== undefined ? dim(lb.distance) : undefined,
+    })}/>`,
+  ]
 }
 
 // Serialise paragraph tab stops back to the `<tabs count="N"><tab>V</tab>…`
@@ -330,4 +355,3 @@ function xmapObjectToXml(object: OmapObject): string {
   lines.push('</object>')
   return lines.join('\n')
 }
-

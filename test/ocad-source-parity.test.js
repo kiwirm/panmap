@@ -94,12 +94,29 @@ const IGNORED_FIELDS = new Set([
 const IGNORED_SUBOBJECT_FIELDS = new Map([
   // `decrease.*` (line-width tapering along a line). Panmap doesn't
   // model this OCAD-only feature; the writer emits zero defaults.
-  ['decrease', new Set(['decMode', 'decSymbolSize', 'decSymbolDistance', 'decSymbolWidth', '_decLast'])],
+  [
+    'decrease',
+    new Set([
+      'decMode',
+      'decSymbolSize',
+      'decSymbolDistance',
+      'decSymbolWidth',
+      '_decLast',
+    ]),
+  ],
   // `doubleLine.dbl*Color` when `dblMode=0` — Mapper stores leftover
   // colour values from a previous double-line config, but with mode=0
   // they don't render. Our writer emits 0 (no double-line layer created)
   // which is semantically equivalent.
-  ['doubleLine', new Set(['dblFillColor', 'dblLeftColor', 'dblRightColor', 'dblBackgroundColor'])],
+  [
+    'doubleLine',
+    new Set([
+      'dblFillColor',
+      'dblLeftColor',
+      'dblRightColor',
+      'dblBackgroundColor',
+    ]),
+  ],
 ])
 
 // Structured child arrays / objects we DO recurse into. Anything else is a
@@ -189,7 +206,9 @@ function diffValue(expected, actual, path, out) {
         out.push({
           path: `${path}.${key}`,
           expected: `array[${expChild.length}]`,
-          actual: Array.isArray(actChild) ? `array[${actChild.length}]` : actChild,
+          actual: Array.isArray(actChild)
+            ? `array[${actChild.length}]`
+            : actChild,
         })
       }
     } else {
@@ -218,11 +237,13 @@ function formatDiff(mismatches) {
     const symMatch = m.path.match(/^<symbol [^>]+>/)
     const key = symMatch ? symMatch[0] : '<root>'
     if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(
-      `  ${m.path.slice(key.length + 1) || '(this node)'}: expected=${JSON.stringify(
-        m.expected,
-      )} actual=${JSON.stringify(m.actual)}`,
-    )
+    groups
+      .get(key)
+      .push(
+        `  ${m.path.slice(key.length + 1) || '(this node)'}: expected=${JSON.stringify(
+          m.expected,
+        )} actual=${JSON.stringify(m.actual)}`,
+      )
   }
   const lines = []
   for (const [sym, entries] of groups) {
@@ -288,9 +309,7 @@ for (const { name, file } of FIXTURES) {
           fieldCount: mismatches.comparisons,
           what: "panmap's regenerated ocd",
           against: 'the Mapper-authored source',
-        })}\n${formatDiff(
-          mismatches.slice(0, 40),
-        )}`,
+        })}\n${formatDiff(mismatches.slice(0, 40))}`,
       )
     } finally {
       await fs.unlink(tmp).catch(() => {})

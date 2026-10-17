@@ -193,6 +193,9 @@ function toMapSymbol(symbol: BaseSymbol): MapSymbol {
     name: symbol.description,
     type: ocadSymbolTypeName(symbol.type),
     hidden: symbol.isHidden(),
+    // Derived from OCAD status byte (SymbolProtected=0x01) so both
+    // readers land on the same canonical `protected` value.
+    protected: symbol.isProtected() || undefined,
     // OCAD encodes rotatable as `flags & 1` on the raw symbol record;
     // hoist it onto the Panmap model so consumers don't need the raw.
     rotatable: (((symbol as { flags?: number }).flags ?? 0) & 1) !== 0,
@@ -251,7 +254,10 @@ function lineRenderLayers(s: LineSymbolDef): RenderLayer[] {
       // OCD round-trip is exact; the OMap writer separately decides
       // whether to surface them as `segment_length` (mid-symbol
       // placement) or reset to Mapper's `4000` default (dash-only).
-      segmentLength: s.mainLength || undefined,
+      // Preserve `0` explicitly (not `|| undefined`) so ocd→xmap keeps
+      // the distinction between "Mapper explicitly stored 0" (hillmorton
+      // 101 contour) and "Mapper's UI default of 400" (ara 101 contour).
+      segmentLength: s.mainLength,
       endLength: s.endLength || undefined,
       // OCD's `distFromStart` / `distToEnd` map to xmap `start_offset` /
       // `end_offset`. On pointed-cap lines (capStyle=3, ISOM 107 erosion
@@ -272,6 +278,51 @@ function lineRenderLayers(s: LineSymbolDef): RenderLayer[] {
       // a single-tick round-tripped rendering.
       midSymbolsPerSpot: (s as { nPrimSym?: number }).nPrimSym,
       midSymbolDistance: (s as { primSymDist?: number }).primSymDist,
+      // Preserve frColor / frStyle even when frWidth=0 so lines like
+      // jarnvag/tahunanui contours 101/102/103/… keep Mapper's frColor
+      // on OCD round-trip. Emitting a separate frame stroke for width=0
+      // gets misinterpreted as a doubleLine by the writer, so we
+      // sidecar these on the primary stroke instead.
+      frColor:
+        (s as { frWidth?: number }).frWidth === 0 &&
+        (s as { frColor?: number }).frColor !== undefined
+          ? (s as { frColor?: number }).frColor
+          : undefined,
+      frStyle:
+        (s as { frWidth?: number }).frWidth === 0 &&
+        (s as { frStyle?: number }).frStyle
+          ? (s as { frStyle?: number }).frStyle
+          : undefined,
+      // Mirror Mapper's OCD-import rule (ocd_file_import.cpp:1483):
+      // when a line symbol has BOTH start and end elements, set
+      // suppress_dash_symbol_at_ends. Without this, ocd→xmap for lines
+      // like 710.2 emits `suppress_dash_symbol_at_ends="false"` where
+      // Mapper's own conversion emits "true".
+      suppressDashSymbolAtEnds:
+        Array.isArray(s.startSymElements) &&
+        s.startSymElements.length > 0 &&
+        Array.isArray(s.endSymElements) &&
+        s.endSymElements.length > 0
+          ? true
+          : undefined,
+      // Mirror Mapper's OCD-import rule for mid_symbol_placement
+      // (ocd_file_import.cpp:1436-1449). CenterOfDash=0,
+      // CenterOfDashGroup=1, CenterOfGap=2. When the line has primary
+      // mid elements: `gaps_swapped ? CenterOfDashGroup : CenterOfGap`
+      // where `gaps_swapped = secGap && !mainGap && mainLength`.
+      // Without this the writer's `midSymbol ? 2 : 0` fallback picks 2
+      // for symbols like 106 / 514 / 517 where Mapper picks 1.
+      midSymbolPlacement:
+        (Array.isArray(s.primSymElements) && s.primSymElements.length > 0) ||
+        (Array.isArray(s.secSymElements) && s.secSymElements.length > 0)
+          ? s.secGap && !s.mainGap && s.mainLength
+            ? Array.isArray(s.primSymElements) && s.primSymElements.length > 0
+              ? 1
+              : 2
+            : Array.isArray(s.primSymElements) && s.primSymElements.length > 0
+              ? 2
+              : 1
+          : undefined,
       dash: dashFromOcd(s),
     },
     hasLineElements(s) && {
@@ -400,6 +451,17 @@ function areaRenderLayers(s: AreaSymbolDef): RenderLayer[] {
       // that xmap doesn't share.
       noClipping: (s.structDraw ?? 0) & 0x03,
       rotatable: areaRotatable,
+      // OCAD-only irregular-scatter fields — preserve so an OCD
+      // round-trip on Stony ground 210 etc. keeps Mapper's randomisation.
+      structIrregularVarX:
+        (s as { structIrregularVarX?: number }).structIrregularVarX ||
+        undefined,
+      structIrregularVarY:
+        (s as { structIrregularVarY?: number }).structIrregularVarY ||
+        undefined,
+      structIrregularMinDist:
+        (s as { structIrregularMinDist?: number }).structIrregularMinDist ||
+        undefined,
       elements: s.elements,
     },
     s.borderSym && { type: 'border-symbol', symbolId: s.borderSym },
@@ -444,6 +506,32 @@ function textRenderLayers(s: TextSymbolDef): RenderLayer[] {
           typeof s.nTabs === 'number' && s.nTabs > 0 && Array.isArray(s.tabs)
             ? s.tabs.slice(0, s.nTabs)
             : undefined,
+        // Canonical `lineBelow` — both formats express this concept
+        // (OCAD `lb*` fields; XMap `<line_below>` element). Populated
+        // by BOTH readers so it converges through gitmap. `visible`
+        // corresponds to OCD's lbOn flag (XMap infers from element
+        // presence). See flatten-line-decor.ts / omap/reader for the
+        // OMap side.
+        lineBelow:
+          s.lbOn || s.lbColor || s.lbWidth
+            ? {
+                visible: !!s.lbOn,
+                color: s.lbColor || undefined,
+                width: s.lbWidth || undefined,
+                distance: s.lbDist || undefined,
+              }
+            : undefined,
+        // Framing has less overlap between formats (OCAD stores
+        // mode+style, XMap stores mode+color+widths+shadows), so keep
+        // as an OCAD-side sidecar for now. Only round-trips OCD→OCD.
+        frMode: s.frMode || undefined,
+        frStyle: s.frStyle || undefined,
+        frColor: (s as { frColor?: number }).frColor || undefined,
+        frWidth: (s as { frWidth?: number }).frWidth || undefined,
+        frLeft: (s as { frLeft?: number }).frLeft || undefined,
+        frBottom: (s as { frBottom?: number }).frBottom || undefined,
+        frRight: (s as { frRight?: number }).frRight || undefined,
+        frTop: (s as { frTop?: number }).frTop || undefined,
       },
     },
   ]
@@ -483,9 +571,7 @@ function hasLineElements(s: LineSymbolDef): boolean {
  * `primSymElements`, OCAD's `endLength` field carries mid-symbol
  * placement rather than end-dash halving (butlers 106).
  */
-function dashFromOcd(
-  s: LineSymbolDef,
-):
+function dashFromOcd(s: LineSymbolDef):
   | {
       dashLength: number
       breakLength: number

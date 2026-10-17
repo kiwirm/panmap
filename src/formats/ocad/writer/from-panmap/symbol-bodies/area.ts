@@ -100,15 +100,32 @@ function encodePatternStructure(
   }
   const shifted = !!p.shiftedRows
   const height = Number(p.height) || 0
+  // Preserve OCAD-only irregular scatter fields (Stony ground 210
+  // etc.) — when the reader captured them, gate the "shifted → 0"
+  // convention below off: Mapper's ocd→xmap→ocd only zeros structDraw
+  // on regular shifted patterns, not on irregular scatters where it's
+  // a real value.
+  const pIrregVarX =
+    (p as { structIrregularVarX?: number }).structIrregularVarX ?? 0
+  const pIrregVarY =
+    (p as { structIrregularVarY?: number }).structIrregularVarY ?? 0
+  const pIrregMinDist =
+    (p as { structIrregularMinDist?: number }).structIrregularMinDist ?? 0
+  const isIrregular = pIrregVarX > 0 || pIrregVarY > 0 || pIrregMinDist > 0
   return {
     structMode: shifted ? 2 : 1,
-    structDraw: (p.noClipping ?? 0) & 0x03,
+    // Mapper's own xmap→OCD conversion writes structDraw=0 for regular
+    // shifted-rows fills (structMode=2, xmap pair-second's no_clipping
+    // dropped — hillmorton 113 / 208 / 210). Preserve the value on
+    // irregular scatters (myggfritt 210000 Stony ground: structDraw=2
+    // carries the real clipping enum).
+    structDraw: shifted && !isIrregular ? 0 : (p.noClipping ?? 0) & 0x03,
     structWidth: normUnits(p.width),
     structHeight: normUnits(shifted ? height / 2 : height),
     structAngle: Math.round((p.angle ?? 0) * 10) % 3600,
-    structIrregularVarX: 0,
-    structIrregularVarY: 0,
-    structIrregularMinDist: 0,
+    structIrregularVarX: pIrregVarX,
+    structIrregularVarY: pIrregVarY,
+    structIrregularMinDist: pIrregMinDist,
     structRes: 0,
     // Gitmap-sourced elements carry `color` as a string colorId; rewrite
     // to numeric OCD palette slots. Without this, structure-fill dots

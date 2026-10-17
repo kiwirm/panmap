@@ -1,4 +1,5 @@
 import type { MapSymbol, RenderLayer } from '../../../../panmap/model.js'
+import { encodeOcadElementFlags } from '../../../ocad/codecs/element-flags.js'
 
 // Derive the canonical symbol type from the (already-canonicalised) layers.
 // OCAD models an area-with-outline as an `area` symbol + a border line; OMap
@@ -182,11 +183,7 @@ function stripPointElementXyFlags(el: unknown): unknown {
       if (arr.yFlags) out.yFlags = arr.yFlags
       return out
     }
-    const {
-      x,
-      y,
-      ...rest
-    } = c as {
+    const { x, y, ...rest } = c as {
       x?: number
       y?: number
     } & Record<string, unknown>
@@ -282,15 +279,13 @@ function flattenXmapLineDecorElement(el: unknown): unknown[] {
   }
   if (sym.lineSymbol) {
     const coords = mapXmapCoordsToOcadElement(rawCoords)
-    const cap = sym.lineSymbol.capStyle ?? 0
-    const join = sym.lineSymbol.joinStyle ?? 0
-    // OCD line-element flags byte: bit 0 (0x01) round cap,
-    // bit 2 (0x04) miter join.
-    const flags = (cap === 1 ? 0x01 : 0) | (join === 1 ? 0x04 : 0)
     return [
       {
         type: 1,
-        flags,
+        flags: encodeOcadElementFlags(
+          sym.lineSymbol.capStyle,
+          sym.lineSymbol.joinStyle,
+        ),
         color: sym.lineSymbol.color,
         lineWidth: sym.lineSymbol.lineWidth ?? 0,
         diameter: 0,
@@ -332,16 +327,6 @@ function snapSymCoord(v: number): number {
   const step = 5
   return Math.round(v / step) * step
 }
-function mapAndRoundYFlippedCoord(
-  c: { x?: number; y?: number } | [number?, number?],
-): { x: number; y: number } {
-  // Element coords are canonicalised to y-up on BOTH reader paths now
-  // (see reader-side normalisation), so this helper preserves y verbatim.
-  const x = Array.isArray(c) ? (c[0] ?? 0) : (c?.x ?? 0)
-  const y = Array.isArray(c) ? (c[1] ?? 0) : (c?.y ?? 0)
-  return { x: snapSymCoord(x), y: snapSymCoord(y) }
-}
-
 /**
  * Map an xmap-shape coord array into OCD-shape `{x, y, xFlags, yFlags}`
  * records, translating the xmap `flags` byte to OCD's xFlags/yFlags for
@@ -366,7 +351,9 @@ function mapAndRoundYFlippedCoord(
  * edge polygon approximations after any xmap→gitmap→OCD round-trip.
  */
 function mapXmapCoordsToOcadElement(
-  rawCoords: Array<{ x?: number; y?: number; flags?: number } | [number?, number?]>,
+  rawCoords: Array<
+    { x?: number; y?: number; flags?: number } | [number?, number?]
+  >,
 ): Array<{ x: number; y: number; xFlags: number; yFlags: number }> {
   const flagsOf = (c: unknown): number => {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return 0
@@ -488,6 +475,18 @@ function normaliseInnerPointSymbol(
 // info lives on the object coords + primary stroke where it matters.
 export function stripLineElementsRedundancy(layer: RenderLayer): RenderLayer {
   const l = layer as { type?: string } & Record<string, unknown>
+  // Also strip phantom elements from point-pattern-fill.elements — same
+  // OMap-only phantom preservation issue as line-elements.
+  if (l.type === 'point-pattern-fill') {
+    const arr = l.elements
+    if (Array.isArray(arr)) {
+      const filtered = arr.filter(el => !isPhantomElement(el))
+      if (filtered.length !== arr.length) {
+        return { ...l, elements: filtered } as unknown as RenderLayer
+      }
+    }
+    return layer
+  }
   if (l.type !== 'line-elements') return layer
   const {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -509,9 +508,33 @@ export function stripLineElementsRedundancy(layer: RenderLayer): RenderLayer {
     'cornerSymElements',
   ]) {
     const arr = rest[key]
-    if (Array.isArray(arr)) rest[key] = arr.map(stripPointElementXyFlags)
+    if (Array.isArray(arr)) {
+      // Drop phantom placeholder elements (invisible dot at origin with
+      // no colour, diameter 0). The OMap reader emits these to preserve
+      // xmap phantom point-symbol positions on the direct round-trip;
+      // OCD side never produces them, so keeping them in gitmap breaks
+      // OCD ↔ OMap convergence.
+      const filtered = arr.filter(el => !isPhantomElement(el))
+      rest[key] = filtered.map(stripPointElementXyFlags)
+    }
   }
   return rest as unknown as RenderLayer
+}
+
+function isPhantomElement(el: unknown): boolean {
+  if (!el || typeof el !== 'object') return false
+  const e = el as {
+    type?: number
+    color?: unknown
+    lineWidth?: number
+    diameter?: number
+  }
+  return (
+    e.type === 4 &&
+    (e.color === -1 || e.color === null || e.color === undefined) &&
+    !e.lineWidth &&
+    !e.diameter
+  )
 }
 
 // An OCAD line symbol emits a phantom `stroke` layer with `colorId=-1, width=0`

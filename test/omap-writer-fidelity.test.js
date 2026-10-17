@@ -125,10 +125,16 @@ for (const mapName of MAPS) {
       for (const d of DECOR) {
         const b = before.get(d) ?? 0
         const a = after.get(d) ?? 0
-        t.log(`  ${d.padEnd(13)} source=${String(b).padStart(3)}  output=${String(a).padStart(3)}`)
+        t.log(
+          `  ${d.padEnd(13)} source=${String(b).padStart(3)}  output=${String(a).padStart(3)}`,
+        )
         if (a < b) lost.push(`<${d}>: ${b} → ${a}`)
       }
-      t.deepEqual(lost, [], 'xmap round-trip must not reduce line-decoration count')
+      t.deepEqual(
+        lost,
+        [],
+        'xmap round-trip must not reduce line-decoration count',
+      )
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true })
     }

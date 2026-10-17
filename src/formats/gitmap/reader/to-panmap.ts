@@ -43,6 +43,7 @@ interface GitmapSymbol {
   name?: string
   type: string
   hidden?: boolean
+  protected?: boolean
   rotatable?: boolean
   textSymbol?: { rotatable?: boolean; fontSize?: number }
   layers?: unknown[]
@@ -180,6 +181,7 @@ function symbolFromGitmap(symbol: GitmapSymbol, index = 0) {
     name: symbol.name,
     type: symbol.type,
     hidden: !!symbol.hidden,
+    protected: symbol.protected || undefined,
     rotatable: !!symbol.rotatable,
     // Typography is authoritative in the text layer; surface fontSize on the
     // model for the OCAD/OMap writers.

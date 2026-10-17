@@ -305,37 +305,37 @@ for (const { name, file } of FIXTURES) {
       const expected = parseXml(src)
       const actual = parseXml(regenerated)
 
-    const expectedByCode = symbolsByCode(expected)
-    const actualByCode = symbolsByCode(actual)
+      const expectedByCode = symbolsByCode(expected)
+      const actualByCode = symbolsByCode(actual)
 
-    const mismatches = []
+      const mismatches = []
 
-    // Symbols present in one and not the other are their own class of
-    // failure — flag those before diving into per-symbol attribute diffs.
-    for (const code of expectedByCode.keys()) {
-      if (!actualByCode.has(code)) {
-        mismatches.push({
-          path: `<symbol ${code}>`,
-          expected: '(present)',
-          actual: '(missing)',
-        })
+      // Symbols present in one and not the other are their own class of
+      // failure — flag those before diving into per-symbol attribute diffs.
+      for (const code of expectedByCode.keys()) {
+        if (!actualByCode.has(code)) {
+          mismatches.push({
+            path: `<symbol ${code}>`,
+            expected: '(present)',
+            actual: '(missing)',
+          })
+        }
       }
-    }
-    for (const code of actualByCode.keys()) {
-      if (!expectedByCode.has(code)) {
-        mismatches.push({
-          path: `<symbol ${code}>`,
-          expected: '(missing)',
-          actual: '(present)',
-        })
+      for (const code of actualByCode.keys()) {
+        if (!expectedByCode.has(code)) {
+          mismatches.push({
+            path: `<symbol ${code}>`,
+            expected: '(missing)',
+            actual: '(present)',
+          })
+        }
       }
-    }
 
-    for (const [code, expSymbol] of expectedByCode) {
-      const actSymbol = actualByCode.get(code)
-      if (!actSymbol) continue
-      diffNode(expSymbol, actSymbol, `<symbol ${code}>`, 'symbol', mismatches)
-    }
+      for (const [code, expSymbol] of expectedByCode) {
+        const actSymbol = actualByCode.get(code)
+        if (!actSymbol) continue
+        diffNode(expSymbol, actSymbol, `<symbol ${code}>`, 'symbol', mismatches)
+      }
 
       if (mismatches.length === 0) {
         t.pass()
@@ -348,9 +348,7 @@ for (const { name, file } of FIXTURES) {
           fieldCount: mismatches.comparisons,
           what: "panmap's regenerated xmap",
           against: 'the Mapper-authored source',
-        })}\n${formatDiff(
-          mismatches.slice(0, 40),
-        )}`,
+        })}\n${formatDiff(mismatches.slice(0, 40))}`,
       )
     })
   }

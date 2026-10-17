@@ -16,7 +16,10 @@ import {
   classifyPointLayers,
   classifyTextLayers,
 } from '../../../../panmap/render-layers.js'
-import type { StrokeLayer } from '../../../../panmap/render-layers.js'
+import type {
+  RenderLayer,
+  StrokeLayer,
+} from '../../../../panmap/render-layers.js'
 import type { MapSymbol } from '../../../../panmap/model.js'
 import type { OmapLineSymbol, OmapSymbol } from '../../native.js'
 import {
@@ -58,9 +61,7 @@ function classifySymbol(symbol: MapSymbol) {
   const t = symbol.type
   const hasLine = strokes.length > 0 || !!doubleLine || !!lineElements
   const hasArea =
-    fills.length > 0 ||
-    hatches.length > 0 ||
-    pointPatterns.length > 0
+    fills.length > 0 || hatches.length > 0 || pointPatterns.length > 0
   const hasPoint = !!pointFill || !!pointStroke || !!pointElementsLayer
   const hasText = !!textLayer
 
@@ -122,17 +123,67 @@ function toOmapSymbol(
     // Round-trip Mapper's UI-hide flag. `xmapSymbolToXml` reads
     // `isHidden` and emits `is_hidden="true"` when truthy.
     isHidden: symbol.hidden || undefined,
+    // Round-trip Mapper's UI-lock flag — same pattern as isHidden.
+    isProtected: symbol.protected || undefined,
   }
 
+  if (tryCombinedRefs(record, symbol)) return record
   if (tryDoubleLineSplit(record, ctx, symbol, colorIds)) return record
   if (tryAreaWithBorder(record, ctx, symbol, colorIds)) return record
   if (tryAreaWithBankLine(record, ctx, symbol, colorIds)) return record
 
   applyPlainBodies(record, ctx, symbol, colorIds)
   applyFallbackBody(record, ctx, symbol, colorIds)
+  applyNativePassthroughs(record, symbol)
   rederiveSymbolType(record)
 
   return record
+}
+
+/**
+ * Merge symbol-level xmap-only fields carried on `MapSymbol` — currently
+ * `areaSymbol.minArea` (per-symbol) and `textSymbol.iconText`. These
+ * have no render-layer home (minArea gates fills on innerColor=-1
+ * pattern-only areas; iconText is a Mapper UI caption). Applied after
+ * the layer-driven body assembly so we don't overwrite anything the
+ * classifier built.
+ */
+function applyNativePassthroughs(
+  record: RawOmapSymbol,
+  symbol: MapSymbol,
+): void {
+  const passArea = symbol.areaSymbol as { minArea?: number } | undefined
+  if (passArea?.minArea && record.areaSymbol) {
+    record.areaSymbol.minArea = passArea.minArea
+  }
+  const passText = symbol.textSymbol as { iconText?: string } | undefined
+  if (passText?.iconText && record.textSymbol) {
+    record.textSymbol.iconText = passText.iconText
+  }
+}
+
+/**
+ * Pure-refs combined_symbol → XMap `<combined_symbol parts="N">` with
+ * bare `<part symbol="…"/>` entries. Triggered by the `combined-refs`
+ * render layer the reader emits for xmap combined symbols that stack
+ * two area references (cultivated land 412 in kura-tawhiti /
+ * orua-paeroa: 412 → 402 + 412.1). No OCD equivalent, so this only
+ * round-trips on the direct xmap path.
+ */
+function tryCombinedRefs(record: RawOmapSymbol, symbol: MapSymbol): boolean {
+  const refsLayer = symbol.layers.find(
+    (l): l is Extract<RenderLayer, { type: 'combined-refs' }> =>
+      (l as { type?: string }).type === 'combined-refs',
+  )
+  const refs = refsLayer?.refs
+  if (!refs?.length) return false
+  record.type = 16
+  record.combinedSymbol = {
+    parts: refs.map((r: number | string) => ({
+      symbolRef: typeof r === 'number' ? r : Number(r),
+    })),
+  }
+  return true
 }
 
 /**
@@ -187,19 +238,30 @@ function tryDoubleLineSplit(
   // so both dialects agree; here we recognise it and re-split into the same
   // combined_symbol shape Mapper produces from a native double-line.
   //
-  // The "preceding visible stroke" guard is load-bearing: single-stroke-
-  // with-borders symbols (e.g. stairway 532 — an invisible primary with a
-  // borders array) are handled by the plain `<line_symbol>` path, not this
-  // one. Firing here for those breaks xmap→xmap idempotence.
+  // Guard against single-stroke shapes (Major power line 511 — a plain
+  // `<line_symbol>` in Mapper's source: invisible main + borders + corner
+  // dash_symbol; flattens to ONE stroke) so they stay on the plain path.
+  // Multi-stroke shapes always split when any stroke carries borders,
+  // regardless of visibility: stairway 532 varies across fixtures (woodend
+  // has both parts invisible; hillmorton has the fill part visible with
+  // borders, tread part invisible) and both variants are `<combined_symbol>`
+  // in Mapper's source.
   const primaryVisibleForBorderSearch = strokes.find(s => strokeVisible(s))
-  const borderCarrierStroke = primaryVisibleForBorderSearch
-    ? strokes.find(
-        s =>
-          s !== primaryVisibleForBorderSearch &&
-          Array.isArray(s.borders) &&
-          s.borders.length > 0,
-      )
-    : undefined
+  const borderCarrierStroke =
+    strokes.length >= 2
+      ? primaryVisibleForBorderSearch
+        ? (strokes.find(
+            s =>
+              s !== primaryVisibleForBorderSearch &&
+              Array.isArray(s.borders) &&
+              s.borders.length > 0,
+          ) ??
+          // Fill part IS the visible primary (hillmorton 532: color=14 fill
+          // with borders alongside an invisible tread-tick main line). Fall
+          // back to any stroke with borders so the split still fires.
+          strokes.find(s => Array.isArray(s.borders) && s.borders.length > 0))
+        : strokes.find(s => Array.isArray(s.borders) && s.borders.length > 0)
+      : undefined
   if (
     (t === 'line' || t === 'combined') &&
     (doubleLine || frameStroke || borderCarrierStroke)
@@ -325,7 +387,7 @@ function tryDoubleLineSplit(
           {
             symbol: {
               id: -1,
-                            type: 2,
+              type: 2,
               code: symbol.code,
               name: `${symbol.name ?? ''} - main line`,
               lineSymbol: mainLine,
@@ -334,7 +396,7 @@ function tryDoubleLineSplit(
           {
             symbol: {
               id: -1,
-                            type: 2,
+              type: 2,
               code: symbol.code,
               name: `${symbol.name ?? ''} - double line`,
               lineSymbol: fillLine,
@@ -362,20 +424,13 @@ function tryAreaWithBorder(
   symbol: MapSymbol,
   colorIds: ColorIds,
 ): boolean {
-  const {
-    t,
-    hasArea,
-    borderSymbolLayer,
-    fills,
-    hatches,
-    pointPatterns,
-  } = ctx
+  const { t, hasArea, borderSymbolLayer, fills, hatches, pointPatterns } = ctx
   if ((t === 'area' || t === 'combined') && hasArea && borderSymbolLayer) {
     const borderRef = borderSymbolLayer.symbolId
     const areaBody = buildXmapAreaSymbol(
       fills,
       hatches,
-        pointPatterns,
+      pointPatterns,
       colorIds,
     )
     record.type = 16
@@ -384,7 +439,7 @@ function tryAreaWithBorder(
         {
           symbol: {
             id: -1,
-                        type: 4,
+            type: 4,
             code: symbol.code,
             name: symbol.name,
             areaSymbol: areaBody,
@@ -431,7 +486,7 @@ function tryAreaWithBankLine(
     const areaBody = buildXmapAreaSymbol(
       fills,
       hatches,
-        pointPatterns,
+      pointPatterns,
       colorIds,
     )
     const lineBody = buildXmapLineSymbol(
@@ -446,7 +501,7 @@ function tryAreaWithBankLine(
         {
           symbol: {
             id: -1,
-                        type: 4,
+            type: 4,
             code: symbol.code,
             name: symbol.name,
             areaSymbol: areaBody,
@@ -455,7 +510,7 @@ function tryAreaWithBankLine(
         {
           symbol: {
             id: -1,
-                        type: 2,
+            type: 2,
             code: symbol.code,
             name: symbol.name,
             lineSymbol: lineBody,
@@ -508,7 +563,7 @@ function applyPlainBodies(
     record.areaSymbol = buildXmapAreaSymbol(
       fills,
       hatches,
-        pointPatterns,
+      pointPatterns,
       colorIds,
     )
   }
@@ -577,7 +632,7 @@ function applyFallbackBody(
       record.areaSymbol = buildXmapAreaSymbol(
         fills,
         hatches,
-            pointPatterns,
+        pointPatterns,
         colorIds,
       )
     } else if (hasPoint) {

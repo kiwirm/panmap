@@ -12,7 +12,10 @@ import type {
   RenderLayer,
   MapSpotColor,
 } from '../../../panmap/model.js'
-import type { RenderElement } from '../../../panmap/render-layers.js'
+import type {
+  RenderElement,
+  DecorationWrapper,
+} from '../../../panmap/render-layers.js'
 import TdPoly from '../../ocad/reader/decode/td-poly.js'
 import { parseNotes } from '../../codecs/index.js'
 import { boundsForCoords, type FlaggedCoord } from '../../../panmap/coord.js'
@@ -27,8 +30,28 @@ import type {
   OmapCoord,
   OmapFile,
   OmapObject,
+  OmapPointSymbol,
   OmapSymbol,
 } from '../native.js'
+
+// Extract Mapper-authored wrapper metadata from a decoration sub-symbol
+// (mid_symbol / start_symbol / end_symbol / dash_symbol on a line, or
+// the outer wrapper of a pattern stamp). Returns undefined for symbols
+// without a `pointSymbol` (untypical shapes) or when every field is at
+// Mapper's default so the round-trip's writer defaults suffice.
+function extractDecorationWrapper(
+  sub: { pointSymbol?: OmapPointSymbol } | undefined | null,
+): DecorationWrapper | undefined {
+  const ps = sub?.pointSymbol
+  if (!ps) return undefined
+  return {
+    innerRadius: ps.innerRadius,
+    innerColor: ps.innerColor ?? undefined,
+    outerWidth: ps.outerWidth,
+    outerColor: ps.outerColor ?? undefined,
+    rotatable: ps.rotatable,
+  }
+}
 
 /**
  * Converts a parsed OpenOrienteering Mapper XMap/OMap document into the
@@ -471,8 +494,22 @@ function toMapSymbol(
     name: symbol.name,
     type: symbolTypeName(symbol),
     hidden: !!symbol.isHidden,
+    protected: symbol.isProtected || undefined,
     rotatable,
     fontSize: symbol.textSymbol && symbol.textSymbol.fontSize,
+    // XMap-only per-symbol payloads that don't have a natural home on
+    // the render layers. Preserved through the direct round-trip only;
+    // dropped at gitmap-serialize time so OCD-vs-OMap convergence
+    // stays intact.
+    textSymbol: symbol.textSymbol?.iconText
+      ? {
+          fontSize: symbol.textSymbol.fontSize,
+          iconText: symbol.textSymbol.iconText,
+        }
+      : undefined,
+    areaSymbol: (symbol.areaSymbol as { minArea?: number })?.minArea
+      ? { minArea: (symbol.areaSymbol as { minArea: number }).minArea }
+      : undefined,
     layers: symbolToRenderLayers(symbol, symbolsById),
   }
 }
@@ -532,11 +569,25 @@ function pointPatternLayersFromXmap(
       rowOffset: p.lineOffset || 0,
       columnOffset: p.offsetAlongLine || 0,
       // `no_clipping` is per-`<pattern>` in xmap but a single value per
-      // symbol in OCD. On a collapsed pair take the FIRST record's value:
-      // that's the one Mapper's OCD export carries into `structDraw`
-      // (it writes the pair's second value for its own renderer only).
-      noClipping: p.noClipping ?? 0,
+      // symbol in OCD. Mapper writes the real value on the SECOND record
+      // of a shifted-rows pair (its own renderer reads that one), with 0
+      // on the first. Take the maximum across the pair so the writer can
+      // put the value back where Mapper puts it — first-only-take would
+      // silently drop the flag on every shifted-rows fill.
+      noClipping: Math.max(
+        p.noClipping ?? 0,
+        paired ? (next?.noClipping ?? 0) : 0,
+      ),
       rotatable: p.rotatable ?? false,
+      // Preserve wrapper metadata for the stamp — Mapper writes real
+      // inner_radius on the outer `<point_symbol>` even when the
+      // rendered content is compound (kura-tawhiti 208 boulder-field
+      // has inner_radius=1200 on the outer, wrapping 9 triangle
+      // elements). Without this the writer collapses to the hardcoded
+      // 1000 default.
+      stampWrapper: extractDecorationWrapper(
+        p.symbol as { pointSymbol?: OmapPointSymbol } | undefined,
+      ),
       // The stamp, flattened to the same icon-primitive array shape
       // `point-elements` and `line-elements` use.
       elements: elements as RenderLayer['elements'],
@@ -548,10 +599,7 @@ function pointPatternLayersFromXmap(
 
 /** Two `<pattern>` records form one shifted-rows layout when they share
  *  spacing and the second sits half a tile away in both axes. */
-function isShiftedRowsPair(
-  a: OmapAreaPattern,
-  b: OmapAreaPattern,
-): boolean {
+function isShiftedRowsPair(a: OmapAreaPattern, b: OmapAreaPattern): boolean {
   const ls = a.lineSpacing
   const pd = a.pointDistance
   if (!ls || !pd) return false
@@ -559,10 +607,10 @@ function isShiftedRowsPair(
     return false
   }
   const dRow = Math.abs(
-    ((((b.lineOffset ?? 0) - (a.lineOffset ?? 0)) % ls) + ls) % ls - ls / 2,
+    (((((b.lineOffset ?? 0) - (a.lineOffset ?? 0)) % ls) + ls) % ls) - ls / 2,
   )
   const dCol = Math.abs(
-    ((((b.offsetAlongLine ?? 0) - (a.offsetAlongLine ?? 0)) % pd) + pd) % pd -
+    (((((b.offsetAlongLine ?? 0) - (a.offsetAlongLine ?? 0)) % pd) + pd) % pd) -
       pd / 2,
   )
   return dRow <= 1 && dCol <= 1
@@ -591,46 +639,79 @@ function symbolToRenderLayers(
   normalisePointElementsYUp(symbol.pointSymbol?.elements)
 
   if (symbol.combinedSymbol?.parts?.length) {
+    const parts = symbol.combinedSymbol.parts
     // Special case — "area + line-ref" combined: the OCAD-style
     // "area with border" idiom. Reconstruct a `border-symbol` render
     // layer instead of flattening the border line's strokes into the
     // area, so ocd → xmap → ocd preserves `borderSym` losslessly.
-    const parts = symbol.combinedSymbol.parts
+    // Handles both the "inline area + ref" shape and the "ref area +
+    // ref line" shape (kura-tawhiti / orua-paeroa 301 Uncrossable
+    // body of water is two refs: fill area + border line).
     if (parts.length === 2) {
-      const [a, b] = parts
-      const aSym = a.symbol
-      // Treat as OCAD's "area with borderSym" idiom when the referenced
-      // part is line-shaped — either a plain line symbol OR a combined
-      // symbol whose parts are all lines (e.g. Mapper's own idiom for
-      // a "solid outline" that internally splits main-line + border-
-      // line). Refs that contain an area part (like 521.2 → canopy
-      // combined) don't map to a borderSym slot; Mapper emits them
-      // as a plain area, so we do too. Refs to plain areas drop as well.
-      const refSym =
-        b.symbolRef !== undefined ? symbolsById[b.symbolRef] : undefined
-      const refIsLine = refSym ? isEffectivelyLine(refSym, symbolsById) : false
-      if (
-        aSym?.areaSymbol &&
-        !aSym.lineSymbol &&
-        !aSym.pointSymbol &&
-        !aSym.textSymbol &&
-        b.symbolRef !== undefined &&
-        !b.symbol
-      ) {
-        const areaLayers = symbolToRenderLayers(aSym, symbolsById, seen)
-        if (refIsLine) {
-          // Line ref → OCAD borderSym reference. Preserves visually.
-          return [
-            ...areaLayers,
-            { type: 'border-symbol', symbolId: b.symbolRef } as RenderLayer,
-          ]
+      // OCAD's "area with borderSym" idiom shows up in xmap as a
+      // <combined_symbol parts="2"> pairing an area part with a
+      // line-symbol reference. The line may be part 1 or part 2 —
+      // kura-tawhiti's 301 has area first, 302 has line first —
+      // so try both orderings.
+      const tryAreaBorderPair = (
+        areaPart: (typeof parts)[number],
+        linePart: (typeof parts)[number],
+      ) => {
+        const areaSym =
+          areaPart.symbol ||
+          (areaPart.symbolRef !== undefined
+            ? symbolsById[areaPart.symbolRef]
+            : undefined)
+        const lineRef = linePart.symbolRef
+        if (lineRef === undefined || linePart.symbol) return null
+        const lineSym = symbolsById[lineRef]
+        if (!lineSym || !isEffectivelyLine(lineSym, symbolsById)) return null
+        if (
+          !areaSym?.areaSymbol ||
+          areaSym.lineSymbol ||
+          areaSym.pointSymbol ||
+          areaSym.textSymbol
+        ) {
+          return null
         }
-        // Non-line ref (referenced symbol is area or combined) — Mapper
-        // emits these to OCD as a plain area, dropping the ref. Match
-        // that so the round-trip doesn't pick up phantom fills / lines
-        // from the nested tree.
-        return areaLayers
+        const areaLayers = symbolToRenderLayers(areaSym, symbolsById, seen)
+        return [
+          ...areaLayers,
+          { type: 'border-symbol' as const, symbolId: lineRef },
+        ] as RenderLayer[]
       }
+      const [a, b] = parts
+      const asAreaFirst = tryAreaBorderPair(a, b)
+      if (asAreaFirst) return asAreaFirst
+      const asLineFirst = tryAreaBorderPair(b, a)
+      if (asLineFirst) return asLineFirst
+    }
+    // Pure-refs case that isn't area+line-ref (kura-tawhiti / orua-
+    // paeroa 412 Cultivated land: two area refs stacked as a compound
+    // area). Emit a `combined-refs` render layer AS WELL AS the
+    // flattened per-part layers. Direct xmap writer prefers combined-
+    // refs and re-emits `<combined_symbol>`; the OCD writer + gitmap
+    // canonicaliser drop combined-refs and keep only the flattened
+    // layers so both OCD-sourced siblings and gitmap round-trips
+    // converge on the same shape.
+    if (
+      parts.length >= 2 &&
+      parts.every(p => !p.symbol && p.symbolRef !== undefined)
+    ) {
+      const flattened = parts.flatMap(part => {
+        const partSymbol =
+          part.symbolRef !== undefined ? symbolsById[part.symbolRef] : undefined
+        return partSymbol
+          ? symbolToRenderLayers(partSymbol, symbolsById, seen)
+          : []
+      })
+      return [
+        {
+          type: 'combined-refs',
+          refs: parts.map(p => p.symbolRef as number),
+        },
+        ...flattened,
+      ]
     }
     return parts.flatMap(part => {
       const partSymbol =
@@ -690,9 +771,33 @@ function symbolToRenderLayers(
       minimumMidSymbolCount: (
         symbol.lineSymbol as { minimumMidSymbolCount?: number }
       ).minimumMidSymbolCount,
+      minimumMidSymbolCountWhenClosed: (
+        symbol.lineSymbol as { minimumMidSymbolCountWhenClosed?: number }
+      ).minimumMidSymbolCountWhenClosed,
       showAtLeastOneSymbol: (
         symbol.lineSymbol as { showAtLeastOneSymbol?: boolean }
       ).showAtLeastOneSymbol,
+      // Preserve Mapper-authored line-symbol fields the OCD format
+      // doesn't have. Without these on the stroke, an xmap → PanMap →
+      // xmap round-trip drops the value and the writer emits its
+      // default (0 / false / true) instead of what Mapper wrote.
+      minimumLength: (symbol.lineSymbol as { minimumLength?: number })
+        .minimumLength,
+      // Hoist dash / break length at the stroke top level too — Mapper
+      // stores per-symbol values for these attrs even on NON-dashed
+      // lines (302.1 Small watercourse, 501.4 Vehicle track etc.), and
+      // the `dash` sub-object is only populated when `dashed` is true.
+      dashLength: (symbol.lineSymbol as { dashLength?: number }).dashLength,
+      breakLength: (symbol.lineSymbol as { breakLength?: number }).breakLength,
+      inGroupBreakLength: (symbol.lineSymbol as { inGroupBreakLength?: number })
+        .inGroupBreakLength,
+      midSymbolPlacement: (symbol.lineSymbol as { midSymbolPlacement?: number })
+        .midSymbolPlacement,
+      suppressDashSymbolAtEnds: (
+        symbol.lineSymbol as { suppressDashSymbolAtEnds?: boolean }
+      ).suppressDashSymbolAtEnds,
+      scaleDashSymbol: (symbol.lineSymbol as { scaleDashSymbol?: boolean })
+        .scaleDashSymbol,
       // Start / end offsets used for OCAD's `distFromStart` /
       // `distToEnd` fields — displace the whole line pattern
       // relative to the object endpoints.
@@ -754,8 +859,20 @@ function symbolToRenderLayers(
       ) {
         return undefined
       }
+      const wrapperOf = (sub: unknown) =>
+        extractDecorationWrapper(sub as { pointSymbol?: OmapPointSymbol })
       return {
         type: 'line-elements' as const,
+        // Preserve Mapper-authored wrapper metadata on each sub-slot
+        // (mid/start/end/dash). Mapper varies inner_radius across
+        // fixtures (default 1000 for OCD-imported wrappers, 0 for
+        // hand-authored xmap on lines like butlers-bush 104 Earth
+        // bank). Without carrying these values, the direct xmap round-
+        // trip collapses to the writer's hardcoded default.
+        primSymWrapper: wrapperOf(ls.midSymbol),
+        startSymWrapper: wrapperOf(ls.startSymbol),
+        endSymWrapper: wrapperOf(ls.endSymbol),
+        cornerSymWrapper: wrapperOf(ls.dashSymbol),
         // Same semantic-name placement fields as the OCD reader emits.
         // See `ocad/reader/to-panmap.ts` for rationale — duplicated on
         // line-elements only so the SVG renderer doesn't have to walk
@@ -798,6 +915,12 @@ function symbolToRenderLayers(
             // rotate-with-object bit and hatch angles no longer track
             // the object rotation.
             rotatable: (pattern as { rotatable?: boolean }).rotatable ?? false,
+            // Xmap-only hatch offsets (Mapper's per-hatch `line_offset` /
+            // `offset_along_line`) — used to phase-shift the second stripe
+            // of a two-colour hatch (kura-tawhiti 512.3.1). Omit zeros so
+            // OCD-sourced siblings converge on the same layer shape.
+            lineOffset: pattern.lineOffset || undefined,
+            offsetAlongLine: pattern.offsetAlongLine || undefined,
           }))
       : []),
     ...pointPatternLayersFromXmap(symbol.areaSymbol?.patterns),
@@ -851,6 +974,31 @@ function symbolToRenderLayers(
         // array from `nTabs`+`tabs[]`. Surface here so both source
         // formats reach the canonical `layer.text.tabs` slot.
         tabs: (symbol.textSymbol as { tabs?: number[] }).tabs,
+        // Canonical `lineBelow` — Mapper's XMap emits `<line_below>`
+        // as a child of `<text_symbol>` when the user has enabled it;
+        // OCAD reader populates the same shape from `lb*` fields.
+        // Presence in xmap implies `visible: true` (Mapper writes it
+        // conditional on the flag).
+        lineBelow: (
+          symbol.textSymbol as {
+            lineBelow?: {
+              color?: number
+              width?: number
+              distance?: number
+            }
+          }
+        ).lineBelow
+          ? {
+              visible: true,
+              color: (symbol.textSymbol as { lineBelow: { color?: number } })
+                .lineBelow.color,
+              width: (symbol.textSymbol as { lineBelow: { width?: number } })
+                .lineBelow.width,
+              distance: (
+                symbol.textSymbol as { lineBelow: { distance?: number } }
+              ).lineBelow.distance,
+            }
+          : undefined,
       },
     },
   ].filter(Boolean) as RenderLayer[]

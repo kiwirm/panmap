@@ -169,6 +169,10 @@ export interface OmapAreaPattern {
 export interface OmapAreaSymbol {
   innerColor: number
   patterns?: OmapAreaPattern[]
+  /** Minimum area in map units (mm²) below which Mapper suppresses the
+   *  fill/pattern. OCAD has no equivalent, so this only round-trips on
+   *  the xmap → xmap direct path. */
+  minArea?: number
 }
 
 export interface OmapPointElement {
@@ -225,6 +229,7 @@ export interface OmapSymbol {
   name?: string
   type: number
   isHidden?: boolean
+  isProtected?: boolean
   lineSymbol?: OmapLineSymbol
   areaSymbol?: OmapAreaSymbol
   pointSymbol?: OmapPointSymbol

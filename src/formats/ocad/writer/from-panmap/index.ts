@@ -56,12 +56,12 @@ export function synthesizeOcadFile(
     map.symbols ?? [],
     map.objects ?? [],
   )
-  const symbols = synthesizeSymbols(
-    symbolsForSynth,
-    map.colors ?? [],
+  const symbols = synthesizeSymbols(symbolsForSynth, map.colors ?? [], symNums)
+  const objects = synthesizeObjects(
+    map.objects ?? [],
+    map.symbols ?? [],
     symNums,
   )
-  const objects = synthesizeObjects(map.objects ?? [], map.symbols ?? [], symNums)
   const { ordered: rawParamStrings, grouped } = synthesizeParameterStrings(map)
 
   const ocad = new OcadFile(

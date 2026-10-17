@@ -15,18 +15,11 @@ import {
   coordsToPath,
   buildPathSampler,
   pointAndAngleAtSampler,
-  lineAngleStartSampler,
-  lineAngleEndSampler,
   type Transform,
   type PathSampler,
 } from './path.js'
-import {
-  getColor,
-  orderFor,
-  getElementColorOrder,
-  type ColorLookup,
-} from './colors.js'
-import { ocadPointElementToSvg, xmapPointSymbolToSvg } from './point-symbols.js'
+import { getColor, getElementColorOrder, type ColorLookup } from './colors.js'
+import { ocadPointElementToSvg } from './point-symbols.js'
 
 function lineElementsLayerToSvg(
   object: MapObject,

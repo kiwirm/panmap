@@ -12,7 +12,44 @@ export function strokeCanonicalDrops(
   layer: RenderLayer,
   siblingLayers: RenderLayer[] = [],
 ): ReadonlySet<string> {
-  if ((layer as { type?: string }).type !== 'stroke') return EMPTY_DROP
+  const layerType = (layer as { type?: string }).type
+  if (layerType === 'fill') {
+    // OMap-only `minArea` — the OCD reader has no equivalent slot. Drop
+    // so OCD-vs-OMap gitmap output stays convergent; the direct
+    // xmap → PanMap → xmap path preserves the value via the fill layer
+    // (see omap/reader/to-panmap.ts and omap/writer/from-panmap/area.ts).
+    return new Set(['minArea'])
+  }
+  if (layerType === 'hatch-fill') {
+    // OMap-only phase offsets on hatch stripes; OCD has no equivalent.
+    // Drop for convergence, preserve on direct xmap round-trip via
+    // reader → writer.
+    return new Set(['lineOffset', 'offsetAlongLine'])
+  }
+  if (layerType === 'point-pattern-fill') {
+    // `noClipping` on shifted-rows fills lives on the SECOND xmap
+    // `<pattern>` record; the OCD single-pattern-per-symbol encoding
+    // preserves at most one value and Mapper's OCD export tends to
+    // land on 0 for the pair. Keep the value on the render layer for
+    // the direct xmap round-trip, but drop it here so OCD-sourced
+    // and OMap-sourced gitmaps of the same symbol still converge
+    // (hillmorton 113 / 208 / 208.4 / 210).
+    // `stampWrapper` is xmap-only wrapper metadata — OCD side has no
+    // equivalent slot, so drop for convergence.
+    return new Set(['noClipping', 'stampWrapper'])
+  }
+  if (layerType === 'line-elements') {
+    // Per-sub-slot wrapper metadata is xmap-only (OCD reader doesn't
+    // populate it). Drop for OCD ↔ OMap convergence; the direct xmap
+    // round-trip preserves via the reader→writer path.
+    return new Set([
+      'primSymWrapper',
+      'startSymWrapper',
+      'endSymWrapper',
+      'cornerSymWrapper',
+    ])
+  }
+  if (layerType !== 'stroke') return EMPTY_DROP
   const l = layer as Record<string, unknown>
   const drop = new Set<string>(['lineStyle'])
   // `minimumMidSymbolCount` has no OCAD representation at all — no reader
@@ -21,6 +58,33 @@ export function strokeCanonicalDrops(
   // it outright rather than only when mid-symbols are absent (OMap emits 2
   // on symbols like 309 / 416 where the OCD sibling has nothing).
   drop.add('minimumMidSymbolCount')
+  drop.add('minimumMidSymbolCountWhenClosed')
+  // Same story for these xmap-only line-symbol fields — the OCD reader
+  // has nothing to populate them from, so an OCD-sourced stroke arrives
+  // without them and an OMap-sourced stroke with them. Keeping them in
+  // the canonical gitmap would break OCD ↔ OMap convergence on every
+  // Mapper-authored xmap that carries a non-default value (which is
+  // most of them). The direct xmap round-trip preserves them via the
+  // reader → stroke → writer path (see omap/reader/to-panmap.ts and
+  // omap/writer/from-panmap/line.ts); they only need dropping here.
+  drop.add('minimumLength')
+  drop.add('midSymbolPlacement')
+  drop.add('suppressDashSymbolAtEnds')
+  drop.add('scaleDashSymbol')
+  // Top-level dashLength / breakLength are OMap-only (Mapper stores
+  // them on non-dashed lines too; OCD has no equivalent for the
+  // non-dashed case). Drop at gitmap time — the direct xmap round-trip
+  // reads them straight off the stroke without going through gitmap.
+  // Dashed lines still carry the values inside `dash` which stays.
+  drop.add('dashLength')
+  drop.add('breakLength')
+  drop.add('inGroupBreakLength')
+  // OCAD-only frColor / frStyle sidecar on the primary stroke (used
+  // for contour lines that carry frColor with frWidth=0). Drop for
+  // gitmap convergence; direct OCD → OCD round-trip preserves via
+  // reader → writer.
+  drop.add('frColor')
+  drop.add('frStyle')
   // 0 and absent both mean "no mid-symbol offset"; OCD reaches us with the
   // field missing where OMap writes an explicit 0. Drop whenever falsy so
   // the two agree regardless of whether mid-symbols are present.
@@ -30,9 +94,14 @@ export function strokeCanonicalDrops(
   // where mid-symbol elements exist, so the explicit 1 is the odd one out.
   // Dropping it agrees with the OCD source rather than overriding it.
   if (l.midSymbolsPerSpot === 1) drop.add('midSymbolsPerSpot')
-  if (l.showAtLeastOneSymbol === true || l.showAtLeastOneSymbol === undefined) {
-    drop.add('showAtLeastOneSymbol')
-  }
+  // Drop showAtLeastOneSymbol unconditionally at gitmap time. The OCD
+  // reader never populates it, and my OMap reader now mirrors Mapper's
+  // undefined-→-false convention, so both sides carry it inconsistently.
+  // Keeping the field diverges OCD-vs-OMap convergence on every line
+  // symbol Mapper omitted the attribute on (butlers-bush, kura-tawhiti
+  // etc.). Direct xmap → PanMap → xmap preserves the value in-memory
+  // via reader/writer, so no info loss for the direct-cycle path.
+  drop.add('showAtLeastOneSymbol')
   if (!l.startOffset) drop.add('startOffset')
   if (!l.endOffset) drop.add('endOffset')
   // Mid-symbol placement fields (`segmentLength` / `midSymbolsPerSpot` /
@@ -79,8 +148,7 @@ export function strokeCanonicalDrops(
   // dialects agree; round joins are visually distinct at dash tips and
   // stay preserved.
   const strokeDash = l.dash as
-    | { mainLength?: number; mainGap?: number; secGap?: number }
-    | undefined
+    { mainLength?: number; mainGap?: number; secGap?: number } | undefined
   if (strokeDash && l.joinStyle !== 2) drop.add('joinStyle')
   // `segmentLength: 0` is Mapper's explicit "no mid-symbol spacing" that
   // the OCD reader represents as an OMITTED field (mainLength=0 →
@@ -178,6 +246,24 @@ export function canonicaliseTextBody(text: unknown): unknown {
     // symbol-body reads it back from the primary `text` block with a
     // sensible default when absent.
     if (key === 'lineSpace') continue
+    // Canonical `lineBelow` sub-object stays in gitmap — both readers
+    // populate it (OCAD from lb* fields, OMap from `<line_below>`) so
+    // it converges. Framing (`fr*`) is still OCD-only for now (OCAD's
+    // frMode + frStyle enum doesn't line up 1:1 with XMap's mode +
+    // color + widths + shadows structure), so drop it here to preserve
+    // convergence.
+    if (
+      key === 'frMode' ||
+      key === 'frStyle' ||
+      key === 'frColor' ||
+      key === 'frWidth' ||
+      key === 'frLeft' ||
+      key === 'frBottom' ||
+      key === 'frRight' ||
+      key === 'frTop'
+    ) {
+      continue
+    }
     output[key] = value
   }
   return output

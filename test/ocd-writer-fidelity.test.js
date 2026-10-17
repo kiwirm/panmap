@@ -62,8 +62,12 @@ for (const mapName of MAPS) {
       const out = path.join(tmp, 'out.ocd')
       await write(back, out, { format: 'ocad', overwrite: true })
 
-      const before = symbolsByNum(await readOcadFile(await fs.promises.readFile(src)))
-      const after = symbolsByNum(await readOcadFile(await fs.promises.readFile(out)))
+      const before = symbolsByNum(
+        await readOcadFile(await fs.promises.readFile(src)),
+      )
+      const after = symbolsByNum(
+        await readOcadFile(await fs.promises.readFile(out)),
+      )
 
       const lost = []
       for (const [num, a] of before) {
@@ -78,7 +82,9 @@ for (const mapName of MAPS) {
           // Present-but-invisible: the geometry survived the round trip but
           // the count that decides how many times to draw it went to zero.
           if (va > 0 && vb === 0 && geomBefore > 0 && geomAfter > 0) {
-            lost.push(`sym ${num}: ${field} ${va} → ${vb} (${geomField} kept: ${geomAfter})`)
+            lost.push(
+              `sym ${num}: ${field} ${va} → ${vb} (${geomField} kept: ${geomAfter})`,
+            )
           }
         }
       }
@@ -86,7 +92,11 @@ for (const mapName of MAPS) {
         t.log(`decoration gates zeroed on export (${lost.length}):`)
         for (const l of lost.slice(0, 15)) t.log(`  ${l}`)
       }
-      t.deepEqual(lost, [], 'no decoration gate may drop to zero on ocd round-trip')
+      t.deepEqual(
+        lost,
+        [],
+        'no decoration gate may drop to zero on ocd round-trip',
+      )
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true })
     }

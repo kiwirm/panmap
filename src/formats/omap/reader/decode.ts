@@ -153,10 +153,14 @@ function parseOmapXml(xml: string): OmapFile {
           segmentLength: parseDim(symbol.line_symbol.segment_length, 4000),
           startOffset: parseDim(symbol.line_symbol.start_offset, 0),
           endOffset: parseDim(symbol.line_symbol.end_offset, 0),
-          showAtLeastOneSymbol:
-            symbol.line_symbol.show_at_least_one_symbol === undefined
-              ? true
-              : isTrue(symbol.line_symbol.show_at_least_one_symbol),
+          // Mapper's own convention (line_symbol.cpp:1834): only emits
+          // the attribute when TRUE; on load, `= (value == "true")` means
+          // undefined → false. Match so an xmap that omits the attribute
+          // round-trips as omit-again rather than sprouting a spurious
+          // `="true"` on every non-decorated line (kura-tawhiti 104 etc).
+          showAtLeastOneSymbol: isTrue(
+            symbol.line_symbol.show_at_least_one_symbol,
+          ),
           midSymbolsPerSpot: parseNumber(
             symbol.line_symbol.mid_symbols_per_spot,
             1,
@@ -240,6 +244,7 @@ function parseOmapXml(xml: string): OmapFile {
       ? {
           innerColor: parseNumber(symbol.area_symbol.inner_color, -1),
           patterns: patterns?.length ? patterns : undefined,
+          minArea: parseDim(symbol.area_symbol.min_area, 0),
         }
       : undefined
 
@@ -287,12 +292,25 @@ function parseOmapXml(xml: string): OmapFile {
       // the mapper has toggled off in the symbol panel. Preserve so the
       // SVG renderer and OCAD/XMap writers can drop them.
       isHidden: isTrue(symbol.is_hidden),
+      // Mapper's UI-lock flag — emitted on symbols the user has marked
+      // protected so accidental edits are blocked. XMap-only; preserved
+      // through the direct round-trip only.
+      isProtected: isTrue(symbol.is_protected),
       lineSymbol,
       areaSymbol,
       pointSymbol,
       combinedSymbol: parts.length ? { parts } : undefined,
       textSymbol: symbol?.text_symbol
         ? {
+            // Mapper's per-symbol icon caption (the letter shown on the
+            // symbol swatch in the UI). Free-form, empty-string when
+            // unset. Preserved through the direct xmap round-trip only —
+            // no OCD equivalent.
+            iconText:
+              typeof symbol.text_symbol?.icon_text === 'string' &&
+              symbol.text_symbol.icon_text.length > 0
+                ? symbol.text_symbol.icon_text
+                : undefined,
             fontFamily: symbol.text_symbol?.font?.family,
             // XMap `<font size>` is 1/1000 mm (µm). Panmap's internal
             // `fontSize` is in millimetres to match the OCAD reader/
@@ -600,7 +618,6 @@ function toByte(value: XmlValue): number {
 function quantizeChannel(value: number): number {
   return Math.round(value * 100) / 100
 }
-
 
 // (`normaliseCapJoinPair` moved to `gitmap/writer/from-panmap/index.ts`
 // so xmap→panmap→xmap idempotence stays exact — normalisation only

@@ -287,7 +287,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="104001" code="104.1" name="Earth Bank (Main Line)">
-    <line_symbol color="6" line_width="180" minimum_length="0" join_style="2" cap_style="3" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="6" line_width="180" minimum_length="0" join_style="2" cap_style="3" start_offset="0" end_offset="0" dashed="false" segment_length="500" end_length="250" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="104004" code="104.4" name="Earth Bank (Tag)">
     <line_symbol color="6" line_width="140" minimum_length="0" join_style="2" cap_style="3" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
@@ -302,7 +302,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="106000" code="106.0" name="Ruined Earth Wall">
-    <line_symbol color="6" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="1000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1650" break_length="350" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
+    <line_symbol color="6" line_width="180" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1650" break_length="350" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="1" suppress_dash_symbol_at_ends="false">
       <mid_symbol>
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="225" inner_color="6" outer_width="0" outer_color="-1" elements="0"/>
@@ -2048,7 +2048,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="512000" code="512.0" name="Bridge or Tunnel">
-    <line_symbol color="4" line_width="180" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false">
+    <line_symbol color="4" line_width="180" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="true">
       <start_symbol>
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
@@ -2127,7 +2127,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="513001" code="513.1" name="Stenmurs linje">
-    <line_symbol color="4" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="4" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="1390" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="513002" code="513.2" name="Rek Stenmur">
     <line_symbol color="3" line_width="120" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="1400" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
@@ -2139,7 +2139,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="514000" code="514.0" name="Ruined Wall">
-    <line_symbol color="4" line_width="140" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="1000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1650" break_length="350" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
+    <line_symbol color="4" line_width="140" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1650" break_length="350" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="1" suppress_dash_symbol_at_ends="false">
       <mid_symbol>
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="200" inner_color="4" outer_width="0" outer_color="-1" elements="0"/>
@@ -2178,7 +2178,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="516001" code="516.1" name="Stängsel linje">
-    <line_symbol color="4" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="4" line_width="140" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="1200" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="516002" code="516.2" name="Fence sprint">
     <line_symbol color="4" line_width="140" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2000" end_length="1000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
@@ -2205,7 +2205,7 @@
     <line_symbol color="3" line_width="120" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="0" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="2" id="517000" code="517.0" name="Ruined Fence">
-    <line_symbol color="4" line_width="140" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="1000" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1650" break_length="350" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="2" suppress_dash_symbol_at_ends="false">
+    <line_symbol color="4" line_width="140" minimum_length="0" join_style="1" cap_style="0" start_offset="0" end_offset="0" dashed="true" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="1650" break_length="350" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="1" suppress_dash_symbol_at_ends="false">
       <mid_symbol>
         <symbol type="1" code="">
           <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
@@ -2247,7 +2247,7 @@
     </line_symbol>
   </symbol>
   <symbol type="2" id="518002" code="518.2" name="Högt stängsels linje">
-    <line_symbol color="4" line_width="250" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+    <line_symbol color="4" line_width="250" minimum_length="0" join_style="0" cap_style="0" start_offset="0" end_offset="0" dashed="false" segment_length="2500" end_length="1200" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
   </symbol>
   <symbol type="1" id="519000" code="519.0" name="Crossing Point">
     <point_symbol rotatable="true" inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="2">
@@ -2932,7 +2932,7 @@
     <point_symbol inner_radius="1000" inner_color="-1" outer_width="0" outer_color="-1" elements="1">
       <element>
         <symbol type="2" code="">
-          <line_symbol color="2" line_width="350" minimum_length="0" join_style="0" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
+          <line_symbol color="2" line_width="350" minimum_length="0" join_style="2" cap_style="1" start_offset="0" end_offset="0" dashed="false" segment_length="4000" end_length="0" show_at_least_one_symbol="true" minimum_mid_symbol_count="0" minimum_mid_symbol_count_when_closed="0" dash_length="4000" break_length="1000" dashes_in_group="1" in_group_break_length="500" mid_symbols_per_spot="1" mid_symbol_distance="0" mid_symbol_placement="0" suppress_dash_symbol_at_ends="false"/>
         </symbol>
         <object type="1" symbol="0">
           <coords count="21">
@@ -3120,6 +3120,7 @@
     <text_symbol icon_text="" rotatable="false">
       <font family="Arial" size="2363.611" bold="false" italic="false"/>
       <text color="6" line_spacing="1.2" paragraph_spacing="0" character_spacing="0"/>
+      <line_below color="2" width="110" distance="500"/>
     </text_symbol>
   </symbol>
   <symbol type="8" id="903003" code="903.3" name="Text liten (8 p) brun">

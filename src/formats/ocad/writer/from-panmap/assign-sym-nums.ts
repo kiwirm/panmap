@@ -48,17 +48,18 @@ export function assignSymNums(
       if (s.sourceId !== undefined) byId.set(s.sourceId, preferred)
     }
   }
-  // Pass 2: deferred symbols get the next free slot under their main code.
+  // Pass 2: deferred symbols get the next free slot ABOVE their
+  // preferred number. Matches Mapper's OCD export
+  // (ocd_file_export.cpp:makeUniqueSymbolNumber): increment by 1 from
+  // the desired symNum until an unused slot is found — instead of
+  // sweeping sub=1..999 from the low end. Kura-tawhiti's second
+  // `code="202.4"` (preferred=202004, taken) lands at 202005 the
+  // Mapper way, matching Mapper's own xmap→OCD output rather than
+  // wrongly claiming 202003 (which would be Mapper's `202.3` in
+  // fixtures that include it).
   for (const { symbol: s, preferred } of deferred) {
-    const main = Math.floor(preferred / 1000)
-    let n = preferred
-    for (let sub = 1; sub < 1000; sub++) {
-      const cand = main * 1000 + sub
-      if (!taken.has(cand)) {
-        n = cand
-        break
-      }
-    }
+    let n = preferred + 1
+    while (taken.has(n)) n++
     taken.add(n)
     byId.set(s.id, n)
     if (s.sourceId !== undefined) byId.set(s.sourceId, n)

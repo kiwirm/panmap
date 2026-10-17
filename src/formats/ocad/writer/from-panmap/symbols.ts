@@ -1,8 +1,5 @@
 import type { MapColor, MapSymbol } from '../../../../panmap/model.js'
-import {
-  classifyAreaLayers,
-  isPatternLayer,
-} from '../../../../panmap/render-layers.js'
+import { classifyAreaLayers } from '../../../../panmap/render-layers.js'
 import { parseSymbolCode } from '../../../../panmap/symbol-code.js'
 import { colorNumberLookup } from '../../../../panmap/color.js'
 import { strokeColorValid } from '../../../../panmap/stroke-classifier.js'
@@ -127,6 +124,19 @@ export function synthesizeSymbols(
     borderRegistry.set(symbol, nextBorderNum(symNumFor(symbol)))
   }
   for (const symbol of symbols) {
+    // Skip pure-refs combined_symbols (kura-tawhiti/orua-paeroa 412
+    // Cultivated land: <combined_symbol parts="2"><part symbol="X"/>
+    // <part symbol="Y"/></combined_symbol>). OCD has no equivalent
+    // aggregate — Mapper's own xmap→OCD writer drops these because
+    // the referenced part symbols already emit as standalone OCD
+    // symbols; a wrapper for them would be a phantom extra.
+    if (
+      (symbol.layers ?? []).some(
+        l => (l as { type?: string }).type === 'combined-refs',
+      )
+    ) {
+      continue
+    }
     const borderSymNum =
       borderRegistry.get(symbol) ?? existingBorderRef.get(symbol)
     const s = synthesizeSymbol(
@@ -424,7 +434,10 @@ function commonHeader(
     otp: otpForType(effectiveType),
     flags,
     selected: false,
-    status: symbol.hidden ? 2 : 0, // 2 = hidden in OCAD
+    // OCAD status byte: bit 0 = protected (SymbolProtected), bit 1 =
+    // hidden (SymbolHidden). Pack both from the canonical MapSymbol
+    // fields so ocd → xmap → ocd preserves user-locked state.
+    status: (symbol.protected ? 1 : 0) | (symbol.hidden ? 2 : 0),
     preferredDrawingTool: 0,
     csMode: 0,
     csObjType: 0,

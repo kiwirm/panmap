@@ -50,6 +50,7 @@ export type BaseSymbolProps = SymbolHeader &
   Partial<Symbol10Extras & Symbol11Extras> & {
     warnings: Error[]
     isHidden(): boolean
+    isProtected(): boolean
   }
 
 export type BaseSymbolDef = BaseSymbolProps & Record<string, unknown>
@@ -138,6 +139,12 @@ export default abstract class BaseSymbol implements BaseSymbolProps {
 
   isHidden(): boolean {
     return (this.status & 0x02) === 2
+  }
+
+  isProtected(): boolean {
+    // OCAD `status` byte packs SymbolProtected=0x01 alongside
+    // SymbolHidden=0x02 (see mapper/src/fileformats/ocd_types.h).
+    return (this.status & 0x01) === 1
   }
 }
 

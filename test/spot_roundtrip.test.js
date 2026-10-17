@@ -28,7 +28,10 @@ for (const [label, base] of [
     await fs.rm(dir, { recursive: true, force: true })
     await writeGitmap(ocdMap, dir)
     const back = await readGitmap(dir)
-    console.log('  after gitmap round-trip:', names(back).join(', ') || '(none)')
+    console.log(
+      '  after gitmap round-trip:',
+      names(back).join(', ') || '(none)',
+    )
     t.deepEqual(
       names(back),
       names(ocdMap),

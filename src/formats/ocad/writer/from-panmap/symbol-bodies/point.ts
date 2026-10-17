@@ -21,6 +21,7 @@ import type {
   XmapPointSymbolLike,
 } from './shared.js'
 import { normUnits } from './shared.js'
+import { encodeOcadElementFlags } from '../../../codecs/element-flags.js'
 
 export function pointBody(
   symbol: MapSymbol,
@@ -70,7 +71,9 @@ export function pointElementsFor(
         // too small — e.g. Prominent large tree (417): xmap
         // inner_radius=350 + outer_width=250 should encode as diameter=95,
         // not 70. Matches Mapper's own xmap→ocd conversion.
-        out.push(circleElement(colorNumber(cid), normUnits(r * 2 + w), normUnits(w)))
+        out.push(
+          circleElement(colorNumber(cid), normUnits(r * 2 + w), normUnits(w)),
+        )
         break
       }
       case 'point-elements': {
@@ -262,12 +265,9 @@ export function lineSymbolToElement(
   coords: OcadAnchor[],
   colorNumber: ColorNumber,
 ): OcadElement {
-  let flags = 0
-  if (ls.capStyle === 1) flags |= 0x01
-  if (ls.joinStyle === 1) flags |= 0x04
   return {
     type: LineElementType,
-    flags,
+    flags: encodeOcadElementFlags(ls.capStyle, ls.joinStyle),
     color: Math.max(0, colorNumber(ls.color)),
     lineWidth: normUnits(ls.lineWidth),
     diameter: 0,

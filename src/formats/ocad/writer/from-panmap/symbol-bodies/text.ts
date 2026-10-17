@@ -52,13 +52,18 @@ export function textBody(symbol: MapSymbol, colorNumber: ColorNumber) {
     indentFirst: 0,
     indentOther: 0,
     ...encodeTabs(text.tabs),
-    lbOn: false,
-    lbColor: 0,
-    lbWidth: 0,
-    lbDist: 0,
+    // Canonical `lineBelow` sub-object — both OCD and OMap readers
+    // populate the same shape (see readers), so this round-trips
+    // through gitmap and preserves the OCD `lb*` fields losslessly.
+    lbOn: !!(text.lineBelow as { visible?: boolean })?.visible,
+    lbColor: ((text.lineBelow as { color?: number })?.color as number) ?? 0,
+    lbWidth: ((text.lineBelow as { width?: number })?.width as number) ?? 0,
+    lbDist:
+      ((text.lineBelow as { distance?: number })?.distance as number) ?? 0,
     res2: 0,
-    frMode: 0,
-    frStyle: 0,
+    // OCAD-only framing (fr*) — same story as lb*.
+    frMode: (text.frMode as number) ?? 0,
+    frStyle: (text.frStyle as number) ?? 0,
     pointSymOn: false,
     pointSymNumber: 0,
   }

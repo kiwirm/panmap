@@ -56,7 +56,9 @@ test('bottle-lake ocd → gitmap → {ocd, xmap}', async t => {
   t.log(`\n### marked-vertex flags (object coords)`)
   t.log(`  source : corner=${src.corner} dash=${src.dash} hole=${src.hole}`)
   t.log(`  output : corner=${out.corner} dash=${out.dash} hole=${out.hole}`)
-  t.log(`  total marked  src=${src.corner + src.dash} out=${out.corner + out.dash}`)
+  t.log(
+    `  total marked  src=${src.corner + src.dash} out=${out.corner + out.dash}`,
+  )
 
   const ocdStat = await fs.stat(ocdOut)
   const xmapStat = await fs.stat(xmapOut)
